@@ -114,8 +114,8 @@ This project is licensed under the terms of the [Apache 2.0](LICENSE-Apache-2.0)
 
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
-[travis-ci-badge]: https://travis-ci.org/yahoo/crypki.svg?branch=master
-[travis-ci]:       https://travis-ci.org/yahoo/crypki
+[travis-ci-badge]: https://travis-ci.com/yahoo/crypki.svg?branch=master
+[travis-ci]:       https://travis-ci.com/yahoo/crypki
 [godoc-badge]:     https://godoc.org/github.com/yahoo/crypki?status.svg
 [godoc]:           https://godoc.org/github.com/yahoo/crypki
 [goreport-card-badge]: https://goreportcard.com/badge/yahoo/crypki

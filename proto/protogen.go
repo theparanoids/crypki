@@ -9,7 +9,7 @@ package proto
 // use protoc 3.6.1
 
 // run the following command after generating proto files to generate mock
-//go:generate $GOPATH/bin/mockgen -source=./sign.pb.go -destination=./../mocksign/mocksign.go -package=mocksign
+//go:generate $GOPATH/bin/mockgen -source=./sign.pb.go -destination=./mock/mock.go -package=mock
 
 // run the following commands to install the gomock
 // go get github.com/golang/mock/gomock

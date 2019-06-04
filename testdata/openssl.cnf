@@ -1,0 +1,23 @@
+# =================================================
+# OpenSSL configuration file
+# =================================================
+
+[ req ]
+default_bits            = 2048
+prompt                  = no
+encrypt_key             = no
+default_md              = sha1
+distinguished_name      = req_distinguished_name
+subjectAltName          = @alt_names
+req_extensions          = v3_req
+
+[ req_distinguished_name ]
+commonName              = example.com
+
+[alt_names]
+DNS.1 = foo.example.com
+DNS.2 = bar.example.com
+
+[ v3_req ]
+keyUsage         = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName   = DNS:test.example.com,DNS:*.test.example.com

@@ -1,0 +1,8 @@
+_build
+vendor
+.DS_Store
+.idea
+.key
+*.swp
+*.swo
+cmd/crypki/crypki

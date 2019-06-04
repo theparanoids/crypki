@@ -1,0 +1,21 @@
+{
+  "ModulePath": "/usr/local/lib/softhsm/libsofthsm2.so",
+  "SSHUserInfo": {"KeyLabel": "user_ssh", "SlotNumber": SLOTNUM_USER_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},               
+	"X509Info": {"KeyLabel": "host_x509", "SlotNumber": SLOTNUM_HOST_X509, "UserPinPath" : "/dev/shm/slot_pwd.txt"},
+	"SSHHostInfo": {"KeyLabel": "host_ssh", "SlotNumber": SLOTNUM_HOST_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},
+  "TLSServerName": "localhost",
+  "TLSClientAuthMode": 4,
+	"TLSServerCertPath": "/opt/crypki/tls-crt/server.crt",
+	"TLSServerKeyPath": "/opt/crypki/tls-crt/server.key",
+	"TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
+  "Keys": [
+    {"Identifier": "ssh-user-key", "KeyLabel": "user_ssh", "SlotNumber": SLOTNUM_USER_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},
+		{"Identifier": "x509-key", "KeyLabel": "host_x509", "SlotNumber": SLOTNUM_HOST_X509, "UserPinPath" : "/dev/shm/slot_pwd.txt", "X509CACertLocation": "/opt/sshca/CSD/x509_ca.crt", "CreateCACertIfNotExist": true, "Country": "US", "State": "Some-State", "Locality": "Example", "Organization": "Example! Inc.", "OrganizationalUnit": "Example"},
+		{"Identifier": "ssh-host-key", "KeyLabel": "host_ssh", "SlotNumber": SLOTNUM_HOST_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"}
+  ],
+  "KeyUsages": [
+    {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["ssh-user-key"]},
+		{"Endpoint": "/sig/x509-cert", "Identifiers": ["x509-key"]},
+		{"Endpoint": "/sig/ssh-host-cert", "Identifiers": ["ssh-host-key"]}
+  ]
+}

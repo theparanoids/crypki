@@ -1,0 +1,14 @@
+{
+  "TLSClientAuthMode": 4,
+  "TLSServerName": "cortana.corp.yahoo.com",
+  "X509CACertLocation":"testdata/cacert.pem",
+  "Keys": [
+    {"Identifier": "key1", "KeyLabel": "foo", "SlotNumber": 1, "UserPinPath" : "/path/1", "CreateCACertIfNotExist": true, "CommonName": "My CA"},
+    {"Identifier": "key2", "KeyLabel": "bar", "SlotNumber": 2, "UserPinPath" : "/path/2"},
+    {"Identifier": "key3", "KeyLabel": "baz", "SlotNumber": 3, "UserPinPath" : "/path/3", "X509CACertLocation": "/path/baz"}
+  ],
+  "KeyUsages": [
+    {"Endpoint": "/sig/x509-cert", "Identifiers": ["key1", "key3"]},
+    {"Endpoint": "/foo/bar", "Identifiers": ["key1", "key2"]}
+  ]
+}

@@ -1,0 +1,188 @@
+// Copyright 2019, Oath Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
+
+syntax = "proto3";
+option go_package = "proto";
+package v3;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+// KeyMeta identifies the private key used in crypto operations.
+message KeyMeta {
+    // The id of the key that will be used in crypto operations.
+    string identifier = 1;
+}
+
+// KeyMetas contains a list of KeyMetas.
+message KeyMetas {
+    repeated KeyMeta keys = 1;
+}
+
+// SSHCertificateSigningRequest specifies the info used for signing an SSH certificate.
+message SSHCertificateSigningRequest {
+    // Identifies the signing key in the HSM used for signing the certificate.
+    KeyMeta key_meta = 1;
+    // List of usernames or hostnames in the Principals field.
+    repeated string principals = 2;
+    // SSH public key.
+    string public_key = 3;
+    // Validity period of the certificate in seconds.
+    uint64 validity = 4;
+    // Key ID in the certificate.
+    string key_id = 5;
+    // Critical Options field in the certificate.
+    map<string, string> critical_options = 6;
+    // Extensions field in the certificate.
+    map<string, string> extensions = 7;
+}
+
+// SSHKey specifies an SSH key that can either be an:
+// 1. SSH public key, or
+// 2. SSH user/host certificate
+message SSHKey {
+    // The encoded string of the SSH key.
+    string key = 1;
+}
+
+// X509CertificateSigningRequest specifies the info used for signing an X509 certificate.
+message X509CertificateSigningRequest {
+    // Identifies the signing key in the HSM used for signing the certificate.
+    KeyMeta key_meta = 1;
+    // X509 certificate signing request encoded in PEM format.
+    string csr = 2;
+    // Validity period of the certificate in seconds.
+    uint64 validity = 3;
+    // X509 certificate ExtKeyUsage.
+    // https://godoc.org/crypto/x509#ExtKeyUsage
+    repeated int32 ext_key_usage = 4;
+}
+
+// X509Certificate specifies an X509 certificate.
+message X509Certificate {
+    // The X509 certificate encoded in PEM format.
+    string cert = 1;
+}
+
+// PublicKey is a encoded string of the public key specified by users. 
+message PublicKey {
+    // The encoded string of the public key.
+    string key = 1;
+}
+
+enum HashAlgo {
+    Unspecified_Hash = 0;
+    SHA224 = 1;
+    SHA256 = 2;
+    SHA384 = 3;
+    SHA512 = 4;
+}
+
+message BlobSigningRequest {
+    // Identifies the signing key in the PKCS#11 device used for signing the blob.
+    KeyMeta key_meta = 1;
+    // the hash digest of blob in base64 which will be signed.
+    string digest = 2;
+    // the algorithm of hash function used to generate the digest  
+    // https://golang.org/pkg/crypto/#Hash.
+    HashAlgo hash_algorithm = 3;
+}
+
+// Signature is a base64 encoded result of signing a blob. 
+message Signature {
+    string signature = 1;
+}
+
+// Signing service does signing operations using crypto keys in the HSM.
+service Signing {
+    // GetX509CertificateAvailableSigningKeys returns all available keys that can sign X509 certificates.
+    rpc GetX509CertificateAvailableSigningKeys(google.protobuf.Empty) returns (KeyMetas) {
+        option (google.api.http) = {
+            get: "/v3/sig/x509-cert/keys"
+        };
+    }
+
+    // GetX509CACertificate returns the CA X509 certificate self-signed by the specified key.
+    rpc GetX509CACertificate(KeyMeta) returns (X509Certificate) {
+        option (google.api.http) = {
+            get: "/v3/sig/x509-cert/keys/{identifier}"
+        };
+    }
+
+    // PostX509Certificate signs the given CSR using the specified key and returns a PEM encoded X509 certificate.
+    rpc PostX509Certificate(X509CertificateSigningRequest) returns (X509Certificate) {
+        option (google.api.http) = {
+            post: "/v3/sig/x509-cert/keys/{key_meta.identifier}"
+            body: "*"
+        };
+    }
+
+    // GetUserSSHCertificateAvailableSigningKeys returns all available keys that can sign user SSH certificates.
+    rpc GetUserSSHCertificateAvailableSigningKeys(google.protobuf.Empty) returns (KeyMetas) {
+        option (google.api.http) = {
+            get: "/v3/sig/ssh-user-cert/keys"
+        };
+    }
+
+    // GetUserSSHCertificateSigningKey returns the public signing key of the
+    // specified key that signs the user ssh certificate.
+    rpc GetUserSSHCertificateSigningKey(KeyMeta) returns (SSHKey) {
+        option (google.api.http) = {
+            get: "/v3/sig/ssh-user-cert/keys/{identifier}"
+        };
+    }
+
+    // PostUserSSHCertificate signs the SSH user certificate given request fields using the specified key.
+    rpc PostUserSSHCertificate(SSHCertificateSigningRequest) returns (SSHKey) {
+        option (google.api.http) = {
+            post: "/v3/sig/ssh-user-cert/keys/{key_meta.identifier}"
+            body: "*"
+        };
+    }
+
+    // GetHostSSHCertificateAvailableSigningKeys returns all available keys that can sign host SSH certificates.
+    rpc GetHostSSHCertificateAvailableSigningKeys(google.protobuf.Empty) returns (KeyMetas) {
+        option (google.api.http) = {
+            get: "/v3/sig/ssh-host-cert/keys"
+        };
+    }
+
+    // GetHostSSHCertificateSigningKey returns the public signing key of the
+    // specified key that signs the host ssh certificate.
+    rpc GetHostSSHCertificateSigningKey(KeyMeta) returns (SSHKey) {
+        option (google.api.http) = {
+            get: "/v3/sig/ssh-host-cert/keys/{identifier}"
+        };
+    }
+
+    // PostHostSSHCertificate signs the SSH host certificate given request fields using the specified key.
+    rpc PostHostSSHCertificate(SSHCertificateSigningRequest) returns (SSHKey) {
+        option (google.api.http) = {
+            post: "/v3/sig/ssh-host-cert/keys/{key_meta.identifier}"
+            body: "*"
+        };
+    }
+
+    // GetBlobAvailableSigningKeys returns all available keys that can sign
+    rpc GetBlobAvailableSigningKeys(google.protobuf.Empty) returns (KeyMetas) {
+        option (google.api.http) = {
+            get: "/v3/sig/blob/keys"
+        };
+    }
+
+    // GetBlobSigningKey returns the public signing key of the
+    // specified key that signs the user's data.
+    rpc GetBlobSigningKey(KeyMeta) returns (PublicKey) {
+        option (google.api.http) = {
+            get: "/v3/sig/blob/keys/{identifier}"
+        };
+    }
+
+    // PostSignBlob signs the digest using the specified key.
+    rpc PostSignBlob(BlobSigningRequest) returns (Signature) {
+        option (google.api.http) = {
+            post: "/v3/sig/blob/keys/{key_meta.identifier}"
+            body: "*" 
+        };
+    }
+}

@@ -30,7 +30,6 @@ Run:
 
 ```sh
 go get github.com/yahoo/crypki
-go install github.com/yahoo/crypki/cmd/crypki
 ```
 
 ## Usage 

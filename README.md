@@ -1,3 +1,5 @@
+# crypki [![Build Status][travis-ci-badge]][travis-ci] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card]
+
 # crypki
 > _A simple service for interacting with an HSM or other PKCS#11 device._
 
@@ -110,3 +112,12 @@ Sign x509 certificate
 ## License
 
 This project is licensed under the terms of the [Apache 2.0](LICENSE-Apache-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
+
+[golang]:          http://golang.org/
+[golang-install]:  http://golang.org/doc/install.html#releases
+[travis-ci-badge]: https://travis-ci.org/yahoo/crypki.svg?branch=master
+[travis-ci]:       https://travis-ci.org/yahoo/crypki
+[godoc-badge]:     https://godoc.org/github.com/yahoo/crypki?status.svg
+[godoc]:           https://godoc.org/github.com/yahoo/crypki
+[goreport-card-badge]: https://goreportcard.com/badge/yahoo/crypki
+[goreport-card]: https://goreportcard.com/report/yahoo/crypki

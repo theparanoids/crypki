@@ -56,7 +56,7 @@ To start crypki server clone the repo and run the following commands.
   curl -X GET https://localhost:4443/ruok --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt 
   ```
  
-**Disclaimer:** _the above installation guidelines are to help you get started with crypki; they should be used only for testing/development purposes. Please do not use this setup for production, because it is not secure._
+**Disclaimer:** _the above installation guidelines are to help you to get started with crypki; they should be used only for testing/development purposes. Please do not use this setup for production, because it is not secure._
 
 
 ## Configuration

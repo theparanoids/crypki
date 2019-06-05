@@ -36,7 +36,7 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	}
 	template := &x509.Certificate{
 		Subject:               subj,
-		SerialNumber:          NewSerial(),
+		SerialNumber:          newSerial(),
 		PublicKeyAlgorithm:    x509.RSA,
 		PublicKey:             signer.Public(),
 		SignatureAlgorithm:    getSignatureAlgorithm(pka),
@@ -55,7 +55,7 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}), nil
 }
 
-func NewSerial() *big.Int {
+func newSerial() *big.Int {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, _ := rand.Int(rand.Reader, serialNumberLimit)
 	return serialNumber

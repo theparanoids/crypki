@@ -32,7 +32,7 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 	// Construct an (unsigned) x509 certificate.
 	return &x509.Certificate{
 		Subject:               csr.Subject,
-		SerialNumber:          NewSerial(),
+		SerialNumber:          newSerial(),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		SignatureAlgorithm:    x509.SHA256WithRSA,

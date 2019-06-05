@@ -5,3 +5,13 @@ env:
 go:
 - 1.12.x
 - tip
+
+script:
+- go vet ./...
+- go build ./...
+- go test -v ./...
+- go test -v -race ./...
+- go test -race ./... -coverprofile=coverage.txt
+
+after_success:
+- bash <(curl -s https://codecov.io/bash)

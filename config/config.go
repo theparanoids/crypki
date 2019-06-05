@@ -22,10 +22,14 @@ const (
 	defaultPoolSize          = 2
 	defaultKeyType           = crypki.RSA
 
-	X509CertEndpoint    = "/sig/x509-cert"
+	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
+	X509CertEndpoint = "/sig/x509-cert"
+	// SSHUserCertEndpoint specifies the endpoint for signing SSH user certificate.
 	SSHUserCertEndpoint = "/sig/ssh-user-cert"
+	// SSHHostCertEndpoint specifies the endpoint for signing SSH host certificate.
 	SSHHostCertEndpoint = "/sig/ssh-host-cert"
-	BlobEndpoint        = "/sig/blob"
+	// BlobEndpoint specifies the endpoint for raw signing.
+	BlobEndpoint = "/sig/blob"
 )
 
 // KeyUsage configures which key(s) can be used for the API call.

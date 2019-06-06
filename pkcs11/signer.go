@@ -164,7 +164,7 @@ func (s *signer) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
 	return x509.MarshalPKIXPublicKey(signer.Public())
 }
 func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
-	const methodName = "Sign"
+	const methodName = "SignBlob"
 	start := time.Now()
 	var ht int64
 	defer func() {
@@ -173,7 +173,7 @@ func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier s
 	}()
 
 	if digest == nil {
-		return nil, errors.New("%s: cannot sign empty digest")
+		return nil, fmt.Errorf("%s: cannot sign empty digest", methodName)
 	}
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {

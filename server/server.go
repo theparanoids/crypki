@@ -33,8 +33,6 @@ import (
 
 const logFile = "/var/log/crypki/server.log"
 
-var varConfig string
-
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. More: https://grpc.io/blog/coreos
 func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
@@ -60,13 +58,8 @@ func initHTTPServer(ctx context.Context, tlsConfig *tls.Config, grpcServer *grpc
 
 	srv := &http.Server{
 		Addr: addr,
-		// discard noisy messages until we find a better way to filter them out,
-		// maybe via custom logger which filters it out.
-		// "http: TLS handshake error from 1.2.3.4:53651: EOF" - these are due to load balancer
-		// healthchecks
-		// "http: TLS handshake error from 27.123.194.13:53004:
-		// tls: oversized record received with length 29706" - these are originating from RA and
-		// need further investigation - https://jira.ouroath.com/browse/SSHCA-1289
+		// to discard noisy messages like
+		// "http: TLS handshake error from 1.2.3.4:53651: EOF"
 		ErrorLog:     log.New(ioutil.Discard, "", 0),
 		Handler:      grpcHandlerFunc(ctx, grpcServer, mux),
 		IdleTimeout:  30 * time.Second,
@@ -104,6 +97,7 @@ func getIPs() (ips []net.IP, err error) {
 
 // Main represents the main function which starts crypki server.
 func Main(keyP crypki.KeyIDProcessor) {
+	cfgVal := ""
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -115,13 +109,13 @@ func Main(keyP crypki.KeyIDProcessor) {
 	log.SetOutput(file)
 	go logRotate(file)
 
-	flag.StringVar(&varConfig, "config", "", "Configuration file path")
+	flag.StringVar(&cfgVal, "config", "", "Configuration file path")
 	flag.Parse()
-	if varConfig == "" {
+	if cfgVal == "" {
 		log.Fatalf("no configuration file provided")
 	}
 
-	cfg, err := config.Parse(varConfig)
+	cfg, err := config.Parse(cfgVal)
 	if err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}
@@ -203,7 +197,6 @@ func Main(keyP crypki.KeyIDProcessor) {
 }
 
 // tlsConfiguration returns tls configuration.
-// TODO: https://jira.ouroath.com/browse/SSHCA-1312
 func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMode tls.ClientAuthType) (*tls.Config, error) {
 	cfg := &tls.Config{}
 	certPool := x509.NewCertPool()
@@ -228,9 +221,7 @@ func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMod
 		}
 		cfg.Certificates = make([]tls.Certificate, 1)
 		cfg.Certificates[0] = mycert
-
 		cfg.ClientCAs = certPool
-
 		cfg.ClientAuth = clientAuthMode
 	}
 
@@ -249,7 +240,7 @@ func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMod
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
 
-	// Use only TLS v1.2.
+	// Use TLS v1.2 and higher.
 	cfg.MinVersion = tls.VersionTLS12
 
 	// prefer HTTP/2 explicitly

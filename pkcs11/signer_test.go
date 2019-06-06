@@ -1,10 +1,13 @@
 package pkcs11
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -316,6 +319,91 @@ func TestSignX509Cert(t *testing.T) {
 			}
 			if !reflect.DeepEqual(cert.Subject.String(), subject.String()) {
 				t.Fatalf("subject mismatch: got %q, want: %q", cert.Subject, subject)
+			}
+		})
+	}
+}
+
+func TestGetBlobSigningPublicKey(t *testing.T) {
+	t.Parallel()
+	testcases := map[string]struct {
+		identifier  string
+		isBadSigner bool
+		expectError bool
+	}{
+		"good-signer":    {defaultIdentifier, false, false},
+		"bad-identifier": {badIdentifier, false, true},
+		"bad-signer":     {defaultIdentifier, true, true},
+	}
+	for label, tt := range testcases {
+		tt := tt
+		t.Run(label, func(t *testing.T) {
+			t.Parallel()
+			signer, err := initMockSigner(tt.isBadSigner)
+			if err != nil {
+				t.Fatalf("unable to init mock signer: %v", err)
+			}
+			_, err = signer.GetBlobSigningPublicKey(tt.identifier)
+			if err != nil != tt.expectError {
+				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
+			}
+		})
+	}
+}
+
+func TestSignBlob(t *testing.T) {
+	t.Parallel()
+	blob := []byte("good")
+	goodDigestSHA224 := sha256.Sum224(blob)
+	goodDigestSHA256 := sha256.Sum256(blob)
+	goodDigestSHA384 := sha512.Sum384(blob)
+	goodDigestSHA512 := sha512.Sum512(blob)
+
+	data, err := ioutil.ReadFile("testdata/rsa.key.pem")
+	if err != nil {
+		t.Fatalf("unable to read private key: %v", err)
+	}
+	decoded, _ := pem.Decode(data)
+	key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
+	if err != nil {
+		t.Fatalf("unable to parse private key: %v", err)
+	}
+
+	testcases := map[string]struct {
+		digest      []byte
+		opts        crypto.SignerOpts
+		identifier  string
+		isBadSigner bool
+		expectError bool
+	}{
+		"good-SHA224":    {goodDigestSHA224[:], crypto.SHA224, defaultIdentifier, false, false},
+		"good-SHA256":    {goodDigestSHA256[:], crypto.SHA256, defaultIdentifier, false, false},
+		"good-SHA384":    {goodDigestSHA384[:], crypto.SHA384, defaultIdentifier, false, false},
+		"good-SHA512":    {goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false},
+		"bad-digest":     {[]byte("bad digest"), crypto.SHA256, defaultIdentifier, false, true},
+		"bad-wrong-hash": {goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, false, true},
+		"bad-identifier": {goodDigestSHA224[:], crypto.SHA256, badIdentifier, false, true},
+		"bad-signer":     {goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, true},
+	}
+	for label, tt := range testcases {
+		tt := tt
+		t.Run(label, func(t *testing.T) {
+			t.Parallel()
+			signer, err := initMockSigner(tt.isBadSigner)
+			if err != nil {
+				t.Fatalf("unable to init mock signer: %v", err)
+			}
+			signature, err := signer.SignBlob(tt.digest, tt.opts, tt.identifier)
+			if err != nil != tt.expectError {
+				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
+			}
+			if err != nil {
+				return
+			}
+
+			err = rsa.VerifyPKCS1v15(&key.PublicKey, tt.opts.(crypto.Hash), tt.digest, signature)
+			if err != nil {
+				t.Fatalf("failed to verify certificate: %v", err)
 			}
 		})
 	}

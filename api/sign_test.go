@@ -95,7 +95,7 @@ func (mbcs *mockBadCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier 
 func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) Sign(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 
@@ -117,7 +117,7 @@ func (mgcs *mockGoodCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier
 func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
 	return []byte("good blob signing key"), nil
 }
-func (mgcs *mockGoodCertSign) Sign(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	return []byte("good blob signature"), nil
 }
 

@@ -44,8 +44,8 @@ type CertSign interface {
 	SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error)
 	// GetBlobSigningKey returns the public signing key of the specified key that signs the user's data.
 	GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error)
-	// Sign returns a signature signed by the specified key.
-	Sign(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error)
+	// SignBlob returns a signature signed by the specified key.
+	SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error)
 }
 
 // CAConfig represents the configuration params for generating the CA certificate.

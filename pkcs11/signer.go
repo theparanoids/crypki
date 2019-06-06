@@ -154,10 +154,43 @@ func (s *signer) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]b
 }
 
 func (s *signer) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
-	return nil, errors.New("not implemented")
+	pool, ok := s.sPool[keyIdentifier]
+	if !ok {
+		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
+	}
+	signer := pool.get()
+	defer pool.put(signer)
+
+	return x509.MarshalPKIXPublicKey(signer.Public())
 }
-func (s *signer) Sign(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
-	return nil, errors.New("not implemented")
+func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+	const methodName = "Sign"
+	start := time.Now()
+	var ht int64
+	defer func() {
+		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
+		log.Printf("m=%s: ht=%d, tt=%d", methodName, ht, tt)
+	}()
+
+	if digest == nil {
+		return nil, errors.New("%s: cannot sign empty digest")
+	}
+	pool, ok := s.sPool[keyIdentifier]
+	if !ok {
+		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
+	}
+	signer := pool.get()
+	defer pool.put(signer)
+
+	// measure time taken by hsm
+	hStart := time.Now()
+	signature, err := signer.Sign(rand.Reader, digest, opts)
+	if err != nil {
+		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+		return nil, err
+	}
+	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+	return signature, nil
 }
 
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.

@@ -62,7 +62,7 @@ To start crypki server clone the repo and run the following commands.
 
 
 ## Configuration
-Take a look at the [sample configuration file](https://github.com/yahoo/blob/master/crypki/config/testdata/testconf-good.json) to see how to configure crypki
+Take a look at the [sample configuration file](https://github.com/yahoo/crypki/blob/master/config/testdata/testconf-good.json) to see how to configure crypki
 
 ## API
 

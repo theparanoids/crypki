@@ -32,6 +32,13 @@ const (
 	BlobEndpoint = "/sig/blob"
 )
 
+var endpoints = map[string]bool{
+	X509CertEndpoint:    true,
+	SSHUserCertEndpoint: true,
+	SSHHostCertEndpoint: true,
+	BlobEndpoint:        true,
+}
+
 // KeyUsage configures which key(s) can be used for the API call.
 type KeyUsage struct {
 	// Endpoint represents the API call that is made.
@@ -112,7 +119,7 @@ func (c *Config) validate() error {
 	c.TLSServerName = strings.TrimSpace(c.TLSServerName)
 	// Do a basic validation on Keys and KeyUsages.
 	for _, ku := range c.KeyUsages {
-		if ku.Endpoint != X509CertEndpoint && ku.Endpoint != SSHHostCertEndpoint && ku.Endpoint != SSHUserCertEndpoint {
+		if _, ok := endpoints[ku.Endpoint]; !ok {
 			return fmt.Errorf("unknown endpoint %q", ku.Endpoint)
 		}
 		// Check that all key identifiers are defined in Keys,

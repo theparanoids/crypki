@@ -26,6 +26,8 @@ func TestParse(t *testing.T) {
 		KeyUsages: []KeyUsage{
 			{"/sig/x509-cert", []string{"key1", "key3"}, 3600},
 			{"/sig/ssh-host-cert", []string{"key1", "key2"}, 36000},
+			{"/sig/ssh-user-cert", []string{"key3"}, 36000},
+			{"/sig/blob", []string{"key1"}, 36000},
 		},
 	}
 	testcases := map[string]struct {

@@ -66,7 +66,7 @@ Take a look at the [sample configuration file](https://github.com/yahoo/crypki/b
 
 ## API
 
-APIs for crypki are defined under [crypki/proto](https://github.com/yahoo/blob/master/crypki/proto/sign.proto#L68). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.  
+APIs for crypki are defined under [crypki/proto](https://github.com/yahoo/crypki/tree/master/proto). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.  
 
 Examples:
  

@@ -32,7 +32,7 @@ fi
 set -e # exit if anything at all fails after here
 
 #
-# {re-}initialize SSHCA slot with SO PIN
+# {re-}initialize slots with SO PIN
 #
 user_ssh_slot=`${softhsm} --init-token --slot 0 --label user_ssh --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 host_x509_slot=`${softhsm} --init-token --slot 1 --label host_x509 --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`

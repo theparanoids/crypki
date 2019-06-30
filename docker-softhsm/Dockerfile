@@ -1,15 +1,15 @@
-# syntax=docker/dockerfile:experimental
-FROM golang:1.12.2
-ENV SSHCAPKG github.com/yahoo
-COPY . /go/src/${SSHCAPKG}
-WORKDIR /go/src/${SSHCAPKG}/crypki
-RUN go get -v ./... && go test ./... && go build -o crypki-bin ${SSHCAPKG}/crypki/cmd/crypki
+FROM golang:1.12.6
+ENV CRYPKI_PKG /src
+ENV GO111MODULE on
+COPY . ${CRYPKI_PKG}
+WORKDIR ${CRYPKI_PKG}
+RUN go get -v ./... && go test ./... && go build -o crypki-bin ${CRYPKI_PKG}/cmd/crypki
 
 
 FROM debian:latest
-ENV SSHCAPKG github.com/yahoo
+ENV CRYPKI_PKG /src
 RUN mkdir -p /var/log/crypki /opt/crypki
-COPY --from=0 /go/src/${SSHCAPKG}/crypki/crypki-bin /usr/bin/
+COPY --from=0 ${CRYPKI_PKG}/crypki-bin /usr/bin/
 
 ENV SOFTHSM2_VERSION=2.5.0 \
     SOFTHSM2_SOURCES=/tmp/softhsm2
@@ -26,8 +26,8 @@ RUN git checkout ${SOFTHSM2_VERSION} -b ${SOFTHSM2_VERSION} \
     && make \
     && make install
 
-COPY ./crypki/docker-softhsm/init_hsm.sh /opt/crypki
-COPY ./crypki/docker-softhsm/crypki.conf.sample /opt/crypki
+COPY ./docker-softhsm/init_hsm.sh /opt/crypki
+COPY ./docker-softhsm/crypki.conf.sample /opt/crypki
 WORKDIR /opt/crypki
 
 RUN /bin/bash /opt/crypki/init_hsm.sh

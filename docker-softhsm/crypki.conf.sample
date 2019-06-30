@@ -10,7 +10,7 @@
 	"TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
   "Keys": [
     {"Identifier": "ssh-user-key", "KeyLabel": "user_ssh", "SlotNumber": SLOTNUM_USER_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},
-		{"Identifier": "x509-key", "KeyLabel": "host_x509", "SlotNumber": SLOTNUM_HOST_X509, "UserPinPath" : "/dev/shm/slot_pwd.txt", "X509CACertLocation": "/opt/sshca/CSD/x509_ca.crt", "CreateCACertIfNotExist": true, "Country": "US", "State": "Some-State", "Locality": "Example", "Organization": "Example! Inc.", "OrganizationalUnit": "Example"},
+		{"Identifier": "x509-key", "KeyLabel": "host_x509", "SlotNumber": SLOTNUM_HOST_X509, "UserPinPath" : "/dev/shm/slot_pwd.txt", "X509CACertLocation": "/opt/crypki/x509_ca.crt", "CreateCACertIfNotExist": true, "Country": "US", "State": "Some-State", "Locality": "Example", "Organization": "Example! Inc.", "OrganizationalUnit": "Example"},
 		{"Identifier": "ssh-host-key", "KeyLabel": "host_ssh", "SlotNumber": SLOTNUM_HOST_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"}
   ],
   "KeyUsages": [

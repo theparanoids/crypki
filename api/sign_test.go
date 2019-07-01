@@ -46,7 +46,7 @@ jfOwXe2T9BIwzSu8EH9adQhFt1tH/yy5KTK3H5556OFOTSzxh2zfLa4=
 	testGoodRsaPubKey   = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3qVQkPbXzYzykUomIP9q/ZYyIyKFyYZt/7qZ5fIsnfFBmJAbRMiQCXxKUcM8EkY4MO4d7ujePdLZRwPz+IakOhpvldIXJGgURMNiVbGpXFNS9HHOFnvFdiss6piu7oG9J1cMaR3XqnV5waiYSEQ+w1e/ZGcGFmq4Bc/ubeFU/kPG110pXCT+Ka6nSUI2p7zg7tEH9hOx8oWB1RoVFlPzGr1pO+pwNT6SyPK/pSCTlR3iiv84C70DSh/uKe0Hl3R0i/ebJrHNy5HaIL4hcB7bUXgyko6tU+zOaL0kVjHVNninq/wu9YIG5Q3CL6Or6+RbWkI5b3Rfxh1cuCxHv//RV XX@XX`
 	testGoodDsaPubKey   = `ssh-dss AAAAB3NzaC1kc3MAAACBAJO2OS5J02GNCTRdHkkCKnrAM6ZJkyHsvlixWN+16ahzqZD7ijdQwiIofchTpqAsKgXPLH3OhCMvItDrvsJ56SNbP1RlW9qcPix94Ar4xaiW5kqngf0AallzVO1yjyVA0vtjzGBiM0ShzMGYogj1+jOsjgu2/B/FvGb2gIAc/l1lAAAAFQCZdAPNrWBZ92WeSmgL42iQZqKiwwAAAIAyMcUFJYzB+CDZ5aifPYzWPyrHfi/DhHmiY4pDAjFnZUWB6N+Heo1ovITVPLL7coFwLcv1PCvAJ7H+2BPtx7OMzicfAB2OustgzMfznOeUXVtFvA4jaaBP1x/BTrH4THz3gTg/lr6kBpsb/nHzBCLRXjGxsXV/GLQfVvBqVGQruAAAAIAhD56FQ9iNOMHiK+Lin1tF5f/kHFdUMIO1DRodv2ueBTTgXjcZ28i5KVCEuifQ8e9QFy7Za1NePAc1R0MwDoytyirK4IWFZCn0X1nHd1DRuw+0yxUOwwk/HyjC5myo7wf3ZNcjzBu5Hd56POc6XtIHY88PX8dsGyzKGv5J3ops1A== XXX@X2VD2JLHTDD`
 	testGoodEcdsaPubKey = `ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGbEX631frylkElDpZzmc2use3n/kCO7WXI07D1DYGutOd2F1ZTAcqCd2jzWzjNurS2Y2rROJP1roeDTAm6p8jI= XXX@XXVD2JLHTDD`
-	testGoodKeyID       = `prins=Bob, crTime=20190329T010015, host=host.XXX.com, reqU=Bob, reqIP=C02VD2JLHTDD, transID=6431f24e, isHWKey=true, touchPolicy=3, isFirefighter=false, isHeadless=false. YahooSSHCA`
+	testGoodKeyID       = `prins=Bob, crTime=20200529T010015, host=host.XXX.com, reqU=Bob, reqIP=1.2.3.4, transID=6431f24e`
 )
 
 var (

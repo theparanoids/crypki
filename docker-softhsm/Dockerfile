@@ -1,38 +1,20 @@
 FROM golang:1.12.6
-ENV CRYPKI_PKG /src
-ENV GO111MODULE on
-COPY . ${CRYPKI_PKG}
-WORKDIR ${CRYPKI_PKG}
-RUN go get -v ./... && go test ./... && go build -o crypki-bin ${CRYPKI_PKG}/cmd/crypki
+ENV CRYPKI_DIR /go/src/github.com/yahoo/crypki
+COPY . ${CRYPKI_DIR}
+WORKDIR ${CRYPKI_DIR}
+RUN go get -v ./... && go test ./... && go build -o crypki-bin ${CRYPKI_DIR}/cmd/crypki
 
-
-FROM debian:latest
-ENV CRYPKI_PKG /src
-RUN mkdir -p /var/log/crypki /opt/crypki
-COPY --from=0 ${CRYPKI_PKG}/crypki-bin /usr/bin/
-
-ENV SOFTHSM2_VERSION=2.5.0 \
-    SOFTHSM2_SOURCES=/tmp/softhsm2
-
-# build and install SoftHSM2
-RUN apt-get -y update && apt-get -y install git autogen autoconf build-essential opensc libtool pkg-config libssl-dev && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/man/?? /usr/share/man/??_* && \
-git clone https://github.com/opendnssec/SoftHSMv2.git ${SOFTHSM2_SOURCES}
-
-WORKDIR ${SOFTHSM2_SOURCES}
-
-RUN git checkout ${SOFTHSM2_VERSION} -b ${SOFTHSM2_VERSION} \
-    && sh autogen.sh \
-    && ./configure --prefix=/usr/local --disable-gost \
-    && make \
-    && make install
-
-COPY ./docker-softhsm/init_hsm.sh /opt/crypki
-COPY ./docker-softhsm/crypki.conf.sample /opt/crypki
+FROM debian:sid-slim
+ENV CRYPKI_DIR /go/src/github.com/yahoo/crypki
 WORKDIR /opt/crypki
 
-RUN /bin/bash /opt/crypki/init_hsm.sh
+COPY --from=0 ${CRYPKI_DIR}/crypki-bin /usr/bin/
+COPY ./docker-softhsm/init_hsm.sh /opt/crypki
+COPY ./docker-softhsm/crypki.conf.sample /opt/crypki
 
-WORKDIR /root
-RUN rm -fr ${SOFTHSM2_SOURCES}
+RUN mkdir -p /var/log/crypki /opt/crypki \
+&& apt-get update \
+&& apt-get install -y softhsm opensc \
+&& /bin/bash -x /opt/crypki/init_hsm.sh
 
 CMD ["/usr/bin/crypki-bin", "-config", "/opt/crypki/crypki-softhsm.json"]

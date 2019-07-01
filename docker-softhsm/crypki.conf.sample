@@ -1,5 +1,5 @@
 {
-  "ModulePath": "/usr/local/lib/softhsm/libsofthsm2.so",
+  "ModulePath": "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",
   "SSHUserInfo": {"KeyLabel": "user_ssh", "SlotNumber": SLOTNUM_USER_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},               
 	"X509Info": {"KeyLabel": "host_x509", "SlotNumber": SLOTNUM_HOST_X509, "UserPinPath" : "/dev/shm/slot_pwd.txt"},
 	"SSHHostInfo": {"KeyLabel": "host_ssh", "SlotNumber": SLOTNUM_HOST_SSH, "UserPinPath" : "/dev/shm/slot_pwd.txt"},

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -euo pipefail
 umask 022
 
@@ -38,10 +38,11 @@ user_ssh_slot=`${softhsm} --init-token --slot 0 --label user_ssh --so-pin ${SOPI
 host_x509_slot=`${softhsm} --init-token --slot 1 --label host_x509 --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 host_ssh_slot=`${softhsm} --init-token --slot 2 --label host_ssh --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 
+modulepath="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
 # Generate the Keys in the PKCS11 slot
-${p11tool} --module /usr/local/lib/softhsm/libsofthsm2.so --pin 123456 --slot ${user_ssh_slot} --keypairgen --label "user_ssh" --key-type rsa:4096 --private
-${p11tool} --module /usr/local/lib/softhsm/libsofthsm2.so --pin 123456 --slot ${host_x509_slot} --keypairgen --label "host_x509" --key-type rsa:4096 --private
-${p11tool} --module /usr/local/lib/softhsm/libsofthsm2.so --pin 123456 --slot ${host_ssh_slot} --keypairgen --label "host_ssh" --key-type rsa:4096 --private
+${p11tool} --module ${modulepath} --pin 123456 --slot ${user_ssh_slot} --keypairgen --label "user_ssh" --key-type rsa:4096 --private
+${p11tool} --module ${modulepath} --pin 123456 --slot ${host_x509_slot} --keypairgen --label "host_x509" --key-type rsa:4096 --private
+${p11tool} --module ${modulepath} --pin 123456 --slot ${host_ssh_slot} --keypairgen --label "host_ssh" --key-type rsa:4096 --private
 
 CRYPKI_CONFIG=`sed -e "s/SLOTNUM_USER_SSH/${user_ssh_slot}/g; s/SLOTNUM_HOST_X509/${host_x509_slot}/g; s/SLOTNUM_HOST_SSH/${host_ssh_slot}/g" crypki.conf.sample`
 

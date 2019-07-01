@@ -10,23 +10,32 @@ error() {
 SOPIN=1234
 USERPIN=123456
 
+modulepath="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+
+user_ssh_label="user_ssh"
+host_x509_label="host_x509"
+host_ssh_label="host_ssh"
+user_ssh_keytype="rsa:4096"
+host_x509_keytype="EC:prime256v1"
+host_ssh_keytype="rsa:4096"
+
 #
-# check for needed binaries/etc, provide "helpful" advice
+# check for required binaries and libraries
 #
 if [ "`uname -s`" != "Linux" ]; then
-	error "This only works on linux because the binaries and librarys are only available there."
+	error "This only works on linux because required binaries and libraries are only available and tested on linux."
 fi
 p11tool="`which pkcs11-tool 2>/dev/null`"
 p11tool="${p11tool:=/usr/bin/pkcs11-tool}"
 if [ ! -x "${p11tool}" ]; then
-	error "Can't find pkcs11-tool binary in path or /usr/bin/pkcs11-tool. Needed to configure the HSM.
-	yum -y install opensc # (or local equivalent rpm)"
+	error "Can't find pkcs11-tool binary in path or /usr/bin/pkcs11-tool. Needed to configure the HSM/PKCS#11 device.
+	yum -y install opensc or apt-get install opensc # (or local equivalent package)"
 fi
 softhsm="`which softhsm2-util 2>/dev/null`"
 softhsm="${softhsm:=/usr/bin/softhsm2-util}"
 if [ ! -x "${softhsm}" ]; then
-	error "Can't find softhsm binary in path or /usr/bin/softhsm2-util. Needed to configure the HSM.
-	yum -y install softhsm # (or local equivalent rpm)"
+	error "Can't find softhsm binary in path or /usr/bin/softhsm2-util. Needed to configure the HSM/PKCS#11 device.
+	yum -y install softhsm or apt-get install softhsm # (or local equivalent package)"
 fi
 
 set -e # exit if anything at all fails after here
@@ -38,11 +47,10 @@ user_ssh_slot=`${softhsm} --init-token --slot 0 --label user_ssh --so-pin ${SOPI
 host_x509_slot=`${softhsm} --init-token --slot 1 --label host_x509 --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 host_ssh_slot=`${softhsm} --init-token --slot 2 --label host_ssh --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 
-modulepath="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
 # Generate the Keys in the PKCS11 slot
-${p11tool} --module ${modulepath} --pin 123456 --slot ${user_ssh_slot} --keypairgen --label "user_ssh" --key-type rsa:4096 --private
-${p11tool} --module ${modulepath} --pin 123456 --slot ${host_x509_slot} --keypairgen --label "host_x509" --key-type rsa:4096 --private
-${p11tool} --module ${modulepath} --pin 123456 --slot ${host_ssh_slot} --keypairgen --label "host_ssh" --key-type rsa:4096 --private
+${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${user_ssh_slot} --keypairgen --label ${user_ssh_label} --key-type ${user_ssh_keytype} --private
+${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${host_x509_slot} --keypairgen --label ${host_x509_label} --key-type ${host_x509_keytype} --private
+${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${host_ssh_slot} --keypairgen --label ${host_ssh_label} --key-type ${host_ssh_keytype} --private
 
 CRYPKI_CONFIG=`sed -e "s/SLOTNUM_USER_SSH/${user_ssh_slot}/g; s/SLOTNUM_HOST_X509/${host_x509_slot}/g; s/SLOTNUM_HOST_SSH/${host_ssh_slot}/g" crypki.conf.sample`
 

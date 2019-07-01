@@ -16,7 +16,7 @@ user_ssh_label="user_ssh"
 host_x509_label="host_x509"
 host_ssh_label="host_ssh"
 user_ssh_keytype="rsa:4096"
-host_x509_keytype="EC:prime256v1"
+host_x509_keytype="EC:prime384v1"
 host_ssh_keytype="rsa:4096"
 
 #

@@ -19,17 +19,17 @@ type dsaSignature struct {
 
 // oidDERToCurve maps the hex of the DER encoding of the various curve OIDs to
 // the relevant curve parameters
-var oidDERToCurve = map[string]*elliptic.CurveParams{
-	"06052B81040021":       elliptic.P224().Params(),
-	"06082A8648CE3D030107": elliptic.P256().Params(),
-	"06052B81040022":       elliptic.P384().Params(),
-	"06052B81040023":       elliptic.P521().Params(),
+var oidDERToCurve = map[string]elliptic.Curve{
+	"06052B81040021":       elliptic.P224(),
+	"06082A8648CE3D030107": elliptic.P256(),
+	"06052B81040022":       elliptic.P384(),
+	"06052B81040023":       elliptic.P521(),
 }
 
-func getPublic(point []byte) (pub crypto.PublicKey, err error) {
+func getPublic(point []byte, curve elliptic.Curve) (pub crypto.PublicKey, err error) {
 	var ecdsaPub ecdsa.PublicKey
 
-	ecdsaPub.Curve = elliptic.P256() // TODO: allow other curves
+	ecdsaPub.Curve = curve
 	pointLength := ecdsaPub.Curve.Params().BitSize/8*2 + 1
 	if len(point) != pointLength {
 		err = fmt.Errorf("CKA_EC_POINT (%d) does not fit used curve (%d)", len(point), pointLength)
@@ -56,28 +56,26 @@ func publicECDSA(s *p11Signer) crypto.PublicKey {
 		p11.NewAttribute(p11.CKA_EC_POINT, nil),
 	})
 	if len(attrs) < 2 {
-		panic("expected two attributes")
+		panic("publicECDSA: expected two attributes")
 	}
 
-	/*
-		// TODO: use this to make it work for other curves
-		cur, ok := oidDERToCurve[fmt.Sprintf("%X", attrs[0].Value)]
-		if !ok {
-			panic("unknown curve")
-		}
-	*/
+	curve, ok := oidDERToCurve[fmt.Sprintf("%X", attrs[0].Value)]
+	if !ok {
+		panic("publicECDSA: unknown curve: " + fmt.Sprintf("%X", attrs[0].Value))
+	}
+
 	pointBytes := attrs[1].Value
 	if pointBytes == nil {
-		panic("unable to get EC point")
+		panic("publicECDSA: unable to get EC point")
 	}
 	var pb []byte
 	_, err = asn1.Unmarshal(pointBytes, &pb)
 	if err != nil {
-		panic("asn1 unmarshal failed: " + err.Error())
+		panic("publicECDSA: asn1 unmarshal failed: " + err.Error())
 	}
-	pubkey, err := getPublic(pb)
+	pubkey, err := getPublic(pb, curve)
 	if err != nil {
-		panic("getPublic failed: " + err.Error())
+		panic("publicECDSA: getPublic failed: " + err.Error())
 	}
 	return pubkey
 }
@@ -123,7 +121,7 @@ func (sig *dsaSignature) marshalDER() ([]byte, error) {
 
 // Populate a dsaSignature from a raw byte sequence
 func (sig *dsaSignature) unmarshalBytes(sigBytes []byte) error {
-	if len(sigBytes) == 0 || len(sigBytes)%2 != 0 {
+	if len(sigBytes) == 0 {
 		return errors.New("malformed signature")
 	}
 	n := len(sigBytes) / 2

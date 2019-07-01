@@ -41,7 +41,12 @@ To start crypki server clone the repo and run the following commands.
   ```sh
   $ docker build -f docker-softhsm/Dockerfile -t crypki-local .
   ```
-  
+
+If you want to speed up docker image build process, before running the command above, you can cache the dependencies locally using the following command.
+```sh
+$ go mod vendor
+```
+
 - Generate certs and keys required for mutual TLS between the front end-client and the crypki backend server
   ```sh
   cd docker-softhsm

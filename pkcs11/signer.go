@@ -141,7 +141,7 @@ func (s *signer) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]b
 	}
 	signer := pool.get()
 	defer pool.put(signer)
-
+	cert.SignatureAlgorithm = getSignatureAlgorithm(signer.signAlgorithm())
 	// measure time taken by hsm
 	hStart := time.Now()
 	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)
@@ -248,4 +248,15 @@ func getUserPin(pinFilePath string) (string, error) {
 	userPinStr := string(userPin)
 	userPinStr = strings.TrimSpace(userPinStr) // for removing trailing '/n'
 	return userPinStr, nil
+}
+
+func getSignatureAlgorithm(pka crypki.PublicKeyAlgorithm) x509.SignatureAlgorithm {
+	switch pka {
+	case crypki.RSA:
+		return x509.SHA256WithRSA
+	case crypki.ECDSA:
+		return x509.ECDSAWithSHA256
+	default:
+		return x509.SHA256WithRSA
+	}
 }

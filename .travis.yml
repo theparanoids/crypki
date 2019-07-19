@@ -21,5 +21,6 @@ deploy:
   file:
     - crypki-amd64
     - crypki-amd64.sha256
+  skip_cleanup: true
   on:
     tags: true

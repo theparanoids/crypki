@@ -160,9 +160,14 @@ func (s *signer) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
 	}
 	signer := pool.get()
 	defer pool.put(signer)
-
-	return x509.MarshalPKIXPublicKey(signer.Public())
+	pk, err := x509.MarshalPKIXPublicKey(signer.Public())
+	if err != nil {
+		return nil, err
+	}
+	b := &pem.Block{Type: "PUBLIC KEY", Bytes: pk}
+	return pem.EncodeToMemory(b), nil
 }
+
 func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignBlob"
 	start := time.Now()

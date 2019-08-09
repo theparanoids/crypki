@@ -4,11 +4,11 @@
 package proto
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"golang.org/x/net/context"
 )
 
 // Custom forwarder that returns 201 http status for successful POST request.

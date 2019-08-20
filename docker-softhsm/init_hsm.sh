@@ -15,9 +15,11 @@ modulepath="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
 user_ssh_label="user_ssh"
 host_x509_label="host_x509"
 host_ssh_label="host_ssh"
+sign_blob_label="sign_blob"
 user_ssh_keytype="rsa:4096"
 host_x509_keytype="EC:prime384v1"
 host_ssh_keytype="rsa:4096"
+sign_blob_keytype="rsa:4096"
 
 #
 # check for required binaries and libraries
@@ -43,15 +45,17 @@ set -e # exit if anything at all fails after here
 #
 # {re-}initialize slots with SO PIN
 #
-user_ssh_slot=`${softhsm} --init-token --slot 0 --label user_ssh --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
-host_x509_slot=`${softhsm} --init-token --slot 1 --label host_x509 --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
-host_ssh_slot=`${softhsm} --init-token --slot 2 --label host_ssh --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
+user_ssh_slot=`${softhsm} --init-token --slot 0 --label ${user_ssh_label} --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
+host_x509_slot=`${softhsm} --init-token --slot 1 --label ${host_x509_label} --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
+host_ssh_slot=`${softhsm} --init-token --slot 2 --label ${host_ssh_label} --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
+sign_blob_slot=`${softhsm} --init-token --slot 3 --label ${sign_blob_label} --so-pin ${SOPIN} --pin ${USERPIN} | awk '{print $NF}'`
 
 # Generate the Keys in the PKCS11 slot
 ${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${user_ssh_slot} --keypairgen --label ${user_ssh_label} --key-type ${user_ssh_keytype} --private
 ${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${host_x509_slot} --keypairgen --label ${host_x509_label} --key-type ${host_x509_keytype} --private
 ${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${host_ssh_slot} --keypairgen --label ${host_ssh_label} --key-type ${host_ssh_keytype} --private
+${p11tool} --module ${modulepath} --pin ${USERPIN} --slot ${sign_blob_slot} --keypairgen --label ${sign_blob_label} --key-type ${sign_blob_keytype} --private
 
-CRYPKI_CONFIG=`sed -e "s/SLOTNUM_USER_SSH/${user_ssh_slot}/g; s/SLOTNUM_HOST_X509/${host_x509_slot}/g; s/SLOTNUM_HOST_SSH/${host_ssh_slot}/g" crypki.conf.sample`
+CRYPKI_CONFIG=`sed -e "s/SLOTNUM_USER_SSH/${user_ssh_slot}/g; s/SLOTNUM_HOST_X509/${host_x509_slot}/g; s/SLOTNUM_HOST_SSH/${host_ssh_slot}/g; s/SLOTNUM_SIGN_BLOB/${sign_blob_slot}/g" crypki.conf.sample`
 
 echo "${CRYPKI_CONFIG}" > /opt/crypki/crypki-softhsm.json

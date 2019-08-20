@@ -17,7 +17,13 @@
             "Identifiers": [
                 "ssh-host-key"
             ]
-        }
+        },
+	{
+	    "Endpoint": "/sig/blob",
+	    "Identifiers": [
+	        "sign-blob-key"
+	    ]
+	}
     ],
     "Keys": [
         {
@@ -44,6 +50,12 @@
             "Identifier": "ssh-host-key",
             "KeyLabel": "host_ssh",
             "SlotNumber": SLOTNUM_HOST_SSH,
+            "UserPinPath": "/dev/shm/slot_pwd.txt"
+        },
+        {
+            "Identifier": "sign-blob-key",
+            "KeyLabel": "sign_blob",
+            "SlotNumber": SLOTNUM_SIGN_BLOB,
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         }
     ],

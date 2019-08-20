@@ -105,6 +105,15 @@ Sign x509 certificate
   curl -X POST -H "Content-Type: application/json" https://localhost:4443/v3/sig/x509-cert/keys/x509-key --data @x509_csr.json --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt 
   ```
 
+Get blob signing public key
+  ```sh
+  curl -X GET https://localhost:4443/v3/sig/blob/keys/sign-blob-key --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt
+  ```
+
+Sign blob (input is base64 encoded value of raw hash of a blob. [example code](https://play.golang.org/p/AFlho2HtZoD))
+  ```sh
+  curl -X POST -H "Content-Type: application/json" https://localhost:4443/v3/sig/blob/keys/sign-blob-key --data @sign_blob.json --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt
+  ```
 
 ## Contribute
 

@@ -112,7 +112,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	err = sshcert.AddCustomExtensions(cert.Extensions)
+	cert.Extensions, err = sshcert.AddCustomExtensions(cert.Extensions)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")

@@ -193,6 +193,14 @@ func TestPostX509Certificate(t *testing.T) {
 			expectedCert: &proto.X509Certificate{Cert: "good x509 cert"},
 			CSR:          testGoodcsrEc,
 		},
+		"x509KeyUsagesWithRightIdAndED25519Csr": {
+			KeyUsages:    x509keyUsage,
+			maxValidity:  defaultMaxValidity,
+			validity:     3600,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id"},
+			expectedCert: &proto.X509Certificate{Cert: "good x509 cert"},
+			CSR:          testGoodcsrED25519,
+		},
 		"sshKeyUsages": {
 			KeyUsages:    sshkeyUsage,
 			maxValidity:  defaultMaxValidity,

@@ -25,7 +25,7 @@ You should be able to run crypki server on any linux platform as long as you hav
 
 Prerequisites:
 
-- Go >= 1.12.1
+- Go >= 1.13
 
 Run:
 

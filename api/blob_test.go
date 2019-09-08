@@ -5,6 +5,8 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"io/ioutil"
+	"log"
 	"reflect"
 	"sort"
 	"testing"
@@ -12,6 +14,10 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/yahoo/crypki/proto"
 )
+
+func init() {
+	log.SetOutput(ioutil.Discard)
+}
 
 func TestGetBlobAvailableSigningKeys(t *testing.T) {
 	t.Parallel()
@@ -156,6 +162,7 @@ func TestGetBlobSigningKey(t *testing.T) {
 
 func TestPostSignBlob(t *testing.T) {
 	t.Parallel()
+	tooLongDigest := "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA=="
 	testcases := map[string]struct {
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
@@ -179,6 +186,12 @@ func TestPostSignBlob(t *testing.T) {
 			KeyUsages:         blobkeyUsage,
 			KeyMeta:           &proto.KeyMeta{Identifier: "blobid"},
 			expectedSignature: &proto.Signature{Signature: base64.StdEncoding.EncodeToString([]byte("good blob signature"))},
+		},
+		"tooLongDigest": {
+			KeyUsages:         blobkeyUsage,
+			KeyMeta:           &proto.KeyMeta{Identifier: "blobid"},
+			Digest:            tooLongDigest,
+			expectedSignature: nil,
 		},
 		"blobUsagesBadDigest": {
 			KeyUsages:         blobkeyUsage,

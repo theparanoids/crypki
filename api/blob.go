@@ -74,6 +74,7 @@ func (s *SigningService) GetBlobSigningKey(ctx context.Context, keyMeta *proto.K
 // PostSignBlob signs the digest using the specified key.
 func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSigningRequest) (*proto.Signature, error) {
 	const methodName = "PostSignBlob"
+	const maxDigestLen = 256
 	statusCode := http.StatusCreated
 	start := time.Now()
 	var err error
@@ -99,6 +100,10 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 	if err != nil {
 		statusCode = http.StatusBadRequest
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
+	}
+	if len(digest) > maxDigestLen {
+		statusCode = http.StatusBadRequest
+		return nil, status.Error(codes.InvalidArgument, "Bad request: digest length too long")
 	}
 
 	signerOpts := getSignerOpts(request.HashAlgorithm.String())

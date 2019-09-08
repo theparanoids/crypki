@@ -10,6 +10,8 @@ import (
 	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -792,6 +794,47 @@ type SigningServer interface {
 	GetBlobSigningKey(context.Context, *KeyMeta) (*PublicKey, error)
 	// PostSignBlob signs the digest using the specified key.
 	PostSignBlob(context.Context, *BlobSigningRequest) (*Signature, error)
+}
+
+// UnimplementedSigningServer can be embedded to have forward compatible implementations.
+type UnimplementedSigningServer struct {
+}
+
+func (*UnimplementedSigningServer) GetX509CertificateAvailableSigningKeys(ctx context.Context, req *empty.Empty) (*KeyMetas, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetX509CertificateAvailableSigningKeys not implemented")
+}
+func (*UnimplementedSigningServer) GetX509CACertificate(ctx context.Context, req *KeyMeta) (*X509Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetX509CACertificate not implemented")
+}
+func (*UnimplementedSigningServer) PostX509Certificate(ctx context.Context, req *X509CertificateSigningRequest) (*X509Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostX509Certificate not implemented")
+}
+func (*UnimplementedSigningServer) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, req *empty.Empty) (*KeyMetas, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserSSHCertificateAvailableSigningKeys not implemented")
+}
+func (*UnimplementedSigningServer) GetUserSSHCertificateSigningKey(ctx context.Context, req *KeyMeta) (*SSHKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserSSHCertificateSigningKey not implemented")
+}
+func (*UnimplementedSigningServer) PostUserSSHCertificate(ctx context.Context, req *SSHCertificateSigningRequest) (*SSHKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostUserSSHCertificate not implemented")
+}
+func (*UnimplementedSigningServer) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, req *empty.Empty) (*KeyMetas, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHostSSHCertificateAvailableSigningKeys not implemented")
+}
+func (*UnimplementedSigningServer) GetHostSSHCertificateSigningKey(ctx context.Context, req *KeyMeta) (*SSHKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHostSSHCertificateSigningKey not implemented")
+}
+func (*UnimplementedSigningServer) PostHostSSHCertificate(ctx context.Context, req *SSHCertificateSigningRequest) (*SSHKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostHostSSHCertificate not implemented")
+}
+func (*UnimplementedSigningServer) GetBlobAvailableSigningKeys(ctx context.Context, req *empty.Empty) (*KeyMetas, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlobAvailableSigningKeys not implemented")
+}
+func (*UnimplementedSigningServer) GetBlobSigningKey(ctx context.Context, req *KeyMeta) (*PublicKey, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlobSigningKey not implemented")
+}
+func (*UnimplementedSigningServer) PostSignBlob(ctx context.Context, req *BlobSigningRequest) (*Signature, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostSignBlob not implemented")
 }
 
 func RegisterSigningServer(s *grpc.Server, srv SigningServer) {

@@ -20,8 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yahoo/crypki"
-
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/yahoo/crypki/api"
 	"github.com/yahoo/crypki/config"
@@ -96,7 +94,7 @@ func getIPs() (ips []net.IP, err error) {
 }
 
 // Main represents the main function which starts crypki server.
-func Main(keyP crypki.KeyIDProcessor) {
+func Main() {
 	cfgVal := ""
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -181,7 +179,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 	}...)
 
-	proto.RegisterSigningServer(grpcServer, &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP})
+	proto.RegisterSigningServer(grpcServer, &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity})
 
 	server := initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort("", cfg.TLSPort))
 

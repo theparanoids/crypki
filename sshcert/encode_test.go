@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/proto"
 	"golang.org/x/crypto/ssh"
 )
@@ -147,7 +146,7 @@ func TestDecodeRequest(t *testing.T) {
 			}
 
 			expectError := k[0:3] == "bad"
-			req, err := DecodeRequest(cReq, tt.req.CertType, &crypki.KeyID{})
+			req, err := DecodeRequest(cReq, tt.req.CertType)
 			if err != nil {
 				if !expectError {
 					t.Errorf("unexpected err: %v", err)

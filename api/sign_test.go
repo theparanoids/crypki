@@ -8,7 +8,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/config"
 	"golang.org/x/crypto/ssh"
 )
@@ -129,7 +128,7 @@ func (mgcs *mockGoodCertSign) SignBlob(digest []byte, opts crypto.SignerOpts, ke
 
 // InitMockSigningService initializes a mock signing service which implements mock functions
 func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
-	ss := &SigningService{KeyIDProcessor: &crypki.KeyID{}}
+	ss := &SigningService{}
 	ss.KeyUsages = mssp.KeyUsages
 	ss.MaxValidity = mssp.MaxValidity
 	if mssp.sendError {

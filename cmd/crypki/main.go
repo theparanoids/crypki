@@ -3,11 +3,9 @@
 package main
 
 import (
-	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/server"
 )
 
 func main() {
-	keyID := crypki.KeyID{}
-	server.Main(&keyID)
+	server.Main()
 }

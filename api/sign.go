@@ -15,7 +15,6 @@ import (
 // SigningService implements proto.SigningServer interface.
 type SigningService struct {
 	crypki.CertSign
-	crypki.KeyIDProcessor
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
 }

@@ -100,7 +100,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	cert, err = sshcert.DecodeRequest(request, ssh.HostCert, s.KeyIDProcessor)
+	cert, err = sshcert.DecodeRequest(request, ssh.HostCert)
 	if err != nil {
 		statusCode = http.StatusBadRequest
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)

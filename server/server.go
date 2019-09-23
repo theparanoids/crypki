@@ -160,28 +160,18 @@ func Main(keyP crypki.KeyIDProcessor) {
 	// Setup gRPC gateway
 	gwmux := runtime.NewServeMux()
 
-	grpcAddr := net.JoinHostPort("localhost", cfg.TLSPort)
-
-	opts := []grpc.DialOption{
-		// Following config will be used by grpc gateway client
-		// to talk to grpc server.
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
-			Certificates: tlsConfig.Certificates,
-			RootCAs:      tlsConfig.ClientCAs,
-			ServerName:   cfg.TLSServerName,
-		})),
-	}
-
-	if err := proto.RegisterSigningHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
-		log.Fatalf("crypki: failed to register signing service handler endpoint, err: %v", err)
-	}
-
 	// Setup gRPC server and http server
 	grpcServer := grpc.NewServer([]grpc.ServerOption{
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 	}...)
 
-	proto.RegisterSigningServer(grpcServer, &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP})
+	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP}
+
+	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
+		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
+	}
+
+	proto.RegisterSigningServer(grpcServer, ss)
 
 	server := initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort("", cfg.TLSPort))
 

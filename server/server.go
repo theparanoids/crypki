@@ -31,7 +31,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-const logFile = "/var/log/crypki/server.log"
+const defaultLogFile = "/var/log/crypki/server.log"
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. More: https://grpc.io/blog/coreos
@@ -98,19 +98,14 @@ func getIPs() (ips []net.IP, err error) {
 // Main represents the main function which starts crypki server.
 func Main(keyP crypki.KeyIDProcessor) {
 	cfgVal := ""
+	logFile := ""
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	file, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("failed to create log file: %v", err)
-	}
-	log.SetOutput(file)
-	go logRotate(file)
-
 	flag.StringVar(&cfgVal, "config", "", "Configuration file path")
+	flag.StringVar(&logFile, "logfile", defaultLogFile, "Log file path")
 	flag.Parse()
+
 	if cfgVal == "" {
 		log.Fatalf("no configuration file provided")
 	}
@@ -119,6 +114,14 @@ func Main(keyP crypki.KeyIDProcessor) {
 	if err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	file, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("failed to create log file: %v", err)
+	}
+	log.SetOutput(file)
+	go logRotate(file)
 
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)

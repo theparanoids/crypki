@@ -125,7 +125,7 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 
 ## License
 
-This project is licensed under the terms of the [Apache 2.0](LICENSE-Apache-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
+This project is licensed under the terms of the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
 
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases

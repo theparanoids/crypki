@@ -345,10 +345,8 @@ func TestNewLoginSession(t *testing.T) {
 				if err == nil {
 					t.Error("expected error, but got nil")
 				}
-				return
 			} else if err != nil {
 				t.Errorf("unexpected error: %v", err)
-				return
 			}
 		})
 	}

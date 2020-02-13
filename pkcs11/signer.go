@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -14,16 +15,21 @@ import (
 	"strings"
 	"time"
 
+	p11 "github.com/miekg/pkcs11"
+	"golang.org/x/crypto/ssh"
+
 	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/config"
 	"github.com/yahoo/crypki/x509cert"
-	"golang.org/x/crypto/ssh"
 )
 
 // signer implements crypki.CertSign interface.
 type signer struct {
 	x509CACerts map[string]*x509.Certificate
 	sPool       map[string]sPool
+
+	// login keeps all login session using [SlotNumber]:sha256([UserPin]) as key.
+	login map[string]p11.SessionHandle
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
@@ -35,13 +41,22 @@ func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CA
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
+		login:       make(map[string]p11.SessionHandle),
 	}
 	for _, key := range keys {
 		pin, err := getUserPin(key.UserPinPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read user pin for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
 		}
-		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, pin, key.KeyType)
+		sessionKey := fmt.Sprintf("%X:%x", key.SlotNumber, sha256.Sum256([]byte(pin)))
+		if _, exist := s.login[sessionKey]; !exist {
+			session, err := openLoginSession(p11ctx, key.SlotNumber, pin)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create a login session for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
+			}
+			s.login[sessionKey] = session
+		}
+		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType)
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
 		}
@@ -50,7 +65,7 @@ func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CA
 		if requireX509CACert[key.Identifier] {
 			cert, err := getX509CACert(key, pool, hostname, ips)
 			if err != nil {
-				log.Fatalf("failed to get x509 CA cert for key %q: %v", key.Identifier, err)
+				log.Fatalf("failed to get x509 CA cert for key with identifier %q, err: %v", key.Identifier, err)
 			}
 			s.x509CACerts[key.Identifier] = cert
 			log.Printf("x509 CA cert loaded for key %q", key.Identifier)

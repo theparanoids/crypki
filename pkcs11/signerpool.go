@@ -25,28 +25,20 @@ type signerWithSignAlgorithm interface {
 // each key is corresponding with a SignerPool
 type SignerPool struct {
 	signers chan signerWithSignAlgorithm
-	// per pkcs11, by default, Login() is required only once.
-	// we use dummySigner to login to the token, and for absolutely nothing else.
-	dummySigner *p11Signer
 }
 
 // newSignerPool initializes a signer pool based on the configuration parameters
-func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, tokenLabel string, pin string, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
-	dummySigner, err := makeSigner(context, true, slot, tokenLabel, pin, keyType)
-	if err != nil {
-		return &SignerPool{nil, nil}, fmt.Errorf("error making dummy signer: %v", err)
-	}
+func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
 	signers := make(chan signerWithSignAlgorithm, nSigners)
 	for i := 0; i < nSigners; i++ {
-		signerInstance, err := makeSigner(context, false, slot, tokenLabel, pin, keyType)
+		signerInstance, err := makeSigner(context, slot, tokenLabel, keyType)
 		if err != nil {
-			return &SignerPool{nil, nil}, fmt.Errorf("error making signer: %v", err)
+			return &SignerPool{nil}, fmt.Errorf("error making signer: %v", err)
 		}
 		signers <- signerInstance
 	}
 	return &SignerPool{
-		signers:     signers,
-		dummySigner: dummySigner,
+		signers: signers,
 	}, nil
 }
 

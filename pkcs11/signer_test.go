@@ -17,8 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yahoo/crypki"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/yahoo/crypki"
 )
 
 const (

@@ -284,7 +284,7 @@ func TestSignECDSA(t *testing.T) {
 	}
 }
 
-func TestNewLoginSession(t *testing.T) {
+func TestOpenLoginSession(t *testing.T) {
 	t.Parallel()
 
 	table := map[string]struct {

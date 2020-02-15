@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -12,7 +11,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	p11 "github.com/miekg/pkcs11"
@@ -28,8 +26,8 @@ type signer struct {
 	x509CACerts map[string]*x509.Certificate
 	sPool       map[string]sPool
 
-	// login keeps all login session using [SlotNumber]:sha256([UserPin]) as key.
-	login map[string]p11.SessionHandle
+	// login keeps all login session using the slot number as key.
+	login map[uint]p11.SessionHandle
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
@@ -38,24 +36,18 @@ func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CA
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
 	}
+
+	login, err := getLoginSessions(p11ctx, keys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create login sessions, err: %v", err)
+	}
+
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
-		login:       make(map[string]p11.SessionHandle),
+		login:       login,
 	}
 	for _, key := range keys {
-		pin, err := getUserPin(key.UserPinPath)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read user pin for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
-		}
-		sessionKey := fmt.Sprintf("%X:%x", key.SlotNumber, sha256.Sum256([]byte(pin)))
-		if _, exist := s.login[sessionKey]; !exist {
-			session, err := openLoginSession(p11ctx, key.SlotNumber, pin)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create a login session for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
-			}
-			s.login[sessionKey] = session
-		}
 		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType)
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
@@ -258,16 +250,6 @@ func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.
 	cd, _ := pem.Decode(out)
 	cert, _ := x509.ParseCertificate(cd.Bytes)
 	return cert, nil
-}
-
-func getUserPin(pinFilePath string) (string, error) {
-	userPin, err := ioutil.ReadFile(pinFilePath)
-	if err != nil {
-		return "", errors.New("Failed to open pin file: " + err.Error())
-	}
-	userPinStr := string(userPin)
-	userPinStr = strings.TrimSpace(userPinStr) // for removing trailing '/n'
-	return userPinStr, nil
 }
 
 func getSignatureAlgorithm(pka crypki.PublicKeyAlgorithm) x509.SignatureAlgorithm {

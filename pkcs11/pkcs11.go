@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	p11 "github.com/miekg/pkcs11"
+
 	"github.com/yahoo/crypki"
 )
 

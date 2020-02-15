@@ -21,19 +21,6 @@ type p11Signer struct {
 	keyType    crypki.PublicKeyAlgorithm
 }
 
-func openLoginSession(context PKCS11Ctx, slot uint, userPin string) (p11.SessionHandle, error) {
-	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
-	if err != nil {
-		return 0, errors.New("makeLoginSession: error in OpenSession: " + err.Error())
-	}
-
-	if err = context.Login(session, p11.CKU_USER, userPin); err != nil {
-		context.CloseSession(session)
-		return 0, errors.New("makeSigner: error in Login: " + err.Error())
-	}
-	return session, nil
-}
-
 func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm) (*p11Signer, error) {
 	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
 	if err != nil {

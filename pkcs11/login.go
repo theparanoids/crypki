@@ -12,6 +12,8 @@ import (
 	"github.com/yahoo/crypki/config"
 )
 
+// secureBuffer cached an array of bytes as secret.
+// It has a `clear` method to overwrite secret with random data to reduce data breach.
 type secureBuffer struct {
 	secret []byte
 }
@@ -38,6 +40,7 @@ func (h *defaultHelper) getUserPinCode(path string) (*secureBuffer, error) {
 	return getUserPinCode(path)
 }
 
+// openLoginSession opens a PKCS11 session and tries to log in.
 func openLoginSession(context PKCS11Ctx, slot uint, userPin string) (p11.SessionHandle, error) {
 	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
 	if err != nil {
@@ -55,6 +58,9 @@ type loginOption interface {
 	config(map[uint]*secureBuffer) loginHelper
 }
 
+// getLoginSessions opens the PKCS11 login session for all keys in the configuration.
+// If there is a login session for the slot, an error will be returned if the pin code doesn't match the logged-in session.
+// The pin codes used to login are stored in the secure buffer and overwrite with random data after function returned.
 func getLoginSessions(p11ctx PKCS11Ctx, keys []config.KeyConfig, opts ...loginOption) (map[uint]p11.SessionHandle, error) {
 	login := make(map[uint]p11.SessionHandle)
 	keyMap := map[uint]*secureBuffer{}
@@ -91,10 +97,11 @@ func getLoginSessions(p11ctx PKCS11Ctx, keys []config.KeyConfig, opts ...loginOp
 	return login, nil
 }
 
-func getUserPinCode(pinFilePath string) (*secureBuffer, error) {
-	userPin, err := ioutil.ReadFile(pinFilePath)
+// getUserPinCode reads the pin code from the path and stores the pin code into the secure buffer.
+func getUserPinCode(path string) (*secureBuffer, error) {
+	pin, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.New("Failed to open pin file: " + err.Error())
 	}
-	return newSecureBuffer(userPin), nil
+	return newSecureBuffer(pin), nil
 }

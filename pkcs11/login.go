@@ -59,11 +59,11 @@ type loginOption interface {
 }
 
 // getLoginSessions opens the PKCS11 login session for all keys in the configuration.
-// If there is a login session for the slot, an error will be returned if the pin code doesn't match the logged-in session.
-// The pin codes used to login are stored in the secure buffer and overwrite with random data after function returned.
+// The pin codes used to login are stored in the secure buffer and are overwritten with random data just before function
+// returns.
 func getLoginSessions(p11ctx PKCS11Ctx, keys []config.KeyConfig, opts ...loginOption) (map[uint]p11.SessionHandle, error) {
 	login := make(map[uint]p11.SessionHandle)
-	keyMap := map[uint]*secureBuffer{}
+	keyMap := make(map[uint]*secureBuffer)
 	defer func() {
 		for _, buffer := range keyMap {
 			buffer.clear()
@@ -78,20 +78,18 @@ func getLoginSessions(p11ctx PKCS11Ctx, keys []config.KeyConfig, opts ...loginOp
 	}
 
 	for _, key := range keys {
-		pin, err := helper.getUserPinCode(key.UserPinPath)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read user pin for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
-		}
-		if cachedPin, exist := keyMap[key.SlotNumber]; !exist {
+		// config validation makes sure the pin code paths are equal for the same slot.
+		if _, exist := keyMap[key.SlotNumber]; !exist {
+			pin, err := helper.getUserPinCode(key.UserPinPath)
+			if err != nil {
+				return nil, fmt.Errorf("unable to read user pin for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
+			}
 			keyMap[key.SlotNumber] = pin
 			session, err := openLoginSession(p11ctx, key.SlotNumber, pin.get())
 			if err != nil {
 				return nil, fmt.Errorf("failed to create a login session for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
 			}
 			login[key.SlotNumber] = session
-		} else if !bytes.Equal(cachedPin.secret, pin.secret) {
-			err := fmt.Errorf("user already logged into slot %d with other pin code", key.SlotNumber)
-			return nil, fmt.Errorf("failed to create a login session for key with identifier %q, pin path: %v, err: %v", key.Identifier, key.UserPinPath, err)
 		}
 	}
 	return login, nil

@@ -1,6 +1,6 @@
 {
-  "TLSClientAuthMode": 4,
   "TLSServerName": "foo.example.com",
+  "TLSClientAuthMode": 4,
   "X509CACertLocation":"testdata/cacert.pem",
   "Keys": [
     {"Identifier": "key1", "KeyLabel": "foo", "SlotNumber": 1, "UserPinPath" : "/path/1", "CreateCACertIfNotExist": true, "CommonName": "My CA"},
@@ -8,7 +8,9 @@
     {"Identifier": "key3", "KeyLabel": "baz", "SlotNumber": 3, "UserPinPath" : "/path/3", "X509CACertLocation": "/path/baz"}
   ],
   "KeyUsages": [
-    {"Endpoint": "/sig/x509-cert", "Identifiers": ["key1", "key3"]},
-    {"Endpoint": "/foo/bar", "Identifiers": ["key1", "key2"]}
+    {"Endpoint": "/sig/x509-cert", "Identifiers": ["key1", "key3"], "MaxValidity": 3600},
+    {"Endpoint": "/sig/ssh-host-cert", "Identifiers": ["key1", "key2"], "MaxValidity": 36000},
+    {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["key3"], "MaxValidity": 36000},
+    {"Endpoint": "/sig/blob", "Identifiers": ["key1"], "MaxValidity": 36000}
   ]
 }

@@ -184,30 +184,6 @@ func Test_getLoginSessions(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "two keys using same slot and different pin code",
-			setup: func(t *testing.T) (*gomock.Controller, args) {
-				mockCtrl := gomock.NewController(t)
-				return mockCtrl, args{
-					p11ctx: mock.NewMockPKCS11Ctx(mockCtrl),
-					keys: []config.KeyConfig{
-						{
-							SlotNumber:  0,
-							UserPinPath: "pin for slot 0",
-						},
-						{
-							SlotNumber:  0,
-							UserPinPath: "pin for slot 1 - error here",
-						},
-					},
-					helper: &mockHelper{
-						mockGetUserPinCode: defaultPathAsPinCode,
-					},
-				}
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
 			name: "multiple keys",
 			setup: func(t *testing.T) (*gomock.Controller, args) {
 				mockCtrl := gomock.NewController(t)

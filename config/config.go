@@ -118,8 +118,8 @@ func (c *Config) validate() error {
 	}
 	c.TLSServerName = strings.TrimSpace(c.TLSServerName)
 	// Do a basic validation on Keys and KeyUsages.
-	identifierMap := map[string]*KeyConfig{}
-	slotMap := map[uint]string{}
+	identifierMap := make(map[string]*KeyConfig, len(c.Keys))
+	slotMap := make(map[uint]string, len(c.Keys))
 	for idx, key := range c.Keys {
 		if _, exist := identifierMap[key.Identifier]; key.Identifier == "" || exist {
 			return fmt.Errorf("key %q: require a unique name for Identifier field", key.Identifier)

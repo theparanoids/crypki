@@ -13,7 +13,7 @@ import (
 )
 
 // secureBuffer cached an array of bytes as secret.
-// It has a `clear` method to overwrite secret with random data to reduce data breach.
+// It has a `clear` method to overwrite secret with random data.
 type secureBuffer struct {
 	secret []byte
 }

@@ -131,12 +131,11 @@ func (c *Config) validate() error {
 		}
 		if cachedPinPath, exist := slotMap[key.SlotNumber]; exist && key.UserPinPath != cachedPinPath {
 			return fmt.Errorf("key %q: unmatched pin code path for slot number #%d", key.Identifier, key.SlotNumber)
-		} else if !exist {
-			slotMap[key.SlotNumber] = key.UserPinPath
 		}
+		slotMap[key.SlotNumber] = key.UserPinPath
 
 		if key.CreateCACertIfNotExist && key.X509CACertLocation == "" {
-			return fmt.Errorf("key %q: key will create CA cert if not exist but X509CACertLocation is not specified", key.Identifier)
+			return fmt.Errorf("key %q: CA cert is supposed to be created if it doesn't exist but X509CACertLocation is not specified", key.Identifier)
 		}
 
 		if key.KeyType < crypki.RSA || key.KeyType > crypki.ECDSA {

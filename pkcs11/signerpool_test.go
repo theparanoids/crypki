@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
+
 	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/pkcs11/mock_pkcs11"
 )
@@ -82,72 +83,55 @@ func TestNewSignerPool(t *testing.T) {
 	}{
 		"good": {
 			nSigners:    10,
-			pin:         "",
 			keyType:     crypki.UnknownPublicKeyAlgorithm, // should default to RSA
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: false,
 		},
 		"good_zero_signers": {
 			nSigners:    0,
-			pin:         "",
 			keyType:     crypki.RSA,
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: false,
 		},
 		"bad_OpenSession": {
 			nSigners:    10,
-			pin:         "",
 			keyType:     crypki.RSA,
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: true,
 			errMsg: map[string]error{
-				"OpenSession": errors.New("Failed to open a new Session"),
-			},
-		},
-		"bad_slot_pass": {
-			nSigners:    10,
-			pin:         "",
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: true,
-			errMsg: map[string]error{
-				"Login": errors.New("bad pin"),
+				"OpenSession": errors.New("failed to open a new Session"),
 			},
 		},
 		"bad_FindObjectsInit": {
 			nSigners:    10,
-			pin:         "",
 			keyType:     crypki.RSA,
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: true,
 			errMsg: map[string]error{
-				"OpenSession": errors.New("Failed to FindObjectsInit"),
+				"FindObjectsInit": errors.New("failed to FindObjectsInit"),
 			},
 		},
 		"bad_FindObjects": {
 			nSigners:    10,
-			pin:         "",
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: true,
 			errMsg: map[string]error{
-				"OpenSession": errors.New("Failed to FindObjects"),
+				"FindObjects": errors.New("failed to FindObjects"),
 			},
 		},
 		"bad_no_objects": {
 			nSigners:    10,
-			pin:         "",
 			keyType:     crypki.RSA,
 			objects:     []p11.ObjectHandle{},
 			expectError: true,
 		},
 		"bad_FindObjectsFinal": {
 			nSigners:    10,
-			pin:         "",
 			keyType:     crypki.RSA,
 			objects:     []p11.ObjectHandle{1, 2},
 			expectError: true,
 			errMsg: map[string]error{
-				"OpenSession": errors.New("Failed to FindObjectsFinal"),
+				"FindObjectsFinal": errors.New("failed to FindObjectsFinal"),
 			},
 		},
 	}
@@ -190,7 +174,7 @@ func TestNewSignerPool(t *testing.T) {
 				Return(tt.errMsg["FindObjectsFinal"]).
 				AnyTimes()
 
-			ret, err := newSignerPool(mockCtx, tt.nSigners, tt.slot, tt.token, tt.pin, tt.keyType)
+			ret, err := newSignerPool(mockCtx, tt.nSigners, tt.slot, tt.token, tt.keyType)
 			if tt.expectError {
 				if err == nil {
 					t.Error("expected error, but got nil")
@@ -211,7 +195,6 @@ func TestNewSignerPool(t *testing.T) {
 				t.Errorf("Expect %v Signers, but got %v", tt.nSigners, len(got.signers))
 				return
 			}
-
 		})
 	}
 }

@@ -40,12 +40,36 @@ func TestParse(t *testing.T) {
 			config:      cfg,
 			expectError: false,
 		},
-		"bad-config-unknown-endpoint": {
-			filePath:    "testdata/testconf-bad-unknown-endpoint.json",
-			expectError: true,
-		},
 		"bad-config-unknown-identifier": {
 			filePath:    "testdata/testconf-bad-unknown-identifier.json",
+			expectError: true,
+		},
+		"bad-duplicate-identifier-json": {
+			filePath:    "testdata/testconf-bad-duplicate-identifier.json",
+			expectError: true,
+		},
+		"bad-config-bad-non-specify-identifier": {
+			filePath:    "testdata/testconf-bad-non-specify-identifier.json",
+			expectError: true,
+		},
+		"bad-config-bad-non-specify-pin-path": {
+			filePath:    "testdata/testconf-bad-non-specify-pin-path.json",
+			expectError: true,
+		},
+		"bad-config-bad-non-specify-x509-ca-cert-path": {
+			filePath:    "testdata/testconf-bad-non-specify-x509-ca-cert-path.json",
+			expectError: true,
+		},
+		"bad-config-bad-non-x509-cert-for-x509-endpoint": {
+			filePath:    "testdata/testconf-bad-non-x509-cert-for-x509-endpoint.json",
+			expectError: true,
+		},
+		"bad-config-bad-same-slot-different-pin-path": {
+			filePath:    "testdata/testconf-bad-same-slot-different-pin-path.json",
+			expectError: true,
+		},
+		"bad-config-bad-unsupported-key-type": {
+			filePath:    "testdata/testconf-bad-unsupported-key-type.json",
 			expectError: true,
 		},
 		"bad-config-bad-json": {
@@ -67,6 +91,7 @@ func TestParse(t *testing.T) {
 				if !tt.expectError {
 					t.Errorf("unexpected err: %v", err)
 				}
+				t.Log(err)
 				return
 			}
 			if tt.expectError {

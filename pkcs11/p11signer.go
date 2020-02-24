@@ -9,6 +9,7 @@ import (
 	"io"
 
 	p11 "github.com/miekg/pkcs11"
+
 	"github.com/yahoo/crypki"
 )
 
@@ -20,17 +21,10 @@ type p11Signer struct {
 	keyType    crypki.PublicKeyAlgorithm
 }
 
-func makeSigner(context PKCS11Ctx, login bool, slot uint, tokenLabel string, userPin string, keyType crypki.PublicKeyAlgorithm) (*p11Signer, error) {
+func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm) (*p11Signer, error) {
 	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
 	if err != nil {
 		return nil, errors.New("makeSigner: error in OpenSession: " + err.Error())
-	}
-
-	if login {
-		if err = context.Login(session, p11.CKU_USER, userPin); err != nil {
-			context.CloseSession(session)
-			return nil, errors.New("makeSigner: error in Login: " + err.Error())
-		}
 	}
 
 	privateKey, err := getKey(context, session, tokenLabel, p11.CKO_PRIVATE_KEY)

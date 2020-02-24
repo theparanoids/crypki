@@ -118,24 +118,43 @@ func (c *Config) validate() error {
 	}
 	c.TLSServerName = strings.TrimSpace(c.TLSServerName)
 	// Do a basic validation on Keys and KeyUsages.
+	identifierMap := make(map[string]*KeyConfig, len(c.Keys))
+	slotMap := make(map[uint]string, len(c.Keys))
+	for idx, key := range c.Keys {
+		if _, exist := identifierMap[key.Identifier]; key.Identifier == "" || exist {
+			return fmt.Errorf("key %q: require a unique name for Identifier field", key.Identifier)
+		}
+		identifierMap[key.Identifier] = &c.Keys[idx]
+
+		if key.UserPinPath == "" {
+			return fmt.Errorf("key %q: require the pin code file path for slot number #%d", key.Identifier, key.SlotNumber)
+		}
+		if cachedPinPath, exist := slotMap[key.SlotNumber]; exist && key.UserPinPath != cachedPinPath {
+			return fmt.Errorf("key %q: unmatched pin code path for slot number #%d", key.Identifier, key.SlotNumber)
+		}
+		slotMap[key.SlotNumber] = key.UserPinPath
+
+		if key.CreateCACertIfNotExist && key.X509CACertLocation == "" {
+			return fmt.Errorf("key %q: CA cert is supposed to be created if it doesn't exist but X509CACertLocation is not specified", key.Identifier)
+		}
+
+		if key.KeyType < crypki.RSA || key.KeyType > crypki.ECDSA {
+			return fmt.Errorf("key %q: invalid Key type specified", key.Identifier)
+		}
+	}
+
 	for _, ku := range c.KeyUsages {
 		if _, ok := endpoints[ku.Endpoint]; !ok {
 			return fmt.Errorf("unknown endpoint %q", ku.Endpoint)
 		}
 		// Check that all key identifiers are defined in Keys,
 		// and all keys used for "/sig/x509-cert" have x509 CA cert configured.
-	next:
 		for _, id := range ku.Identifiers {
-			for _, key := range c.Keys {
-				if key.KeyType < crypki.RSA || key.KeyType > crypki.ECDSA {
-					return fmt.Errorf("key %q: invalid KeyType specified", key.Identifier)
+			if key, exist := identifierMap[id]; exist {
+				if ku.Endpoint == X509CertEndpoint && key.X509CACertLocation == "" {
+					return fmt.Errorf("key %q: key is used to sign x509 certs, but X509CACertLocation is not specified", id)
 				}
-				if key.Identifier == id {
-					if ku.Endpoint == X509CertEndpoint && key.X509CACertLocation == "" {
-						return fmt.Errorf("key %q is used for signing x509 certs, but X509CACertLocation is not specified", id)
-					}
-					continue next
-				}
+				continue
 			}
 			return fmt.Errorf("key identifier %q not found for endpoint %q", id, ku.Endpoint)
 		}

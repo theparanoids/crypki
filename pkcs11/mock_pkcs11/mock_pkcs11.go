@@ -5,10 +5,9 @@
 package mock_pkcs11
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	pkcs11 "github.com/miekg/pkcs11"
+	reflect "reflect"
 )
 
 // MockPKCS11Ctx is a mock of PKCS11Ctx interface

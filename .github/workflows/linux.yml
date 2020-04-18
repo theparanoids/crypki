@@ -1,0 +1,32 @@
+name: Linux
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.14.2', '1.13' ]
+    name: Go ${{ matrix.go }} sample
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Basic build
+        run: go build ./cmd/...
+
+      - name: Run tests on linux
+        run: go test ./...
+     
+      - name: Run tests with race detector
+        run: go test -v -race ./...

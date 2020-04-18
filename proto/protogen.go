@@ -4,8 +4,8 @@
 // Package proto contains proto generated code.
 package proto
 
-//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.13.0/third_party/googleapis --go_out=plugins=grpc:. sign.proto
-//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.13.0/third_party/googleapis --grpc-gateway_out=logtostderr=true:./ sign.proto
+//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.14.4/third_party/googleapis --go_out=plugins=grpc:. sign.proto
+//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.14.4/third_party/googleapis --grpc-gateway_out=logtostderr=true:./ sign.proto
 // use protoc 3.11.4
 
 // run the following command after generating proto files to generate mock

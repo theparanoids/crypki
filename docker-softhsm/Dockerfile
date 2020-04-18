@@ -1,4 +1,4 @@
-FROM golang:1.13
+FROM golang:1.14.2
 ENV CRYPKI_DIR /go/src/github.com/yahoo/crypki
 COPY . ${CRYPKI_DIR}
 WORKDIR ${CRYPKI_DIR}

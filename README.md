@@ -1,5 +1,6 @@
 [![Build Status][travis-ci-badge]][travis-ci] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card] [![Go Coverage][codecov-card-badge]][codecov-card]
 
+![Linux](https://github.com/yahoo/crypki/workflows/Linux/badge.svg)
 
 # crypki
 > _A simple service for interacting with an HSM or other PKCS#11 device._

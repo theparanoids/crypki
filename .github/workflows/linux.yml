@@ -22,6 +22,9 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: go vet
+        run: go vet -v ./...
+
       - name: Basic build
         run: go build ./cmd/...
 
@@ -29,4 +32,9 @@ jobs:
         run: go test ./...
      
       - name: Run tests with race detector
-        run: go test -v -race ./...
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov  
+        uses: codecov/codecov-action@v1
+        with:
+         file: ./coverage.txt

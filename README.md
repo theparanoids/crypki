@@ -128,7 +128,7 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 This project is licensed under the terms of the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
 
 [build-badge]:     https://github.com/yahoo/crypki/workflows/Linux/badge.svg
-[build-url]:       https://github.com/yahoo/crypki/actions?query=workflow%3ALinux
+[build-url]:       https://github.com/yahoo/crypki/actions?query=branch%3Amaster+workflow%3ALinux
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
 [godoc-badge]:     https://godoc.org/github.com/yahoo/crypki?status.svg

@@ -1,4 +1,4 @@
-[![Build Status][travis-ci-badge]][travis-ci] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card] [![Go Coverage][codecov-card-badge]][codecov-card]
+[![Build Status][build-badge]][build-url] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card] [![Go Coverage][codecov-card-badge]][codecov-card]
 
 
 # crypki
@@ -127,10 +127,10 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 
 This project is licensed under the terms of the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
 
+[build-badge]:     https://github.com/yahoo/crypki/workflows/Linux/badge.svg
+[build-url]:       https://github.com/yahoo/crypki/actions?query=branch%3Amaster+workflow%3ALinux
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
-[travis-ci-badge]: https://travis-ci.com/yahoo/crypki.svg?branch=master
-[travis-ci]:       https://travis-ci.com/yahoo/crypki
 [godoc-badge]:     https://godoc.org/github.com/yahoo/crypki?status.svg
 [godoc]:           https://godoc.org/github.com/yahoo/crypki
 [goreport-card-badge]: https://goreportcard.com/badge/yahoo/crypki

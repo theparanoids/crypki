@@ -4,22 +4,54 @@
 package sshcert
 
 import (
-	"io/ioutil"
+	"crypto/rand"
+	"crypto/rsa"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/proto"
 	"golang.org/x/crypto/ssh"
 )
 
+func getSelfSignedCertificate() (ssh.PublicKey, *ssh.Certificate, error) {
+	const (
+		bit      = 2048
+		validity = 3600
+	)
+
+	priv, err := rsa.GenerateKey(rand.Reader, bit)
+	if err != nil {
+		return nil, nil, err
+	}
+	pub, err := ssh.NewPublicKey(&priv.PublicKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	signer, err := ssh.NewSignerFromSigner(priv)
+	if err != nil {
+		return nil, nil, err
+	}
+	start := uint64(time.Now().Unix())
+	end := start + validity
+	cert := &ssh.Certificate{
+		Key:         pub,
+		KeyId:       "",
+		ValidAfter:  start,
+		ValidBefore: end,
+		Permissions: ssh.Permissions{},
+	}
+	if err := cert.SignCert(rand.Reader, signer); err != nil {
+		return nil, nil, err
+	}
+	return pub, cert, nil
+}
+
 func TestDecodeRequest(t *testing.T) {
 	t.Parallel()
-	pkb, err := ioutil.ReadFile("testdata/user.rsa.key.pub")
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkey, _, _, _, err := ssh.ParseAuthorizedKey(pkb)
+
+	pub, cert, err := getSelfSignedCertificate()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +89,7 @@ func TestDecodeRequest(t *testing.T) {
 			req: &ssh.Certificate{
 				CertType:        ssh.UserCert,
 				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
-				Key:             pubkey,
+				Key:             pub,
 				KeyId:           "",
 			},
 		},
@@ -65,7 +97,7 @@ func TestDecodeRequest(t *testing.T) {
 			validity: (12 + 1) * 3600,
 			req: &ssh.Certificate{
 				CertType: ssh.UserCert,
-				Key:      pubkey,
+				Key:      pub,
 				KeyId:    "",
 			},
 		},
@@ -74,7 +106,7 @@ func TestDecodeRequest(t *testing.T) {
 			req: &ssh.Certificate{
 				CertType:        ssh.UserCert,
 				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
-				Key:             pubkey,
+				Key:             pub,
 				KeyId:           "",
 				Permissions: ssh.Permissions{
 					Extensions:      exts,
@@ -87,7 +119,7 @@ func TestDecodeRequest(t *testing.T) {
 			req: &ssh.Certificate{
 				CertType:        ssh.UserCert,
 				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
-				Key:             pubkey,
+				Key:             pub,
 				KeyId:           "",
 				Permissions: ssh.Permissions{
 					Extensions:      exts,
@@ -101,7 +133,7 @@ func TestDecodeRequest(t *testing.T) {
 
 				CertType:        ssh.UserCert,
 				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
-				Key:             pubkey,
+				Key:             pub,
 				KeyId:           "",
 				Permissions: ssh.Permissions{
 					Extensions:      exts,
@@ -115,7 +147,7 @@ func TestDecodeRequest(t *testing.T) {
 
 				CertType:        ssh.UserCert,
 				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
-				Key:             pubkey,
+				Key:             pub,
 				KeyId:           "",
 				Permissions: ssh.Permissions{
 					Extensions:      exts,
@@ -128,7 +160,25 @@ func TestDecodeRequest(t *testing.T) {
 			req: &ssh.Certificate{
 
 				CertType: ssh.HostCert,
-				Key:      pubkey,
+				Key:      pub,
+				KeyId:    "",
+			},
+		},
+		"bad-req-user": {
+			validity: (12 + 1) * 3600,
+			req: &ssh.Certificate{
+				CertType:        ssh.UserCert,
+				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
+				Key:             cert,
+				KeyId:           "",
+			},
+		},
+		"bad-req-host": {
+			validity: (12 + 1) * 3600,
+			req: &ssh.Certificate{
+
+				CertType: ssh.HostCert,
+				Key:      cert,
 				KeyId:    "",
 			},
 		},

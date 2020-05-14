@@ -20,9 +20,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yahoo/crypki"
-
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/yahoo/crypki"
 	"github.com/yahoo/crypki/api"
 	"github.com/yahoo/crypki/config"
 	"github.com/yahoo/crypki/pkcs11"
@@ -166,6 +166,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 	// Setup gRPC server and http server
 	grpcServer := grpc.NewServer([]grpc.ServerOption{
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
+		grpc.UnaryInterceptor(recovery.UnaryServerInterceptor()),
 	}...)
 
 	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP}

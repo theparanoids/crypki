@@ -28,7 +28,9 @@ import (
 	"github.com/yahoo/crypki/pkcs11"
 	"github.com/yahoo/crypki/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 )
 
 const defaultLogFile = "/var/log/crypki/server.log"
@@ -163,10 +165,15 @@ func Main(keyP crypki.KeyIDProcessor) {
 	// Setup gRPC gateway
 	gwmux := runtime.NewServeMux()
 
+	recoveryHandler := func(p interface{}) (err error) {
+		return status.Errorf(codes.Internal, "internal server error")
+	}
 	// Setup gRPC server and http server
 	grpcServer := grpc.NewServer([]grpc.ServerOption{
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
-		grpc.UnaryInterceptor(recovery.UnaryServerInterceptor()),
+		grpc.UnaryInterceptor(
+			recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
+		),
 	}...)
 
 	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP}

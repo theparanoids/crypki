@@ -4,7 +4,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -23,16 +22,8 @@ type SigningService struct {
 // recoverIfPanicked recovers from panic and logs the error.
 func recoverIfPanicked(method string) {
 	if r := recover(); r != nil {
-		log.Printf("%s: recovered from panic", method)
-		var err error
-		if _, ok := r.(error); ok {
-			err = r.(error)
-		} else if _, ok := r.(string); ok {
-			err = errors.New(r.(string))
-		} else {
-			panic(r)
-		}
-		log.Printf("%s: error recovered was: %v", method, err)
+		log.Printf("%s: recovered from panic, panic: %v", method, r)
+		panic(r)
 	}
 }
 

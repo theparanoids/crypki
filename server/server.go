@@ -56,8 +56,6 @@ func initHTTPServer(ctx context.Context, tlsConfig *tls.Config, grpcServer *grpc
 	})
 	mux.Handle("/", gwmux)
 
-	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-
 	srv := &http.Server{
 		Addr: addr,
 		// to discard noisy messages like
@@ -117,7 +115,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		log.Fatalf("invalid config: %v", err)
 	}
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
 	file, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatalf("failed to create log file: %v", err)

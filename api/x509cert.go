@@ -78,26 +78,26 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	subject := pkix.Name{}
 	var err error
 
-	defer func() {
-		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
-	}()
 	defer recoverIfPanicked(methodName)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("request.keyMeta is empty for %q", config.X509CertEndpoint)
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
 	req, err := x509cert.DecodeRequest(request)
 	if err != nil {
 		statusCode = http.StatusBadRequest
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 	subject = req.Subject
@@ -105,12 +105,14 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	if !s.KeyUsages[config.X509CertEndpoint][request.KeyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", request.KeyMeta.Identifier, config.X509CertEndpoint)
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
 	data, err := s.SignX509Cert(req, request.KeyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
 		return nil, status.Error(codes.Internal, "Internal server error")
 	}
 	return &proto.X509Certificate{Cert: string(data)}, nil

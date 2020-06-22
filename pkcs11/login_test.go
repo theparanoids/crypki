@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
 
-	"github.com/yahoo/crypki/config"
-	mock "github.com/yahoo/crypki/pkcs11/mock_pkcs11"
+	"github.com/theparanoids/crypki/config"
+	mock "github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
 
 func Test_openLoginSession(t *testing.T) {

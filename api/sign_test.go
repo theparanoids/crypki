@@ -8,8 +8,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yahoo/crypki"
-	"github.com/yahoo/crypki/config"
+	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/config"
 	"golang.org/x/crypto/ssh"
 )
 

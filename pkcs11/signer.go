@@ -16,9 +16,9 @@ import (
 	p11 "github.com/miekg/pkcs11"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/yahoo/crypki"
-	"github.com/yahoo/crypki/config"
-	"github.com/yahoo/crypki/x509cert"
+	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/x509cert"
 )
 
 // signer implements crypki.CertSign interface.

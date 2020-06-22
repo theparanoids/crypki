@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/yahoo/crypki/config"
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/proto"
 )
 
 func TestGetHostSSHCertificateAvailableSigningKeys(t *testing.T) {

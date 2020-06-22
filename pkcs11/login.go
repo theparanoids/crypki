@@ -9,7 +9,7 @@ import (
 
 	p11 "github.com/miekg/pkcs11"
 
-	"github.com/yahoo/crypki/config"
+	"github.com/theparanoids/crypki/config"
 )
 
 // secureBuffer cached an array of bytes as secret.

@@ -14,7 +14,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 // GenCACert creates the CA certificate given signer.

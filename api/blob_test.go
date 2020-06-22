@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki/proto"
 )
 
 func init() {

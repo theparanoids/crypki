@@ -19,7 +19,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 const (

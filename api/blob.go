@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/yahoo/crypki/config"
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

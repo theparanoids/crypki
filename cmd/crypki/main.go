@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/yahoo/crypki"
-	"github.com/yahoo/crypki/server"
+	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/server"
 )
 
 func main() {

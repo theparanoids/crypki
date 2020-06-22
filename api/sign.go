@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 // SigningService implements proto.SigningServer interface.

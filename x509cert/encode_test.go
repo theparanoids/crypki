@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki/proto"
 )
 
 func TestDecodeRequest(t *testing.T) {

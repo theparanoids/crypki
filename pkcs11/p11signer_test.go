@@ -14,7 +14,7 @@ import (
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
 
-	"github.com/yahoo/crypki/pkcs11/mock_pkcs11"
+	"github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
 
 type ecdsaSignature struct {

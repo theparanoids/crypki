@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki/proto"
 )
 
 // DecodeRequest process the X509CertificateSigningRequest and returns an (unsigned) x509 certificate.

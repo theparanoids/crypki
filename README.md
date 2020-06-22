@@ -30,7 +30,7 @@ Prerequisites:
 Run:
 
 ```sh
-go get github.com/yahoo/crypki
+go get github.com/theparanoids/crypki
 ```
 
 ## Usage 
@@ -127,13 +127,13 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 
 This project is licensed under the terms of the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
 
-[build-badge]:     https://github.com/yahoo/crypki/workflows/Linux/badge.svg
-[build-url]:       https://github.com/yahoo/crypki/actions?query=branch%3Amaster+workflow%3ALinux
+[build-badge]:     https://github.com/theparanoids/crypki/workflows/Linux/badge.svg
+[build-url]:       https://github.com/theparanoids/crypki/actions?query=branch%3Amaster+workflow%3ALinux
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
-[godoc-badge]:     https://godoc.org/github.com/yahoo/crypki?status.svg
-[godoc]:           https://godoc.org/github.com/yahoo/crypki
-[goreport-card-badge]: https://goreportcard.com/badge/yahoo/crypki
-[goreport-card]: https://goreportcard.com/report/yahoo/crypki
-[codecov-card-badge]: https://codecov.io/gh/yahoo/crypki/branch/master/graph/badge.svg
-[codecov-card]: https://codecov.io/gh/yahoo/crypki
+[godoc-badge]:     https://godoc.org/github.com/theparanoids/crypki?status.svg
+[godoc]:           https://godoc.org/github.com/theparanoids/crypki
+[goreport-card-badge]: https://goreportcard.com/badge/theparanoids/crypki
+[goreport-card]: https://goreportcard.com/report/theparanoids/crypki
+[codecov-card-badge]: https://codecov.io/gh/theparanoids/crypki/branch/master/graph/badge.svg
+[codecov-card]: https://codecov.io/gh/theparanoids/crypki

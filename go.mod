@@ -1,4 +1,4 @@
-module github.com/yahoo/crypki
+module github.com/theparanoids/crypki
 
 go 1.13
 

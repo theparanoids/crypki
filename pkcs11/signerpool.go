@@ -7,7 +7,7 @@ import (
 	"crypto"
 	"fmt"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 // sPool is an abstract interface of pool of crypto.Signer

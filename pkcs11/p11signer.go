@@ -10,7 +10,7 @@ import (
 
 	p11 "github.com/miekg/pkcs11"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 type p11Signer struct {

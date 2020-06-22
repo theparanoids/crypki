@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/yahoo/crypki/config"
-	"github.com/yahoo/crypki/proto"
-	"github.com/yahoo/crypki/x509cert"
+	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/x509cert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

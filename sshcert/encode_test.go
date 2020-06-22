@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yahoo/crypki"
-	"github.com/yahoo/crypki/proto"
+	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/proto"
 	"golang.org/x/crypto/ssh"
 )
 

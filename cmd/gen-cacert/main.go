@@ -12,9 +12,9 @@ import (
 	"net"
 	"os"
 
-	"github.com/yahoo/crypki"
-	"github.com/yahoo/crypki/config"
-	"github.com/yahoo/crypki/pkcs11"
+	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/pkcs11"
 )
 
 var cfg string

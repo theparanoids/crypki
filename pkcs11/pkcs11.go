@@ -9,7 +9,7 @@ import (
 
 	p11 "github.com/miekg/pkcs11"
 
-	"github.com/yahoo/crypki"
+	"github.com/theparanoids/crypki"
 )
 
 // PKCS11Ctx interface is added to mock pkcs11.Ctx

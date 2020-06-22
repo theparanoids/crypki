@@ -18,12 +18,12 @@
                 "ssh-host-key"
             ]
         },
-	{
-	    "Endpoint": "/sig/blob",
-	    "Identifiers": [
-	        "sign-blob-key"
-	    ]
-	}
+        {
+            "Endpoint": "/sig/blob",
+            "Identifiers": [
+                "sign-blob-key"
+            ]
+        }
     ],
     "Keys": [
         {

@@ -67,11 +67,11 @@ $ go mod vendor
 
 
 ## Configuration
-Take a look at the [sample configuration file](https://github.com/yahoo/crypki/blob/master/config/testdata/testconf-good.json) to see how to configure crypki
+Take a look at the [sample configuration file](https://github.com/theparanoids/crypki/blob/master/config/testdata/testconf-good.json) to see how to configure crypki
 
 ## API
 
-APIs for crypki are defined under [crypki/proto](https://github.com/yahoo/crypki/tree/master/proto). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.  
+APIs for crypki are defined under [crypki/proto](https://github.com/theparanoids/crypki/tree/master/proto). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.  
 
 Examples:
  

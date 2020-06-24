@@ -18,6 +18,7 @@ const (
 	defaultTLSServerCertPath = "/opt/crypki/server.crt"
 	defaultTLSCACertPath     = "/opt/crypki/ca.crt"
 	defaultTLSServerKeyPath  = "/opt/crypki/server.key"
+	defaultTLSHost           = ""
 	defaultTLSPort           = "4443"
 	defaultPoolSize          = 2
 	defaultKeyType           = crypki.RSA
@@ -87,6 +88,7 @@ type Config struct {
 	TLSServerCertPath string
 	TLSServerKeyPath  string
 	TLSCACertPath     string
+	TLSHost           string
 	TLSPort           string
 	SignersPerPool    int
 	Keys              []KeyConfig
@@ -178,6 +180,9 @@ func (c *Config) loadDefaults() {
 	}
 	if c.SignersPerPool == 0 {
 		c.SignersPerPool = defaultPoolSize
+	}
+	if strings.TrimSpace(c.TLSHost) == "" {
+		c.TLSHost = defaultTLSHost
 	}
 	if strings.TrimSpace(c.TLSPort) == "" {
 		c.TLSPort = defaultTLSPort

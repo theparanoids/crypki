@@ -16,6 +16,7 @@ func TestParse(t *testing.T) {
 		TLSClientAuthMode: 4,
 		TLSServerCertPath: "/opt/crypki/server.crt",
 		TLSServerKeyPath:  "/opt/crypki/server.key",
+		TLSHost:           "",
 		TLSPort:           "4443",
 		SignersPerPool:    2,
 		Keys: []KeyConfig{

@@ -182,7 +182,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 
 	proto.RegisterSigningServer(grpcServer, ss)
 
-	server := initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort("", cfg.TLSPort))
+	server := initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort))
 
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {

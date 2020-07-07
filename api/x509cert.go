@@ -26,12 +26,10 @@ func (s *SigningService) GetX509CertificateAvailableSigningKeys(ctx context.Cont
 	start := time.Now()
 	var err error
 
-	defer func() {
-		f := func(statusCode int, err error) {
-			log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
-		}
-		logWithCheckingPanic(f, statusCode, err)
-	}()
+	f := func(statusCode int, err error) {
+		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+	}
+	defer logWithCheckingPanic(f, statusCode, err)
 
 	var keys []*proto.KeyMeta
 	for id := range s.KeyUsages[config.X509CertEndpoint] {
@@ -47,12 +45,10 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 	start := time.Now()
 	var err error
 
-	defer func() {
-		f := func(statusCode int, err error) {
-			log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
-		}
-		logWithCheckingPanic(f, statusCode, err)
-	}()
+	f := func(statusCode int, err error) {
+		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+	}
+	defer logWithCheckingPanic(f, statusCode, err)
 
 	if keyMeta == nil {
 		statusCode = http.StatusBadRequest
@@ -82,12 +78,10 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	subject := pkix.Name{}
 	var err error
 
-	defer func() {
-		f := func(statusCode int, err error) {
-			log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
-		}
-		logWithCheckingPanic(f, statusCode, err)
-	}()
+	f := func(statusCode int, err error) {
+		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
+	}
+	defer logWithCheckingPanic(f, statusCode, err)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest

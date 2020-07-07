@@ -27,9 +27,11 @@ func (s *SigningService) GetBlobAvailableSigningKeys(ctx context.Context, e *emp
 	var err error
 
 	defer func() {
-		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+		f := func(statusCode int, err error) {
+			log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+		}
+		logWithCheckingPanic(f, statusCode, err)
 	}()
-	defer recoverIfPanicked(methodName)
 
 	var keys []*proto.KeyMeta
 	for id := range s.KeyUsages[config.BlobEndpoint] {
@@ -47,9 +49,11 @@ func (s *SigningService) GetBlobSigningKey(ctx context.Context, keyMeta *proto.K
 	var err error
 
 	defer func() {
-		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+		f := func(statusCode int, err error) {
+			log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
+		}
+		logWithCheckingPanic(f, statusCode, err)
 	}()
-	defer recoverIfPanicked(methodName)
 
 	if keyMeta == nil {
 		statusCode = http.StatusBadRequest
@@ -80,9 +84,12 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 	var err error
 
 	defer func() {
-		log.Printf(`m=%s,digest=%q,hash=%q,st=%d,et=%d,err="%v"`, methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, timeElapsedSince(start), err)
+		f := func(statusCode int, err error) {
+			log.Printf(`m=%s,digest=%q,hash=%q,st=%d,et=%d,err="%v"`,
+				methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, timeElapsedSince(start), err)
+		}
+		logWithCheckingPanic(f, statusCode, err)
 	}()
-	defer recoverIfPanicked(methodName)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest

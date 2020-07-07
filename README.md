@@ -67,11 +67,11 @@ $ go mod vendor
 
 
 ## Configuration
-Take a look at the [sample configuration file](https://github.com/theparanoids/crypki/blob/master/config/testdata/testconf-good.json) to see how to configure crypki
+Take a look at the [sample configuration file](https://github.com/theparanoids/crypki/blob/main/config/testdata/testconf-good.json) to see how to configure crypki
 
 ## API
 
-APIs for crypki are defined under [crypki/proto](https://github.com/theparanoids/crypki/tree/master/proto). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.  
+APIs for crypki are defined under [crypki/proto](https://github.com/theparanoids/crypki/tree/main/proto). If you are familiar with or are using grpc, you can directly invoke the rpc methods defined in the proto file.
 
 Examples:
  
@@ -128,12 +128,12 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 This project is licensed under the terms of the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0) open source license. Please refer to [LICENSE](LICENSE) for the full terms.
 
 [build-badge]:     https://github.com/theparanoids/crypki/workflows/Linux/badge.svg
-[build-url]:       https://github.com/theparanoids/crypki/actions?query=branch%3Amaster+workflow%3ALinux
+[build-url]:       https://github.com/theparanoids/crypki/actions?query=branch%3Amain+workflow%3ALinux
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
 [godoc-badge]:     https://godoc.org/github.com/theparanoids/crypki?status.svg
 [godoc]:           https://godoc.org/github.com/theparanoids/crypki
 [goreport-card-badge]: https://goreportcard.com/badge/theparanoids/crypki
 [goreport-card]: https://goreportcard.com/report/theparanoids/crypki
-[codecov-card-badge]: https://codecov.io/gh/theparanoids/crypki/branch/master/graph/badge.svg
+[codecov-card-badge]: https://codecov.io/gh/theparanoids/crypki/branch/main/graph/badge.svg
 [codecov-card]: https://codecov.io/gh/theparanoids/crypki

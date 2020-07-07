@@ -40,7 +40,7 @@ func TestLogWithCheckingPanic(t *testing.T) {
 			)
 			var inputError error
 
-			want := fmt.Sprintf(logStr, http.StatusInternalServerError, "panic: "+fmt.Sprintf("%s", tc.panicInput))
+			want := fmt.Sprintf(logStr, http.StatusInternalServerError, panicRecoveryPrefix+fmt.Sprintf("%s", tc.panicInput))
 			if tc.panicInput == nil {
 				want = fmt.Sprintf(logStr, inputStatusCode, inputError)
 			}

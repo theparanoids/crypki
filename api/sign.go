@@ -5,7 +5,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/theparanoids/crypki"
@@ -17,14 +16,6 @@ type SigningService struct {
 	crypki.KeyIDProcessor
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
-}
-
-// recoverIfPanicked recovers from panic and logs the error.
-func recoverIfPanicked(method string) {
-	if r := recover(); r != nil {
-		log.Printf("%s: recovered from panic, panic: %v", method, r)
-		panic(r)
-	}
 }
 
 // timeElapsedSince returns time elapsed since start time in microseconds.

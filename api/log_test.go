@@ -46,16 +46,14 @@ func testLogWithCheckingPanic(t *testing.T, tc *logTestCase) {
 		want = fmt.Sprintf(logStr, inputStatusCode, inputError)
 	}
 
-	// Make the channel buffered to avoid deadlock.
-	logC := make(chan string, 1)
+	got := ""
 	f := func(statusCode int, err error) {
-		logC <- fmt.Sprintf(logStr, statusCode, err)
+		got = fmt.Sprintf(logStr, statusCode, err)
 	}
 
 	defer func() {
 		// Capture the panic thrown from logWithCheckingPanic.
 		recover()
-		got := <-logC
 		if got != want {
 			t.Errorf("%s failed, got: %s, want: %s", tc.name, got, want)
 		}

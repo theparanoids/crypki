@@ -8,7 +8,7 @@ import (
 )
 
 type logTestCase struct {
-	name string
+	name       string
 	panicInput interface{}
 }
 
@@ -16,19 +16,19 @@ func TestLogWithCheckingPanic(t *testing.T) {
 	t.Parallel()
 	testCases := []*logTestCase{
 		{
-			name: "panic with string",
+			name:       "panic with string",
 			panicInput: "string",
 		},
 		{
-			name: "panic with error",
+			name:       "panic with error",
 			panicInput: errors.New("error"),
 		},
 		{
-			name: "no panic",
+			name:       "no panic",
 			panicInput: nil,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		testLogWithCheckingPanic(t, tc)
 	}
@@ -36,12 +36,12 @@ func TestLogWithCheckingPanic(t *testing.T) {
 
 func testLogWithCheckingPanic(t *testing.T, tc *logTestCase) {
 	const (
-		logStr = "st: %d, err: %v"
+		logStr          = "st: %d, err: %v"
 		inputStatusCode = http.StatusOK
 	)
 	var inputError error
 
-	want := fmt.Sprintf(logStr, http.StatusInternalServerError, "panic: " + fmt.Sprintf("%s", tc.panicInput))
+	want := fmt.Sprintf(logStr, http.StatusInternalServerError, "panic: "+fmt.Sprintf("%s", tc.panicInput))
 	if tc.panicInput == nil {
 		want = fmt.Sprintf(logStr, inputStatusCode, inputError)
 	}
@@ -56,7 +56,7 @@ func testLogWithCheckingPanic(t *testing.T, tc *logTestCase) {
 		// Capture the panic thrown from logWithCheckingPanic.
 		recover()
 		got := <-logC
-		if get != want {
+		if got != want {
 			t.Errorf("%s failed, got: %s, want: %s", tc.name, got, want)
 		}
 	}()

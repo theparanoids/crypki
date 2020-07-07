@@ -30,34 +30,35 @@ func TestLogWithCheckingPanic(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testLogWithCheckingPanic(t, tc)
+		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			const (
+				logStr          = "st: %d, err: %v"
+				inputStatusCode = http.StatusOK
+			)
+			var inputError error
+
+			want := fmt.Sprintf(logStr, http.StatusInternalServerError, "panic: "+fmt.Sprintf("%s", tc.panicInput))
+			if tc.panicInput == nil {
+				want = fmt.Sprintf(logStr, inputStatusCode, inputError)
+			}
+
+			got := ""
+			f := func(statusCode int, err error) {
+				got = fmt.Sprintf(logStr, statusCode, err)
+			}
+
+			defer func() {
+				// Capture the panic thrown from logWithCheckingPanic.
+				recover()
+				if got != want {
+					t.Errorf("got: %q, want: %q", got, want)
+				}
+			}()
+			defer logWithCheckingPanic(f, inputStatusCode, inputError)
+			panic(tc.panicInput)
+		})
 	}
-}
-
-func testLogWithCheckingPanic(t *testing.T, tc *logTestCase) {
-	const (
-		logStr          = "st: %d, err: %v"
-		inputStatusCode = http.StatusOK
-	)
-	var inputError error
-
-	want := fmt.Sprintf(logStr, http.StatusInternalServerError, "panic: "+fmt.Sprintf("%s", tc.panicInput))
-	if tc.panicInput == nil {
-		want = fmt.Sprintf(logStr, inputStatusCode, inputError)
-	}
-
-	got := ""
-	f := func(statusCode int, err error) {
-		got = fmt.Sprintf(logStr, statusCode, err)
-	}
-
-	defer func() {
-		// Capture the panic thrown from logWithCheckingPanic.
-		recover()
-		if got != want {
-			t.Errorf("%s failed, got: %s, want: %s", tc.name, got, want)
-		}
-	}()
-	defer logWithCheckingPanic(f, inputStatusCode, inputError)
-	panic(tc.panicInput)
 }

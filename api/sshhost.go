@@ -29,7 +29,7 @@ func (s *SigningService) GetHostSSHCertificateAvailableSigningKeys(ctx context.C
 	f := func(statusCode int, err error) {
 		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
 	}
-	defer logWithCheckingPanic(f, statusCode, err)
+	defer logWithCheckingPanic(f, &statusCode, &err)
 
 	var keys []*proto.KeyMeta
 	for id := range s.KeyUsages[config.SSHHostCertEndpoint] {
@@ -49,7 +49,7 @@ func (s *SigningService) GetHostSSHCertificateSigningKey(ctx context.Context, ke
 	f := func(statusCode int, err error) {
 		log.Printf(`m=%s,st=%d,et=%d,err="%v"`, methodName, statusCode, timeElapsedSince(start), err)
 	}
-	defer logWithCheckingPanic(f, statusCode, err)
+	defer logWithCheckingPanic(f, &statusCode, &err)
 
 	if keyMeta == nil {
 		statusCode = http.StatusBadRequest
@@ -87,7 +87,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		log.Printf(`m=%s,id=%q,principals=%q,st=%d,et=%d,err="%v"`,
 			methodName, kid, request.Principals, statusCode, timeElapsedSince(start), err)
 	}
-	defer logWithCheckingPanic(f, statusCode, err)
+	defer logWithCheckingPanic(f, &statusCode, &err)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest

@@ -65,7 +65,7 @@ func TestLogWithCheckingPanic(t *testing.T) {
 					t.Errorf("got: %q, want: %q", got, tc.want)
 				}
 			}()
-			statusCode := http.StatusOK
+			var statusCode int
 			var err error
 			defer logWithCheckingPanic(f, &statusCode, &err)
 			statusCode = tc.statusCode

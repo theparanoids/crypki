@@ -35,7 +35,7 @@ func TestLogWithCheckingPanic(t *testing.T) {
 			statusCode: http.StatusOK,
 			err:        nil,
 			panic:      nil,
-			want:       "st: 200, err: <nil>", // See inputStatusCode below for 200
+			want:       "st: 200, err: <nil>",
 		},
 		{
 			name:       "no panic with error",

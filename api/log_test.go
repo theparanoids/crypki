@@ -10,31 +10,42 @@ import (
 func TestLogWithCheckingPanic(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		name  string
-		input interface{}
-		want  string // See logStr below for the format
+		name       string
+		statusCode int
+		err        error
+		panic      interface{}
+		want       string // See logStr below for the format
 	}{
 		{
-			name:  "panic with string",
-			input: "string",
-			want:  "st: 500, err: panic: string",
+			name:       "panic with string",
+			statusCode: http.StatusOK,
+			err:        nil,
+			panic:      "string",
+			want:       "st: 500, err: panic: string",
 		},
 		{
-			name:  "panic with error",
-			input: errors.New("error"),
-			want:  "st: 500, err: panic: error",
+			name:       "panic with error",
+			statusCode: http.StatusOK,
+			err:        nil,
+			panic:      errors.New("error"),
+			want:       "st: 500, err: panic: error",
 		},
 		{
-			name:  "no panic",
-			input: nil,
-			want:  "st: 200, err: <nil>", // See inputStatusCode below for 200
+			name:       "no panic",
+			statusCode: http.StatusOK,
+			err:        nil,
+			panic:      nil,
+			want:       "st: 200, err: <nil>",
+		},
+		{
+			name:       "no panic with error",
+			statusCode: http.StatusBadRequest,
+			err:        errors.New("bad request"),
+			panic:      nil,
+			want:       "st: 400, err: bad request",
 		},
 	}
-	const (
-		logStr          = "st: %d, err: %v"
-		inputStatusCode = http.StatusOK
-	)
-	var inputError error
+	const logStr = "st: %d, err: %v"
 
 	for _, tc := range testCases {
 		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
@@ -54,8 +65,12 @@ func TestLogWithCheckingPanic(t *testing.T) {
 					t.Errorf("got: %q, want: %q", got, tc.want)
 				}
 			}()
-			defer logWithCheckingPanic(f, inputStatusCode, inputError)
-			panic(tc.input)
+			var statusCode int
+			var err error
+			defer logWithCheckingPanic(f, &statusCode, &err)
+			statusCode = tc.statusCode
+			err = tc.err
+			panic(tc.panic)
 		})
 	}
 }

@@ -17,20 +17,23 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
+
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/api"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/status"
 )
 
 const defaultLogFile = "/var/log/crypki/server.log"
@@ -166,24 +169,33 @@ func Main(keyP crypki.KeyIDProcessor) {
 	recoveryHandler := func(p interface{}) (err error) {
 		return status.Errorf(codes.Internal, "internal server error")
 	}
+
+	var server *http.Server
+	interceptors := []grpc.UnaryServerInterceptor{
+		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
+	}
+	if cfg.ShutdownOnFrequentSigningFailure {
+		interceptors = append(interceptors, StatusInterceptor((newShutdownCounter(func() {
+			if err := server.Shutdown(ctx); err != nil {
+				log.Fatalf("failed to shutdown server: %v", err)
+			}
+		})).Interceptor))
+	}
+
 	// Setup gRPC server and http server
 	grpcServer := grpc.NewServer([]grpc.ServerOption{
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
-		grpc.UnaryInterceptor(
-			recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
-		),
+		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
 
 	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP}
-
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
 
 	proto.RegisterSigningServer(grpcServer, ss)
 
-	server := initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort))
-
+	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort))
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -268,4 +280,67 @@ func logRotate(lf *os.File) {
 		log.SetOutput(lf)
 		log.Printf("crypki: rotated logfile: %s", name)
 	}
+}
+
+type shutdownCounter struct {
+	// consecutiveCounter keeps track of the number of consecutive failures with
+	// Internal grpc code.
+	consecutiveCounter int32
+
+	// timeRangeCounter counts the number of failures with Internal grpc code in
+	// the most recent 1 minutes.
+	timeRangeCounter int32
+
+	// mu protects the access to shutdownFn.
+	mu sync.Mutex
+
+	// The function is provided by users to shutdown the server. This function is
+	// guaranteed to run only once.
+	shutdownFn func()
+}
+
+func (c *shutdownCounter) shutdown() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.shutdownFn != nil {
+		c.shutdownFn()
+	}
+	c.shutdownFn = nil
+}
+
+func (c *shutdownCounter) startTicker() {
+	timer := time.NewTicker(time.Minute)
+	for {
+		select {
+		case <-timer.C:
+			if c.timeRangeCounter >= 10 {
+				go c.shutdown()
+				timer.Stop()
+				return
+			}
+			// reset counter
+			atomic.StoreInt32(&c.timeRangeCounter, 0)
+		}
+	}
+}
+
+func (c *shutdownCounter) Interceptor(code codes.Code) {
+	if code == codes.Internal {
+		atomic.AddInt32(&c.consecutiveCounter, 1)
+		atomic.AddInt32(&c.timeRangeCounter, 1)
+	} else {
+		// reset counter
+		atomic.StoreInt32(&c.consecutiveCounter, 0)
+	}
+	if c.consecutiveCounter >= 4 {
+		go c.shutdown()
+	}
+}
+
+func newShutdownCounter(fn func()) *shutdownCounter {
+	counter := &shutdownCounter{
+		shutdownFn: fn,
+	}
+	go counter.startTicker()
+	return counter
 }

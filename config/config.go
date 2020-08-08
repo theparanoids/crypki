@@ -93,6 +93,8 @@ type Config struct {
 	SignersPerPool    int
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
+
+	ShutdownOnFrequentSigningFailure bool
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.

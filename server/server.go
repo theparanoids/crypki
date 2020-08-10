@@ -175,7 +175,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 	}
 	if cfg.ShutdownOnFrequentSigningFailure {
-		config := shutdownCounterConfig{
+		shutdownCounterConfig := shutdownCounterConfig{
 			consecutiveCountLimit: int32(cfg.ShutdownOnSigningFailureConsecutiveCount),
 			timeRangeCountLimit:   int32(cfg.ShutdownOnSigningFailureTimerCount),
 			tickerDuration:        time.Duration(cfg.ShutdownOnSigningFailureTimerDurationSecond) * time.Second,
@@ -185,7 +185,9 @@ func Main(keyP crypki.KeyIDProcessor) {
 				}
 			},
 		}
-		interceptors = append(interceptors, StatusInterceptor((newShutdownCounter(config)).Interceptor))
+		interceptors = append([]grpc.UnaryServerInterceptor{
+			StatusInterceptor((newShutdownCounter(shutdownCounterConfig)).Interceptor),
+		}, interceptors...)
 	}
 
 	// Setup gRPC server and http server

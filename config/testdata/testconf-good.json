@@ -13,5 +13,8 @@
     {"Endpoint": "/sig/ssh-host-cert", "Identifiers": ["key1", "key2"], "MaxValidity": 36000},
     {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["key3"], "MaxValidity": 36000},
     {"Endpoint": "/sig/blob", "Identifiers": ["key1"], "MaxValidity": 36000}
-  ]
+  ],
+	"ShutdownOnSigningFailureConsecutiveCount":  3,
+	"ShutdownOnSigningFailureTimerDurationSecond": 120,
+	"ShutdownOnSigningFailureTimerCount":  20
 }

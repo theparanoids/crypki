@@ -175,11 +175,17 @@ func Main(keyP crypki.KeyIDProcessor) {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 	}
 	if cfg.ShutdownOnFrequentSigningFailure {
-		interceptors = append(interceptors, StatusInterceptor((newShutdownCounter(func() {
-			if err := server.Shutdown(ctx); err != nil {
-				log.Fatalf("failed to shutdown server: %v", err)
-			}
-		})).Interceptor))
+		config := shutdownCounterConfig{
+			consecutiveCountLimit: int32(cfg.ShutdownOnSigningFailureConsecutiveCount),
+			timeRangeCountLimit:   int32(cfg.ShutdownOnSigningFailureTimerCount),
+			tickerDuration:        time.Duration(cfg.ShutdownOnSigningFailureTimerDurationSecond) * time.Second,
+			shutdownFn: func() {
+				if err := server.Shutdown(ctx); err != nil {
+					log.Fatalf("failed to shutdown server: %v", err)
+				}
+			},
+		}
+		interceptors = append(interceptors, StatusInterceptor((newShutdownCounter(config)).Interceptor))
 	}
 
 	// Setup gRPC server and http server
@@ -282,7 +288,19 @@ func logRotate(lf *os.File) {
 	}
 }
 
+type shutdownCounterConfig struct {
+	consecutiveCountLimit int32
+	timeRangeCountLimit   int32
+	tickerDuration        time.Duration
+
+	// The function is provided by users to shutdown the server. This function is
+	// guaranteed to run only once.
+	shutdownFn func()
+}
+
 type shutdownCounter struct {
+	config shutdownCounterConfig
+
 	// consecutiveCounter keeps track of the number of consecutive failures with
 	// Internal grpc code.
 	consecutiveCounter int32
@@ -291,22 +309,22 @@ type shutdownCounter struct {
 	// the most recent 1 minutes.
 	timeRangeCounter int32
 
-	// once ensures that shutdownFn only runs once.
+	// once ensures that the shutdown function only runs once.
 	once sync.Once
-
-	// The function is provided by users to shutdown the server. This function is
-	// guaranteed to run only once.
-	shutdownFn func()
 }
 
 func (c *shutdownCounter) shutdown() {
-	c.once.Do(c.shutdownFn)
+	c.once.Do(func() {
+		if c.config.shutdownFn != nil {
+			c.config.shutdownFn()
+		}
+	})
 }
 
 func (c *shutdownCounter) startTicker() {
-	timer := time.NewTicker(time.Minute)
+	timer := time.NewTicker(c.config.tickerDuration)
 	for range timer.C {
-		if c.timeRangeCounter >= 10 {
+		if c.timeRangeCounter >= c.config.timeRangeCountLimit {
 			go c.shutdown()
 			timer.Stop()
 			return
@@ -324,14 +342,14 @@ func (c *shutdownCounter) Interceptor(code codes.Code) {
 		// reset counter
 		atomic.StoreInt32(&c.consecutiveCounter, 0)
 	}
-	if c.consecutiveCounter >= 4 {
+	if c.consecutiveCounter >= c.config.consecutiveCountLimit {
 		go c.shutdown()
 	}
 }
 
-func newShutdownCounter(fn func()) *shutdownCounter {
+func newShutdownCounter(config shutdownCounterConfig) *shutdownCounter {
 	counter := &shutdownCounter{
-		shutdownFn: fn,
+		config: config,
 	}
 	go counter.startTicker()
 	return counter

@@ -23,6 +23,10 @@ const (
 	defaultPoolSize          = 2
 	defaultKeyType           = crypki.RSA
 
+	defaultShutdownOnSigningFailureConsecutiveCount    = 4
+	defaultShutdownOnSigningFailureTimerDurationSecond = 60
+	defaultShutdownOnSigningFailureTimerCount          = 10
+
 	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
 	X509CertEndpoint = "/sig/x509-cert"
 	// SSHUserCertEndpoint specifies the endpoint for signing SSH user certificate.
@@ -94,7 +98,10 @@ type Config struct {
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
 
-	ShutdownOnFrequentSigningFailure bool
+	ShutdownOnFrequentSigningFailure            bool
+	ShutdownOnSigningFailureConsecutiveCount    uint
+	ShutdownOnSigningFailureTimerDurationSecond uint
+	ShutdownOnSigningFailureTimerCount          uint
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.
@@ -196,5 +203,15 @@ func (c *Config) loadDefaults() {
 		if c.Keys[i].SessionPoolSize == 0 {
 			c.Keys[i].SessionPoolSize = defaultPoolSize
 		}
+	}
+
+	if c.ShutdownOnSigningFailureConsecutiveCount == 0 {
+		c.ShutdownOnSigningFailureConsecutiveCount = defaultShutdownOnSigningFailureConsecutiveCount
+	}
+	if c.ShutdownOnSigningFailureTimerDurationSecond == 0 {
+		c.ShutdownOnSigningFailureTimerDurationSecond = defaultShutdownOnSigningFailureTimerDurationSecond
+	}
+	if c.ShutdownOnSigningFailureTimerCount == 0 {
+		c.ShutdownOnSigningFailureTimerCount = defaultShutdownOnSigningFailureTimerCount
 	}
 }

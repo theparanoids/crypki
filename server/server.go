@@ -178,8 +178,8 @@ func Main(keyP crypki.KeyIDProcessor) {
 		criteria := cfg.ShutdownOnSigningFailureCriteria
 		shutdownCounterConfig := shutdownCounterConfig{
 			consecutiveCountLimit: int32(criteria.ConsecutiveCountLimit),
-			timeRangeCountLimit:   int32(criteria.TimerDurationSecond),
-			tickerDuration:        time.Duration(criteria.TimerCountLimit) * time.Second,
+			timeRangeCountLimit:   int32(criteria.TimerCountLimit),
+			tickerDuration:        time.Duration(criteria.TimerDurationSecond) * time.Second,
 			shutdownFn: func() {
 				if err := server.Shutdown(ctx); err != nil {
 					log.Fatalf("failed to shutdown server: %v", err)

@@ -291,8 +291,8 @@ type shutdownCounter struct {
 	// the most recent 1 minutes.
 	timeRangeCounter int32
 
-	// mu protects the access to shutdownFn.
-	mu sync.Mutex
+	// once ensures that shutdownFn only runs once.
+	once sync.Once
 
 	// The function is provided by users to shutdown the server. This function is
 	// guaranteed to run only once.
@@ -300,27 +300,19 @@ type shutdownCounter struct {
 }
 
 func (c *shutdownCounter) shutdown() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.shutdownFn != nil {
-		c.shutdownFn()
-	}
-	c.shutdownFn = nil
+	c.once.Do(c.shutdownFn)
 }
 
 func (c *shutdownCounter) startTicker() {
 	timer := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-timer.C:
-			if c.timeRangeCounter >= 10 {
-				go c.shutdown()
-				timer.Stop()
-				return
-			}
-			// reset counter
-			atomic.StoreInt32(&c.timeRangeCounter, 0)
+	for range timer.C {
+		if c.timeRangeCounter >= 10 {
+			go c.shutdown()
+			timer.Stop()
+			return
 		}
+		// reset counter
+		atomic.StoreInt32(&c.timeRangeCounter, 0)
 	}
 }
 

@@ -175,10 +175,11 @@ func Main(keyP crypki.KeyIDProcessor) {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 	}
 	if cfg.ShutdownOnFrequentSigningFailure {
+		criteria := cfg.ShutdownOnSigningFailureCriteria
 		shutdownCounterConfig := shutdownCounterConfig{
-			consecutiveCountLimit: int32(cfg.ShutdownOnSigningFailureConsecutiveCount),
-			timeRangeCountLimit:   int32(cfg.ShutdownOnSigningFailureTimerCount),
-			tickerDuration:        time.Duration(cfg.ShutdownOnSigningFailureTimerDurationSecond) * time.Second,
+			consecutiveCountLimit: int32(criteria.ConsecutiveCountLimit),
+			timeRangeCountLimit:   int32(criteria.TimerDurationSecond),
+			tickerDuration:        time.Duration(criteria.TimerCountLimit) * time.Second,
 			shutdownFn: func() {
 				if err := server.Shutdown(ctx); err != nil {
 					log.Fatalf("failed to shutdown server: %v", err)

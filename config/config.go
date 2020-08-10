@@ -98,10 +98,12 @@ type Config struct {
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
 
-	ShutdownOnFrequentSigningFailure            bool
-	ShutdownOnSigningFailureConsecutiveCount    uint
-	ShutdownOnSigningFailureTimerDurationSecond uint
-	ShutdownOnSigningFailureTimerCount          uint
+	ShutdownOnFrequentSigningFailure bool
+	ShutdownOnSigningFailureCriteria struct {
+		ConsecutiveCountLimit uint
+		TimerDurationSecond   uint
+		TimerCountLimit       uint
+	}
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.
@@ -205,13 +207,13 @@ func (c *Config) loadDefaults() {
 		}
 	}
 
-	if c.ShutdownOnSigningFailureConsecutiveCount == 0 {
-		c.ShutdownOnSigningFailureConsecutiveCount = defaultShutdownOnSigningFailureConsecutiveCount
+	if c.ShutdownOnSigningFailureCriteria.ConsecutiveCountLimit == 0 {
+		c.ShutdownOnSigningFailureCriteria.ConsecutiveCountLimit = defaultShutdownOnSigningFailureConsecutiveCount
 	}
-	if c.ShutdownOnSigningFailureTimerDurationSecond == 0 {
-		c.ShutdownOnSigningFailureTimerDurationSecond = defaultShutdownOnSigningFailureTimerDurationSecond
+	if c.ShutdownOnSigningFailureCriteria.TimerDurationSecond == 0 {
+		c.ShutdownOnSigningFailureCriteria.TimerDurationSecond = defaultShutdownOnSigningFailureTimerDurationSecond
 	}
-	if c.ShutdownOnSigningFailureTimerCount == 0 {
-		c.ShutdownOnSigningFailureTimerCount = defaultShutdownOnSigningFailureTimerCount
+	if c.ShutdownOnSigningFailureCriteria.TimerCountLimit == 0 {
+		c.ShutdownOnSigningFailureCriteria.TimerCountLimit = defaultShutdownOnSigningFailureTimerCount
 	}
 }

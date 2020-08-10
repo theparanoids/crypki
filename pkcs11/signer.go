@@ -26,7 +26,14 @@ type signer struct {
 	x509CACerts map[string]*x509.Certificate
 	sPool       map[string]sPool
 
-	// login keeps all login session using the slot number as key.
+	// login keeps all login sessions using the slot number as key.
+	//
+	// Note that it won't actually be used to access the tokens.
+	// Instead, it is only used to log the normal user in the slots during initialization,
+	// so later on when new sessions are opened to initialize sPool,
+	// the sessions would be in `User Functions` state instead of `Public Session` state,
+	// and the private tokens in the slots can be accessed via those sessions.
+	// Ref. http://docs.oasis-open.org/pkcs11/pkcs11-ug/v2.40/cn02/pkcs11-ug-v2.40-cn02.html#_Toc406759989
 	login map[uint]p11.SessionHandle
 }
 

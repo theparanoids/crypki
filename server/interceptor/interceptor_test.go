@@ -1,4 +1,4 @@
-package server
+package interceptor
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 )
 
 func TestStatusInterceptor(t *testing.T) {
+	t.Parallel()
+
 	table := map[string]struct {
 		err      error
 		wantCode codes.Code

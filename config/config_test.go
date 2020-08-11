@@ -30,12 +30,14 @@ func TestParse(t *testing.T) {
 			{"/sig/ssh-user-cert", []string{"key3"}, 36000},
 			{"/sig/blob", []string{"key1"}, 36000},
 		},
-		ShutdownOnFrequentSigningFailure: true,
-		ShutdownOnSigningFailureCriteria: struct {
+		ShutdownOnInternalFailure: true,
+		ShutdownOnInternalFailureCriteria: struct {
+			ReportMode            bool
 			ConsecutiveCountLimit uint
 			TimerDurationSecond   uint
 			TimerCountLimit       uint
 		}{
+			ReportMode:            true,
 			ConsecutiveCountLimit: 3,
 			TimerDurationSecond:   120,
 			TimerCountLimit:       20,

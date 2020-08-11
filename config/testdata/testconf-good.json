@@ -1,5 +1,5 @@
 {
-  "ShutdownOnFrequentSigningFailure": true,
+  "ShutdownOnInternalFailure": true,
   "TLSServerName": "foo.example.com",
   "TLSClientAuthMode": 4,
   "X509CACertLocation":"testdata/cacert.pem",
@@ -14,7 +14,8 @@
     {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["key3"], "MaxValidity": 36000},
     {"Endpoint": "/sig/blob", "Identifiers": ["key1"], "MaxValidity": 36000}
   ],
-  "ShutdownOnSigningFailureCriteria": {
+  "ShutdownOnInternalFailureCriteria": {
+    "ReportMode": true,
     "ConsecutiveCountLimit": 3,
     "TimerDurationSecond": 120,
     "TimerCountLimit": 20

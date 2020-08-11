@@ -17,8 +17,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -34,6 +32,7 @@ import (
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/server/interceptor"
 )
 
 const defaultLogFile = "/var/log/crypki/server.log"
@@ -177,12 +176,12 @@ func Main(keyP crypki.KeyIDProcessor) {
 	}
 	if cfg.ShutdownOnInternalFailure {
 		criteria := cfg.ShutdownOnInternalFailureCriteria
-		shutdownCounterConfig := shutdownCounterConfig{
-			reportOnly:            criteria.ReportMode,
-			consecutiveCountLimit: int32(criteria.ConsecutiveCountLimit),
-			timeRangeCountLimit:   int32(criteria.TimerCountLimit),
-			tickerDuration:        time.Duration(criteria.TimerDurationSecond) * time.Second,
-			shutdownFn: func() {
+		shutdownCounterConfig := interceptor.ShutdownCounterConfig{
+			ReportOnly:            criteria.ReportMode,
+			ConsecutiveCountLimit: int32(criteria.ConsecutiveCountLimit),
+			TimeRangeCountLimit:   int32(criteria.TimerCountLimit),
+			TickerDuration:        time.Duration(criteria.TimerDurationSecond) * time.Second,
+			ShutdownFn: func() {
 				grpcServer.GracefulStop()
 				if err := server.Shutdown(ctx); err != nil {
 					log.Fatalf("failed to shutdown server: %v", err)
@@ -190,7 +189,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 			},
 		}
 		interceptors = append([]grpc.UnaryServerInterceptor{
-			StatusInterceptor((newShutdownCounter(ctx, shutdownCounterConfig)).interceptor),
+			interceptor.StatusInterceptor((interceptor.NewShutdownCounter(ctx, shutdownCounterConfig)).InterceptorFn),
 		}, interceptors...)
 	}
 
@@ -292,95 +291,4 @@ func logRotate(lf *os.File) {
 		log.SetOutput(lf)
 		log.Printf("crypki: rotated logfile: %s", name)
 	}
-}
-
-type shutdownCounterConfig struct {
-	reportOnly            bool
-	consecutiveCountLimit int32
-	timeRangeCountLimit   int32
-	tickerDuration        time.Duration
-
-	// The function is provided by users to shutdown the server. This function is
-	// guaranteed to run only once.
-	shutdownFn func()
-}
-
-type shutdownCounter struct {
-	config shutdownCounterConfig
-
-	// consecutiveCounter keeps track of the number of consecutive failures with
-	// Internal grpc code.
-	consecutiveCounter int32
-
-	// timeRangeCounter counts the number of failures with Internal grpc code in
-	// the most recent 1 minutes.
-	timeRangeCounter int32
-
-	// once ensures that the shutdown function only runs once.
-	once sync.Once
-}
-
-func (c *shutdownCounter) shutdown() {
-	c.once.Do(func() {
-		if c.config.shutdownFn != nil {
-			c.config.shutdownFn()
-		}
-	})
-}
-
-func (c *shutdownCounter) startTicker(ctx context.Context) {
-	timer := time.NewTicker(c.config.tickerDuration)
-	for {
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-
-		case <-timer.C:
-			if c.timeRangeCounter >= c.config.timeRangeCountLimit {
-				log.Printf("the number of internal failures %d reaches configured limit %d in %s",
-					c.timeRangeCounter, c.config.timeRangeCountLimit, c.config.tickerDuration)
-
-				if c.config.reportOnly {
-					log.Printf("shutdownCounter: report only")
-				} else {
-					log.Printf("shutdownCounter: shutting down server")
-					go c.shutdown()
-					timer.Stop()
-					return
-				}
-			}
-			// reset counter
-			atomic.StoreInt32(&c.timeRangeCounter, 0)
-		}
-	}
-}
-
-func (c *shutdownCounter) interceptor(code codes.Code) {
-	if code == codes.Internal {
-		atomic.AddInt32(&c.consecutiveCounter, 1)
-		atomic.AddInt32(&c.timeRangeCounter, 1)
-	} else {
-		// reset counter
-		atomic.StoreInt32(&c.consecutiveCounter, 0)
-	}
-	if c.consecutiveCounter >= c.config.consecutiveCountLimit {
-		log.Printf("the number of consecutive internal failures %d reached configured limit %d",
-			c.consecutiveCounter, c.config.consecutiveCountLimit)
-
-		if c.config.reportOnly {
-			log.Printf("shutdownCounter: report only")
-		} else {
-			log.Printf("shutdownCounter: shutting down server")
-			go c.shutdown()
-		}
-	}
-}
-
-func newShutdownCounter(ctx context.Context, config shutdownCounterConfig) *shutdownCounter {
-	counter := &shutdownCounter{
-		config: config,
-	}
-	go counter.startTicker(ctx)
-	return counter
 }

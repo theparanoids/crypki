@@ -171,28 +171,31 @@ func Main(keyP crypki.KeyIDProcessor) {
 	}
 
 	var server *http.Server
+	var grpcServer *grpc.Server
 	interceptors := []grpc.UnaryServerInterceptor{
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 	}
-	if cfg.ShutdownOnFrequentSigningFailure {
-		criteria := cfg.ShutdownOnSigningFailureCriteria
+	if cfg.ShutdownOnInternalFailure {
+		criteria := cfg.ShutdownOnInternalFailureCriteria
 		shutdownCounterConfig := shutdownCounterConfig{
+			reportOnly:            criteria.ReportMode,
 			consecutiveCountLimit: int32(criteria.ConsecutiveCountLimit),
 			timeRangeCountLimit:   int32(criteria.TimerCountLimit),
 			tickerDuration:        time.Duration(criteria.TimerDurationSecond) * time.Second,
 			shutdownFn: func() {
+				grpcServer.GracefulStop()
 				if err := server.Shutdown(ctx); err != nil {
 					log.Fatalf("failed to shutdown server: %v", err)
 				}
 			},
 		}
 		interceptors = append([]grpc.UnaryServerInterceptor{
-			StatusInterceptor((newShutdownCounter(shutdownCounterConfig)).Interceptor),
+			StatusInterceptor((newShutdownCounter(ctx, shutdownCounterConfig)).interceptor),
 		}, interceptors...)
 	}
 
 	// Setup gRPC server and http server
-	grpcServer := grpc.NewServer([]grpc.ServerOption{
+	grpcServer = grpc.NewServer([]grpc.ServerOption{
 		grpc.Creds(credentials.NewTLS(tlsConfig)),
 		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
@@ -292,6 +295,7 @@ func logRotate(lf *os.File) {
 }
 
 type shutdownCounterConfig struct {
+	reportOnly            bool
 	consecutiveCountLimit int32
 	timeRangeCountLimit   int32
 	tickerDuration        time.Duration
@@ -324,20 +328,35 @@ func (c *shutdownCounter) shutdown() {
 	})
 }
 
-func (c *shutdownCounter) startTicker() {
+func (c *shutdownCounter) startTicker(ctx context.Context) {
 	timer := time.NewTicker(c.config.tickerDuration)
-	for range timer.C {
-		if c.timeRangeCounter >= c.config.timeRangeCountLimit {
-			go c.shutdown()
+	for {
+		select {
+		case <-ctx.Done():
 			timer.Stop()
 			return
+
+		case <-timer.C:
+			if c.timeRangeCounter >= c.config.timeRangeCountLimit {
+				log.Printf("the number of internal failures %d reaches configured limit %d in %s",
+					c.timeRangeCounter, c.config.timeRangeCountLimit, c.config.tickerDuration)
+
+				if c.config.reportOnly {
+					log.Printf("shutdownCounter: report only")
+				} else {
+					log.Printf("shutdownCounter: shutting down server")
+					go c.shutdown()
+					timer.Stop()
+					return
+				}
+			}
+			// reset counter
+			atomic.StoreInt32(&c.timeRangeCounter, 0)
 		}
-		// reset counter
-		atomic.StoreInt32(&c.timeRangeCounter, 0)
 	}
 }
 
-func (c *shutdownCounter) Interceptor(code codes.Code) {
+func (c *shutdownCounter) interceptor(code codes.Code) {
 	if code == codes.Internal {
 		atomic.AddInt32(&c.consecutiveCounter, 1)
 		atomic.AddInt32(&c.timeRangeCounter, 1)
@@ -346,14 +365,22 @@ func (c *shutdownCounter) Interceptor(code codes.Code) {
 		atomic.StoreInt32(&c.consecutiveCounter, 0)
 	}
 	if c.consecutiveCounter >= c.config.consecutiveCountLimit {
-		go c.shutdown()
+		log.Printf("the number of consecutive internal failures %d reaches configured limit %d",
+			c.consecutiveCounter, c.config.consecutiveCountLimit)
+
+		if c.config.reportOnly {
+			log.Printf("shutdownCounter: report only")
+		} else {
+			log.Printf("shutdownCounter: shutting down server")
+			go c.shutdown()
+		}
 	}
 }
 
-func newShutdownCounter(config shutdownCounterConfig) *shutdownCounter {
+func newShutdownCounter(ctx context.Context, config shutdownCounterConfig) *shutdownCounter {
 	counter := &shutdownCounter{
 		config: config,
 	}
-	go counter.startTicker()
+	go counter.startTicker(ctx)
 	return counter
 }

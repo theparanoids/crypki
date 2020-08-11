@@ -98,8 +98,9 @@ type Config struct {
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
 
-	ShutdownOnFrequentSigningFailure bool
-	ShutdownOnSigningFailureCriteria struct {
+	ShutdownOnInternalFailure         bool
+	ShutdownOnInternalFailureCriteria struct {
+		ReportMode            bool
 		ConsecutiveCountLimit uint
 		TimerDurationSecond   uint
 		TimerCountLimit       uint
@@ -207,13 +208,13 @@ func (c *Config) loadDefaults() {
 		}
 	}
 
-	if c.ShutdownOnSigningFailureCriteria.ConsecutiveCountLimit == 0 {
-		c.ShutdownOnSigningFailureCriteria.ConsecutiveCountLimit = defaultShutdownOnSigningFailureConsecutiveCount
+	if c.ShutdownOnInternalFailureCriteria.ConsecutiveCountLimit == 0 {
+		c.ShutdownOnInternalFailureCriteria.ConsecutiveCountLimit = defaultShutdownOnSigningFailureConsecutiveCount
 	}
-	if c.ShutdownOnSigningFailureCriteria.TimerDurationSecond == 0 {
-		c.ShutdownOnSigningFailureCriteria.TimerDurationSecond = defaultShutdownOnSigningFailureTimerDurationSecond
+	if c.ShutdownOnInternalFailureCriteria.TimerDurationSecond == 0 {
+		c.ShutdownOnInternalFailureCriteria.TimerDurationSecond = defaultShutdownOnSigningFailureTimerDurationSecond
 	}
-	if c.ShutdownOnSigningFailureCriteria.TimerCountLimit == 0 {
-		c.ShutdownOnSigningFailureCriteria.TimerCountLimit = defaultShutdownOnSigningFailureTimerCount
+	if c.ShutdownOnInternalFailureCriteria.TimerCountLimit == 0 {
+		c.ShutdownOnInternalFailureCriteria.TimerCountLimit = defaultShutdownOnSigningFailureTimerCount
 	}
 }

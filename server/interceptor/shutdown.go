@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// ShutdownCounterConfig configures the behavior of ShutdownCounter
+// ShutdownCounterConfig configures the behavior of ShutdownCounter.
 type ShutdownCounterConfig struct {
 	ReportOnly            bool
 	ConsecutiveCountLimit int32

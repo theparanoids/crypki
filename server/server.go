@@ -365,7 +365,7 @@ func (c *shutdownCounter) interceptor(code codes.Code) {
 		atomic.StoreInt32(&c.consecutiveCounter, 0)
 	}
 	if c.consecutiveCounter >= c.config.consecutiveCountLimit {
-		log.Printf("the number of consecutive internal failures %d reaches configured limit %d",
+		log.Printf("the number of consecutive internal failures %d reached configured limit %d",
 			c.consecutiveCounter, c.config.consecutiveCountLimit)
 
 		if c.config.reportOnly {

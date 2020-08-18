@@ -88,7 +88,6 @@ type KeyConfig struct {
 type Config struct {
 	ModulePath        string
 	TLSClientAuthMode tls.ClientAuthType
-	TLSServerName     string
 	TLSServerCertPath string
 	TLSServerKeyPath  string
 	TLSCACertPath     string
@@ -127,10 +126,6 @@ func Parse(configPath string) (*Config, error) {
 
 // validate does basic validation on the configuration.
 func (c *Config) validate() error {
-	if c.TLSServerName == "" {
-		return fmt.Errorf("TLSServerName cannot be empty. Please specify it in the config")
-	}
-	c.TLSServerName = strings.TrimSpace(c.TLSServerName)
 	// Do a basic validation on Keys and KeyUsages.
 	identifierMap := make(map[string]*KeyConfig, len(c.Keys))
 	slotMap := make(map[uint]string, len(c.Keys))

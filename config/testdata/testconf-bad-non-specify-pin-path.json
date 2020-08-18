@@ -1,5 +1,4 @@
 {
-  "TLSServerName": "foo.example.com",
   "TLSClientAuthMode": 4,
   "X509CACertLocation":"testdata/cacert.pem",
   "Keys": [

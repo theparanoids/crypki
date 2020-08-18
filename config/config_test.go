@@ -11,7 +11,6 @@ func TestParse(t *testing.T) {
 	t.Parallel()
 	cfg := &Config{
 		ModulePath:        "/opt/utimaco/lib/libcs_pkcs11_R2.so",
-		TLSServerName:     "foo.example.com",
 		TLSCACertPath:     "/opt/crypki/ca.crt",
 		TLSClientAuthMode: 4,
 		TLSServerCertPath: "/opt/crypki/server.crt",

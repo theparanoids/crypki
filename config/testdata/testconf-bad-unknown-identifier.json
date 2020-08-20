@@ -1,6 +1,5 @@
 {
   "TLSClientAuthMode": 4,
-  "TLSServerName": "foo.example.com",
   "X509CACertLocation":"testdata/cacert.pem",
   "Keys": [
     {"Identifier": "key1", "KeyLabel": "foo", "SlotNumber": 1, "UserPinPath" : "/path/1", "CreateCACertIfNotExist": true, "CommonName": "My CA"},

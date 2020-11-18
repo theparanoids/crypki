@@ -246,7 +246,7 @@ type UnsafeSigningServer interface {
 	mustEmbedUnimplementedSigningServer()
 }
 
-func RegisterSigningServer(s *grpc.Server, srv SigningServer) {
+func RegisterSigningServer(s grpc.ServiceRegistrar, srv SigningServer) {
 	s.RegisterService(&_Signing_serviceDesc, srv)
 }
 

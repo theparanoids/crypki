@@ -13,6 +13,7 @@ require (
 	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
 	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154
 	google.golang.org/grpc v1.33.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

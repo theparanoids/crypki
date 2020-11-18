@@ -4,8 +4,8 @@
 // Package proto contains proto generated code.
 package proto
 
-//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.0.1/third_party/googleapis --go_out=. --go-grpc_out=. sign.proto
-//go:generate protoc -I. -I$GOPATH/pkg/mod -I$GOPATH/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.0.1/third_party/googleapis --grpc-gateway_out=. --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true sign.proto
+//go:generate protoc -I. -I../third_party/googleapis --go_out=. --go-grpc_out=. sign.proto
+//go:generate protoc -I. -I../third_party/googleapis --grpc-gateway_out=. --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true sign.proto
 // use protoc 3.13.0
 
 // run the following command after generating proto files to generate mock

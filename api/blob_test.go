@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/proto"
@@ -83,9 +84,11 @@ func TestGetBlobAvailableSigningKeys(t *testing.T) {
 
 func TestGetBlobSigningKey(t *testing.T) {
 	t.Parallel()
+	defaultTimeout := time.Second
 	testcases := map[string]struct {
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
+		timeout   time.Duration
 		// if expectedSSHKey set to nil, we are expecting an error while testing
 		expectedKey *proto.PublicKey
 	}{
@@ -126,13 +129,24 @@ func TestGetBlobSigningKey(t *testing.T) {
 			KeyMeta:     &proto.KeyMeta{Identifier: "blobid2"},
 			expectedKey: nil,
 		},
+		"requestTimeout": {
+			KeyUsages:   combineKeyUsage,
+			KeyMeta:     &proto.KeyMeta{Identifier: "blobid1"},
+			timeout:     10 * time.Microsecond,
+			expectedKey: nil,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		timeout := defaultTimeout
+		if tt.timeout != 0 {
+			timeout = tt.timeout
+		}
+		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
+		ctx, _ := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)
@@ -163,12 +177,14 @@ func TestGetBlobSigningKey(t *testing.T) {
 func TestPostSignBlob(t *testing.T) {
 	t.Parallel()
 	tooLongDigest := "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA=="
+	defaultTimeout := time.Second
 	testcases := map[string]struct {
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedSSHKey set to nil, we are expecting an error while testing
 		expectedSignature *proto.Signature
 		Digest            string
+		timeout           time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:           &proto.KeyMeta{Identifier: "randomid"},
@@ -219,13 +235,24 @@ func TestPostSignBlob(t *testing.T) {
 			KeyMeta:           &proto.KeyMeta{Identifier: "blobid2"},
 			expectedSignature: nil,
 		},
+		"requestTimeout": {
+			KeyUsages:         combineKeyUsage,
+			KeyMeta:           &proto.KeyMeta{Identifier: "blobid1"},
+			timeout:           10 * time.Microsecond,
+			expectedSignature: nil,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		timeout := defaultTimeout
+		if tt.timeout != 0 {
+			timeout = tt.timeout
+		}
+		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
+		ctx, _ := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)

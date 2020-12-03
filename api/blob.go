@@ -63,6 +63,13 @@ func (s *SigningService) GetBlobSigningKey(ctx context.Context, keyMeta *proto.K
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// ctx can have an error only when client cancels or request has timed out.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.BlobEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
+	}
+
 	key, err := s.GetBlobSigningPublicKey(keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
@@ -105,6 +112,13 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 	if len(digest) > maxDigestLen {
 		statusCode = http.StatusBadRequest
 		return nil, status.Error(codes.InvalidArgument, "Bad request: digest length too long")
+	}
+
+	// If client disconnects or has timed out, we do not need to process the request.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.BlobEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
 	}
 
 	signerOpts := getSignerOpts(request.HashAlgorithm.String())

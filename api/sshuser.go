@@ -63,6 +63,13 @@ func (s *SigningService) GetUserSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// ctx can have an error only when client cancels or request has timed out.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
+	}
+
 	key, err := s.GetSSHCertSigningKey(keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
@@ -111,6 +118,13 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", request.KeyMeta.Identifier, config.SSHUserCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
+	}
+
+	// If client disconnects or has timed out, we do not need to process the request.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
 	}
 
 	data, err := s.SignSSHCert(cert, request.KeyMeta.Identifier)

@@ -57,17 +57,19 @@ func (s *SigningService) GetUserSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// if client cancelled the request or request timed out, we should skip processing
+	select {
+	case <-ctx.Done():
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q for %q", ctx.Err(), keyMeta.Identifier, config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
+	default:
+	}
+
 	if !s.KeyUsages[config.SSHUserCertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.SSHUserCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
-	}
-
-	// ctx can have an error only when client cancels or request has timed out.
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusServiceUnavailable
-		err = fmt.Errorf("%s for request %q", ctx.Err(), config.SSHUserCertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
 	}
 
 	key, err := s.GetSSHCertSigningKey(keyMeta.Identifier)
@@ -102,6 +104,15 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// if client cancelled the request or request timed out, we should skip processing
+	select {
+	case <-ctx.Done():
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q for %q", ctx.Err(), request.KeyMeta.Identifier, config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
+	default:
+	}
+
 	maxValidity := s.MaxValidity[config.SSHUserCertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
@@ -118,13 +129,6 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", request.KeyMeta.Identifier, config.SSHUserCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
-	}
-
-	// If client disconnects or has timed out, we do not need to process the request.
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusServiceUnavailable
-		err = fmt.Errorf("%s for request %q", ctx.Err(), config.SSHUserCertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
 	}
 
 	data, err := s.SignSSHCert(cert, request.KeyMeta.Identifier)

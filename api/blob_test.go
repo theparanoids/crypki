@@ -143,8 +143,7 @@ func TestGetBlobSigningKey(t *testing.T) {
 		if tt.timeout != 0 {
 			timeout = tt.timeout
 		}
-		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -171,6 +170,7 @@ func TestGetBlobSigningKey(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }
 
@@ -249,8 +249,7 @@ func TestPostSignBlob(t *testing.T) {
 		if tt.timeout != 0 {
 			timeout = tt.timeout
 		}
-		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -280,5 +279,6 @@ func TestPostSignBlob(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }

@@ -129,7 +129,7 @@ func TestGetX509CACertificate(t *testing.T) {
 		if tt.timeout != 0 {
 			timeout = tt.timeout
 		}
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -156,6 +156,7 @@ func TestGetX509CACertificate(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }
 
@@ -300,7 +301,7 @@ func TestPostX509Certificate(t *testing.T) {
 		if tt.timeout != 0 {
 			timeout = tt.timeout
 		}
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -329,5 +330,6 @@ func TestPostX509Certificate(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }

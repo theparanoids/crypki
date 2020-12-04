@@ -57,17 +57,19 @@ func (s *SigningService) GetHostSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// if client cancelled the request or request timed out, we should skip processing
+	select {
+	case <-ctx.Done():
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q for %q", ctx.Err(), keyMeta.Identifier, config.SSHHostCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
+	default:
+	}
+
 	if !s.KeyUsages[config.SSHHostCertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.SSHHostCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
-	}
-
-	// ctx can have an error only when client cancels or request has timed out.
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusServiceUnavailable
-		err = fmt.Errorf("%s for request for %q", ctx.Err(), config.SSHHostCertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
 	}
 
 	key, err := s.GetSSHCertSigningKey(keyMeta.Identifier)
@@ -102,6 +104,15 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// if client cancelled the request or request timed out, we should skip processing
+	select {
+	case <-ctx.Done():
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q for %q", ctx.Err(), request.KeyMeta.Identifier, config.SSHHostCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
+	default:
+	}
+
 	maxValidity := s.MaxValidity[config.SSHHostCertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
@@ -118,14 +129,6 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", request.KeyMeta.Identifier, config.SSHHostCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
-	}
-
-	// If client disconnects or has timed out, we do not need to process the request.
-	// https://grpc.io/blog/deadlines/#checking-deadlines
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusServiceUnavailable
-		err = fmt.Errorf("%s for request %q", ctx.Err(), config.SSHHostCertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Cancel request: %v", err)
 	}
 
 	data, err := s.SignSSHCert(cert, request.KeyMeta.Identifier)

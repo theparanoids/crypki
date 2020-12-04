@@ -129,7 +129,7 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 			timeout = tt.timeout
 		}
 		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -156,6 +156,7 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }
 
@@ -323,7 +324,7 @@ func TestPostUserSSHCertificate(t *testing.T) {
 			timeout = tt.timeout
 		}
 		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
@@ -353,5 +354,6 @@ func TestPostUserSSHCertificate(t *testing.T) {
 				}
 			}
 		})
+		cancel()
 	}
 }

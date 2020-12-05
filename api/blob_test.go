@@ -84,11 +84,13 @@ func TestGetBlobAvailableSigningKeys(t *testing.T) {
 
 func TestGetBlobSigningKey(t *testing.T) {
 	t.Parallel()
-	defaultTimeout := time.Second
+	defaultCtx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
-		timeout   time.Duration
 		// if expectedSSHKey set to nil, we are expecting an error while testing
 		expectedKey *proto.PublicKey
 	}{
@@ -130,33 +132,31 @@ func TestGetBlobSigningKey(t *testing.T) {
 			expectedKey: nil,
 		},
 		"requestTimeout": {
+			ctx:         ctxTimeout,
 			KeyUsages:   combineKeyUsage,
 			KeyMeta:     &proto.KeyMeta{Identifier: "blobid1"},
-			timeout:     10 * time.Microsecond,
 			expectedKey: nil,
 		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
-		timeout := defaultTimeout
-		if tt.timeout != 0 {
-			timeout = tt.timeout
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			if tt.ctx == nil {
+				tt.ctx = defaultCtx
+			}
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)
-			_, err := ssBad.GetBlobSigningKey(ctx, tt.KeyMeta)
+			_, err := ssBad.GetBlobSigningKey(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
 			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ssGood := initMockSigningService(msspGood)
-			key, err := ssGood.GetBlobSigningKey(ctx, tt.KeyMeta)
+			key, err := ssGood.GetBlobSigningKey(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedKey != nil {
 				t.Fatalf("in test %v: not expecting error but got error %v", label, err)
 			}
@@ -170,21 +170,22 @@ func TestGetBlobSigningKey(t *testing.T) {
 				}
 			}
 		})
-		cancel()
 	}
 }
 
 func TestPostSignBlob(t *testing.T) {
 	t.Parallel()
 	tooLongDigest := "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA=="
-	defaultTimeout := time.Second
+	defaultCtx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedSSHKey set to nil, we are expecting an error while testing
 		expectedSignature *proto.Signature
 		Digest            string
-		timeout           time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:           &proto.KeyMeta{Identifier: "randomid"},
@@ -236,27 +237,25 @@ func TestPostSignBlob(t *testing.T) {
 			expectedSignature: nil,
 		},
 		"requestTimeout": {
+			ctx:               ctxTimeout,
 			KeyUsages:         combineKeyUsage,
 			KeyMeta:           &proto.KeyMeta{Identifier: "blobid1"},
-			timeout:           10 * time.Microsecond,
 			expectedSignature: nil,
 		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
-		timeout := defaultTimeout
-		if tt.timeout != 0 {
-			timeout = tt.timeout
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			if tt.ctx == nil {
+				tt.ctx = defaultCtx
+			}
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.BlobSigningRequest{KeyMeta: tt.KeyMeta, Digest: tt.Digest, HashAlgorithm: proto.HashAlgo_SHA512}
-			_, err := ssBad.PostSignBlob(ctx, requestBad)
+			_, err := ssBad.PostSignBlob(tt.ctx, requestBad)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
@@ -265,7 +264,7 @@ func TestPostSignBlob(t *testing.T) {
 			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.BlobSigningRequest{KeyMeta: tt.KeyMeta, Digest: tt.Digest, HashAlgorithm: proto.HashAlgo_SHA512}
-			cert, err := ssGood.PostSignBlob(ctx, requestGood)
+			cert, err := ssGood.PostSignBlob(tt.ctx, requestGood)
 			if tt.expectedSignature == nil {
 				if err == nil {
 					t.Errorf("expected error for invalid test %v, got nil", label)
@@ -279,6 +278,5 @@ func TestPostSignBlob(t *testing.T) {
 				}
 			}
 		})
-		cancel()
 	}
 }

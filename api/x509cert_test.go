@@ -74,11 +74,13 @@ func TestGetX509CertificateAvailableSigningKeys(t *testing.T) {
 
 func TestGetX509CACertificate(t *testing.T) {
 	t.Parallel()
-	defaultTimeout := time.Second
+	defaultCtx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
-		timeout   time.Duration
 		// if expectedCert set to nil, we are expecting an error while testing
 		expectedCert *proto.X509Certificate
 	}{
@@ -115,34 +117,31 @@ func TestGetX509CACertificate(t *testing.T) {
 			expectedCert: nil,
 		},
 		"requestTimeout": {
+			ctx:          ctxTimeout,
 			KeyUsages:    combineKeyUsage,
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
-			timeout:      10 * time.Microsecond,
 			expectedCert: nil,
 		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
-		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		timeout := defaultTimeout
-		if tt.timeout != 0 {
-			timeout = tt.timeout
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			if tt.ctx == nil {
+				tt.ctx = defaultCtx
+			}
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)
-			_, err := ssBad.GetX509CACertificate(ctx, tt.KeyMeta)
+			_, err := ssBad.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
 			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ssGood := initMockSigningService(msspGood)
-			cert, err := ssGood.GetX509CACertificate(ctx, tt.KeyMeta)
+			cert, err := ssGood.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedCert != nil {
 				t.Fatalf("in test %v: not expecting error but got error %v", label, err)
 			}
@@ -156,15 +155,17 @@ func TestGetX509CACertificate(t *testing.T) {
 				}
 			}
 		})
-		cancel()
 	}
 }
 
 func TestPostX509Certificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.X509CertEndpoint: 0}
-	defaultTimeout := time.Second
+	defaultCtx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		KeyUsages   map[string]map[string]bool
 		maxValidity map[string]uint64
 		validity    uint64
@@ -172,7 +173,6 @@ func TestPostX509Certificate(t *testing.T) {
 		// if expectedCert set to nil, we are expecting an error while testing
 		expectedCert *proto.X509Certificate
 		CSR          string
-		timeout      time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:      &proto.KeyMeta{Identifier: "randomid"},
@@ -274,41 +274,38 @@ func TestPostX509Certificate(t *testing.T) {
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
 		},
-		"x509 request timeout": {
+		"x509KeyUsageRequestTimeout": {
+			ctx:          ctxTimeout,
 			KeyUsages:    combineKeyUsage,
 			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
 			validity:     3600,
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
-			timeout:      100 * time.Microsecond,
 		},
-		"ssh key usage timeout": {
+		"sshKeyUsageRequestTimeout": {
+			ctx:          ctxTimeout,
 			KeyUsages:    sshkeyUsage,
 			maxValidity:  defaultMaxValidity,
 			validity:     3600,
 			KeyMeta:      &proto.KeyMeta{Identifier: "sshuserid"},
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
-			timeout:      10 * time.Microsecond,
 		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
-		// the cancel function returned by WithTimeout should be called, not discarded, to avoid a context leak
-		timeout := defaultTimeout
-		if tt.timeout != 0 {
-			timeout = tt.timeout
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			if tt.ctx == nil {
+				tt.ctx = defaultCtx
+			}
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
-			if _, err := ssBad.PostX509Certificate(ctx, requestBad); err == nil {
+			if _, err := ssBad.PostX509Certificate(tt.ctx, requestBad); err == nil {
 				t.Fatalf("expected error for invalid test %v, got nil", label)
 			}
 
@@ -316,7 +313,7 @@ func TestPostX509Certificate(t *testing.T) {
 			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
-			cert, err := ssGood.PostX509Certificate(ctx, requestGood)
+			cert, err := ssGood.PostX509Certificate(tt.ctx, requestGood)
 			if tt.expectedCert == nil {
 				if err == nil {
 					t.Errorf("expected error for invalid test %v, got nil", label)
@@ -330,6 +327,5 @@ func TestPostX509Certificate(t *testing.T) {
 				}
 			}
 		})
-		cancel()
 	}
 }

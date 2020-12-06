@@ -56,6 +56,13 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// ctx can have an error only when client cancels or request has timed out.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusBadRequest
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.X509CertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
+	}
+
 	if !s.KeyUsages[config.X509CertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.X509CertEndpoint)
@@ -89,6 +96,13 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// If client disconnects or has timed out, we do not need to process the request.
+	if err := ctx.Err(); err != nil {
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("%s for request %q", ctx.Err(), config.X509CertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "Abandoning request: %v", err)
+	}
+
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
@@ -108,7 +122,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	data, err := s.SignX509Cert(req, request.KeyMeta.Identifier)
+	data, err := s.SignX509Cert(ctx, req, request.KeyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")

@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 	"errors"
@@ -95,7 +96,7 @@ func (mbcs *mockBadCertSign) SignSSHCert(cert *ssh.Certificate, keyIdentifier st
 func (mbcs *mockBadCertSign) GetX509CACert(keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
@@ -117,7 +118,7 @@ func (mgcs *mockGoodCertSign) SignSSHCert(cert *ssh.Certificate, keyIdentifier s
 func (mgcs *mockGoodCertSign) GetX509CACert(keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 ca cert"), nil
 }
-func (mgcs *mockGoodCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 cert"), nil
 }
 func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {

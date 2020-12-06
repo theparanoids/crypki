@@ -4,6 +4,7 @@
 package crypki
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 
@@ -51,7 +52,7 @@ type CertSign interface {
 	// GetX509CACert returns the X509 CA cert of the specified key.
 	GetX509CACert(keyIdentifier string) ([]byte, error)
 	// SignX509Cert returns an x509 cert signed by the specified key.
-	SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error)
+	SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error)
 	// GetBlobSigningPublicKey returns the public signing key of the specified key that signs the user's data.
 	GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error)
 	// SignBlob returns a signature signed by the specified key.

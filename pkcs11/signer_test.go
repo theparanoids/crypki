@@ -241,10 +241,6 @@ func TestSignX509Cert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate EC key: %v", err)
 	}
-	ec2key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		t.Fatalf("unable to generate EC key: %v", err)
-	}
 	certRSA := &x509.Certificate{
 		Subject:               subject,
 		SerialNumber:          big.NewInt(0),
@@ -271,19 +267,6 @@ func TestSignX509Cert(t *testing.T) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-	certEC2 := &x509.Certificate{
-		Subject:               subject,
-		SerialNumber:          big.NewInt(0),
-		PublicKeyAlgorithm:    x509.ECDSA,
-		PublicKey:             &ec2key.PublicKey,
-		SignatureAlgorithm:    x509.ECDSAWithSHA384,
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(time.Hour * 24),
-		DNSNames:              []string{subject.CommonName},
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-	}
 	cp := x509.NewCertPool()
 	caCertBytes, err := ioutil.ReadFile("testdata/rsa.cert.pem")
 	if err != nil {
@@ -295,29 +278,28 @@ func TestSignX509Cert(t *testing.T) {
 		t.Fatalf("unable to parse CA cert: %v", err)
 	}
 	cp.AddCert(caCert)
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+
 	testcases := map[string]struct {
-		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-rsa-good-signer":        {context.Background(), certRSA, defaultIdentifier, false, false},
-		"cert-ec-good-signer":         {context.Background(), certEC, defaultIdentifier, false, false},
-		"cert-bad-identifier":         {context.Background(), certRSA, badIdentifier, false, true},
-		"cert-bad-signer":             {context.Background(), certRSA, defaultIdentifier, true, true},
-		"cert-ec-good-signer-timeout": {timeoutCtx, certEC2, defaultIdentifier, false, true},
+		"cert-rsa-good-signer": {certRSA, defaultIdentifier, false, false},
+		"cert-ec-good-signer":  {certEC, defaultIdentifier, false, false},
+		"cert-bad-identifier":  {certRSA, badIdentifier, false, true},
+		"cert-bad-signer":      {certRSA, defaultIdentifier, true, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			data, err := signer.SignX509Cert(ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -343,8 +325,6 @@ func TestSignX509Cert(t *testing.T) {
 			}
 		})
 	}
-	<-timeoutCtx.Done()
-	cancel()
 }
 
 func TestGetBlobSigningPublicKey(t *testing.T) {

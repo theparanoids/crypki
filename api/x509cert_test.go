@@ -274,7 +274,7 @@ func TestPostX509Certificate(t *testing.T) {
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
 		},
-		"x509 request timeout": {
+		"requestTimeout": {
 			ctx:          timeoutCtx,
 			KeyUsages:    combineKeyUsage,
 			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},

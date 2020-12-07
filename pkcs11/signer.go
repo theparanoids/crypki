@@ -14,9 +14,6 @@ import (
 	"net"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	p11 "github.com/miekg/pkcs11"
 	"golang.org/x/crypto/ssh"
 
@@ -160,13 +157,6 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 	signer := pool.get()
 	defer pool.put(signer)
 	cert.SignatureAlgorithm = getSignatureAlgorithm(signer.signAlgorithm())
-
-	// check client has not timed out before making a request to hsm
-	if err := ctx.Err(); err != nil {
-		err := fmt.Errorf("client canceled request for signing x509 cert, %q", ctx.Err())
-		return nil, status.Errorf(codes.Canceled, "%v", err)
-	}
-
 	// measure time taken by hsm
 	hStart := time.Now()
 	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)

@@ -4,10 +4,10 @@ package proto
 
 import (
 	context "context"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,27 +19,27 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SigningClient interface {
 	// GetX509CertificateAvailableSigningKeys returns all available keys that can sign X509 certificates.
-	GetX509CertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
+	GetX509CertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
 	// GetX509CACertificate returns the CA X509 certificate self-signed by the specified key.
 	GetX509CACertificate(ctx context.Context, in *KeyMeta, opts ...grpc.CallOption) (*X509Certificate, error)
 	// PostX509Certificate signs the given CSR using the specified key and returns a PEM encoded X509 certificate.
 	PostX509Certificate(ctx context.Context, in *X509CertificateSigningRequest, opts ...grpc.CallOption) (*X509Certificate, error)
 	// GetUserSSHCertificateAvailableSigningKeys returns all available keys that can sign user SSH certificates.
-	GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
+	GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
 	// GetUserSSHCertificateSigningKey returns the public signing key of the
 	// specified key that signs the user ssh certificate.
 	GetUserSSHCertificateSigningKey(ctx context.Context, in *KeyMeta, opts ...grpc.CallOption) (*SSHKey, error)
 	// PostUserSSHCertificate signs the SSH user certificate given request fields using the specified key.
 	PostUserSSHCertificate(ctx context.Context, in *SSHCertificateSigningRequest, opts ...grpc.CallOption) (*SSHKey, error)
 	// GetHostSSHCertificateAvailableSigningKeys returns all available keys that can sign host SSH certificates.
-	GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
+	GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
 	// GetHostSSHCertificateSigningKey returns the public signing key of the
 	// specified key that signs the host ssh certificate.
 	GetHostSSHCertificateSigningKey(ctx context.Context, in *KeyMeta, opts ...grpc.CallOption) (*SSHKey, error)
 	// PostHostSSHCertificate signs the SSH host certificate given request fields using the specified key.
 	PostHostSSHCertificate(ctx context.Context, in *SSHCertificateSigningRequest, opts ...grpc.CallOption) (*SSHKey, error)
 	// GetBlobAvailableSigningKeys returns all available keys that can sign
-	GetBlobAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
+	GetBlobAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error)
 	// GetBlobSigningKey returns the public signing key of the
 	// specified key that signs the user's data.
 	GetBlobSigningKey(ctx context.Context, in *KeyMeta, opts ...grpc.CallOption) (*PublicKey, error)
@@ -55,7 +55,7 @@ func NewSigningClient(cc grpc.ClientConnInterface) SigningClient {
 	return &signingClient{cc}
 }
 
-func (c *signingClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
+func (c *signingClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
 	out := new(KeyMetas)
 	err := c.cc.Invoke(ctx, "/v3.Signing/GetX509CertificateAvailableSigningKeys", in, out, opts...)
 	if err != nil {
@@ -82,7 +82,7 @@ func (c *signingClient) PostX509Certificate(ctx context.Context, in *X509Certifi
 	return out, nil
 }
 
-func (c *signingClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
+func (c *signingClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
 	out := new(KeyMetas)
 	err := c.cc.Invoke(ctx, "/v3.Signing/GetUserSSHCertificateAvailableSigningKeys", in, out, opts...)
 	if err != nil {
@@ -109,7 +109,7 @@ func (c *signingClient) PostUserSSHCertificate(ctx context.Context, in *SSHCerti
 	return out, nil
 }
 
-func (c *signingClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
+func (c *signingClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
 	out := new(KeyMetas)
 	err := c.cc.Invoke(ctx, "/v3.Signing/GetHostSSHCertificateAvailableSigningKeys", in, out, opts...)
 	if err != nil {
@@ -136,7 +136,7 @@ func (c *signingClient) PostHostSSHCertificate(ctx context.Context, in *SSHCerti
 	return out, nil
 }
 
-func (c *signingClient) GetBlobAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
+func (c *signingClient) GetBlobAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*KeyMetas, error) {
 	out := new(KeyMetas)
 	err := c.cc.Invoke(ctx, "/v3.Signing/GetBlobAvailableSigningKeys", in, out, opts...)
 	if err != nil {
@@ -168,27 +168,27 @@ func (c *signingClient) PostSignBlob(ctx context.Context, in *BlobSigningRequest
 // for forward compatibility
 type SigningServer interface {
 	// GetX509CertificateAvailableSigningKeys returns all available keys that can sign X509 certificates.
-	GetX509CertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error)
+	GetX509CertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error)
 	// GetX509CACertificate returns the CA X509 certificate self-signed by the specified key.
 	GetX509CACertificate(context.Context, *KeyMeta) (*X509Certificate, error)
 	// PostX509Certificate signs the given CSR using the specified key and returns a PEM encoded X509 certificate.
 	PostX509Certificate(context.Context, *X509CertificateSigningRequest) (*X509Certificate, error)
 	// GetUserSSHCertificateAvailableSigningKeys returns all available keys that can sign user SSH certificates.
-	GetUserSSHCertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error)
+	GetUserSSHCertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error)
 	// GetUserSSHCertificateSigningKey returns the public signing key of the
 	// specified key that signs the user ssh certificate.
 	GetUserSSHCertificateSigningKey(context.Context, *KeyMeta) (*SSHKey, error)
 	// PostUserSSHCertificate signs the SSH user certificate given request fields using the specified key.
 	PostUserSSHCertificate(context.Context, *SSHCertificateSigningRequest) (*SSHKey, error)
 	// GetHostSSHCertificateAvailableSigningKeys returns all available keys that can sign host SSH certificates.
-	GetHostSSHCertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error)
+	GetHostSSHCertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error)
 	// GetHostSSHCertificateSigningKey returns the public signing key of the
 	// specified key that signs the host ssh certificate.
 	GetHostSSHCertificateSigningKey(context.Context, *KeyMeta) (*SSHKey, error)
 	// PostHostSSHCertificate signs the SSH host certificate given request fields using the specified key.
 	PostHostSSHCertificate(context.Context, *SSHCertificateSigningRequest) (*SSHKey, error)
 	// GetBlobAvailableSigningKeys returns all available keys that can sign
-	GetBlobAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error)
+	GetBlobAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error)
 	// GetBlobSigningKey returns the public signing key of the
 	// specified key that signs the user's data.
 	GetBlobSigningKey(context.Context, *KeyMeta) (*PublicKey, error)
@@ -201,7 +201,7 @@ type SigningServer interface {
 type UnimplementedSigningServer struct {
 }
 
-func (UnimplementedSigningServer) GetX509CertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error) {
+func (UnimplementedSigningServer) GetX509CertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetX509CertificateAvailableSigningKeys not implemented")
 }
 func (UnimplementedSigningServer) GetX509CACertificate(context.Context, *KeyMeta) (*X509Certificate, error) {
@@ -210,7 +210,7 @@ func (UnimplementedSigningServer) GetX509CACertificate(context.Context, *KeyMeta
 func (UnimplementedSigningServer) PostX509Certificate(context.Context, *X509CertificateSigningRequest) (*X509Certificate, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostX509Certificate not implemented")
 }
-func (UnimplementedSigningServer) GetUserSSHCertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error) {
+func (UnimplementedSigningServer) GetUserSSHCertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserSSHCertificateAvailableSigningKeys not implemented")
 }
 func (UnimplementedSigningServer) GetUserSSHCertificateSigningKey(context.Context, *KeyMeta) (*SSHKey, error) {
@@ -219,7 +219,7 @@ func (UnimplementedSigningServer) GetUserSSHCertificateSigningKey(context.Contex
 func (UnimplementedSigningServer) PostUserSSHCertificate(context.Context, *SSHCertificateSigningRequest) (*SSHKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostUserSSHCertificate not implemented")
 }
-func (UnimplementedSigningServer) GetHostSSHCertificateAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error) {
+func (UnimplementedSigningServer) GetHostSSHCertificateAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHostSSHCertificateAvailableSigningKeys not implemented")
 }
 func (UnimplementedSigningServer) GetHostSSHCertificateSigningKey(context.Context, *KeyMeta) (*SSHKey, error) {
@@ -228,7 +228,7 @@ func (UnimplementedSigningServer) GetHostSSHCertificateSigningKey(context.Contex
 func (UnimplementedSigningServer) PostHostSSHCertificate(context.Context, *SSHCertificateSigningRequest) (*SSHKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostHostSSHCertificate not implemented")
 }
-func (UnimplementedSigningServer) GetBlobAvailableSigningKeys(context.Context, *empty.Empty) (*KeyMetas, error) {
+func (UnimplementedSigningServer) GetBlobAvailableSigningKeys(context.Context, *emptypb.Empty) (*KeyMetas, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBlobAvailableSigningKeys not implemented")
 }
 func (UnimplementedSigningServer) GetBlobSigningKey(context.Context, *KeyMeta) (*PublicKey, error) {
@@ -251,7 +251,7 @@ func RegisterSigningServer(s grpc.ServiceRegistrar, srv SigningServer) {
 }
 
 func _Signing_GetX509CertificateAvailableSigningKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func _Signing_GetX509CertificateAvailableSigningKeys_Handler(srv interface{}, ct
 		FullMethod: "/v3.Signing/GetX509CertificateAvailableSigningKeys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SigningServer).GetX509CertificateAvailableSigningKeys(ctx, req.(*empty.Empty))
+		return srv.(SigningServer).GetX509CertificateAvailableSigningKeys(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -305,7 +305,7 @@ func _Signing_PostX509Certificate_Handler(srv interface{}, ctx context.Context, 
 }
 
 func _Signing_GetUserSSHCertificateAvailableSigningKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func _Signing_GetUserSSHCertificateAvailableSigningKeys_Handler(srv interface{},
 		FullMethod: "/v3.Signing/GetUserSSHCertificateAvailableSigningKeys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SigningServer).GetUserSSHCertificateAvailableSigningKeys(ctx, req.(*empty.Empty))
+		return srv.(SigningServer).GetUserSSHCertificateAvailableSigningKeys(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -359,7 +359,7 @@ func _Signing_PostUserSSHCertificate_Handler(srv interface{}, ctx context.Contex
 }
 
 func _Signing_GetHostSSHCertificateAvailableSigningKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ func _Signing_GetHostSSHCertificateAvailableSigningKeys_Handler(srv interface{},
 		FullMethod: "/v3.Signing/GetHostSSHCertificateAvailableSigningKeys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SigningServer).GetHostSSHCertificateAvailableSigningKeys(ctx, req.(*empty.Empty))
+		return srv.(SigningServer).GetHostSSHCertificateAvailableSigningKeys(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -413,7 +413,7 @@ func _Signing_PostHostSSHCertificate_Handler(srv interface{}, ctx context.Contex
 }
 
 func _Signing_GetBlobAvailableSigningKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -425,7 +425,7 @@ func _Signing_GetBlobAvailableSigningKeys_Handler(srv interface{}, ctx context.C
 		FullMethod: "/v3.Signing/GetBlobAvailableSigningKeys",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SigningServer).GetBlobAvailableSigningKeys(ctx, req.(*empty.Empty))
+		return srv.(SigningServer).GetBlobAvailableSigningKeys(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

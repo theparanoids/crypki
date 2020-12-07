@@ -7,9 +7,9 @@ package mock
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	proto "github.com/theparanoids/crypki/proto"
 	grpc "google.golang.org/grpc"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 )
 
@@ -37,7 +37,7 @@ func (m *MockSigningClient) EXPECT() *MockSigningClientMockRecorder {
 }
 
 // GetX509CertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+func (m *MockSigningClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
@@ -97,7 +97,7 @@ func (mr *MockSigningClientMockRecorder) PostX509Certificate(ctx, in interface{}
 }
 
 // GetUserSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+func (m *MockSigningClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
@@ -157,7 +157,7 @@ func (mr *MockSigningClientMockRecorder) PostUserSSHCertificate(ctx, in interfac
 }
 
 // GetHostSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+func (m *MockSigningClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
@@ -217,7 +217,7 @@ func (mr *MockSigningClientMockRecorder) PostHostSSHCertificate(ctx, in interfac
 }
 
 // GetBlobAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetBlobAvailableSigningKeys(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+func (m *MockSigningClient) GetBlobAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
@@ -300,7 +300,7 @@ func (m *MockSigningServer) EXPECT() *MockSigningServerMockRecorder {
 }
 
 // GetX509CertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetX509CertificateAvailableSigningKeys(arg0 context.Context, arg1 *empty.Empty) (*proto.KeyMetas, error) {
+func (m *MockSigningServer) GetX509CertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetX509CertificateAvailableSigningKeys", arg0, arg1)
 	ret0, _ := ret[0].(*proto.KeyMetas)
@@ -345,7 +345,7 @@ func (mr *MockSigningServerMockRecorder) PostX509Certificate(arg0, arg1 interfac
 }
 
 // GetUserSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetUserSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *empty.Empty) (*proto.KeyMetas, error) {
+func (m *MockSigningServer) GetUserSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserSSHCertificateAvailableSigningKeys", arg0, arg1)
 	ret0, _ := ret[0].(*proto.KeyMetas)
@@ -390,7 +390,7 @@ func (mr *MockSigningServerMockRecorder) PostUserSSHCertificate(arg0, arg1 inter
 }
 
 // GetHostSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetHostSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *empty.Empty) (*proto.KeyMetas, error) {
+func (m *MockSigningServer) GetHostSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostSSHCertificateAvailableSigningKeys", arg0, arg1)
 	ret0, _ := ret[0].(*proto.KeyMetas)
@@ -435,7 +435,7 @@ func (mr *MockSigningServerMockRecorder) PostHostSSHCertificate(arg0, arg1 inter
 }
 
 // GetBlobAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetBlobAvailableSigningKeys(arg0 context.Context, arg1 *empty.Empty) (*proto.KeyMetas, error) {
+func (m *MockSigningServer) GetBlobAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlobAvailableSigningKeys", arg0, arg1)
 	ret0, _ := ret[0].(*proto.KeyMetas)

@@ -4,13 +4,7 @@
 // Package proto contains proto generated code.
 package proto
 
+// use protoc 3.14.0
 //go:generate protoc -I. -I../third_party/googleapis --go_out=. --go-grpc_out=. sign.proto
 //go:generate protoc -I. -I../third_party/googleapis --grpc-gateway_out=. --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true sign.proto
-// use protoc 3.13.0
-
-// run the following command after generating proto files to generate mock
-//go:generate $GOPATH/bin/mockgen -source=./sign_grpc.pb.go -destination=./mock/mock.go -package=mock
-
-// run the following commands to install the gomock
-// go get github.com/golang/mock/gomock
-// go install github.com/golang/mock/mockgen
+//go:generate mockgen -source=./sign_grpc.pb.go -destination=./mock/mock.go -package=mock

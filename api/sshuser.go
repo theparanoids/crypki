@@ -10,17 +10,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/sshcert"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // GetUserSSHCertificateAvailableSigningKeys returns all available keys that can sign user SSH certificates.
-func (s *SigningService) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, e *empty.Empty) (*proto.KeyMetas, error) {
+func (s *SigningService) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, e *emptypb.Empty) (*proto.KeyMetas, error) {
 	const methodName = "GetUserSSHCertificateAvailableSigningKeys"
 	statusCode := http.StatusOK
 	start := time.Now()

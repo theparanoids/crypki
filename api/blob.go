@@ -12,15 +12,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // GetBlobAvailableSigningKeys returns all available keys that can sign
-func (s *SigningService) GetBlobAvailableSigningKeys(ctx context.Context, e *empty.Empty) (*proto.KeyMetas, error) {
+func (s *SigningService) GetBlobAvailableSigningKeys(ctx context.Context, e *emptypb.Empty) (*proto.KeyMetas, error) {
 	const methodName = "GetBlobAvailableSigningKeys"
 	statusCode := http.StatusOK
 	start := time.Now()

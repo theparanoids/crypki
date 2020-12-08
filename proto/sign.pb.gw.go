@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/utilities"
 	"google.golang.org/grpc"
@@ -22,6 +21,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // Suppress "imported and not used" errors
@@ -33,7 +33,7 @@ var _ = utilities.NewDoubleArray
 var _ = metadata.Join
 
 func request_Signing_GetX509CertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, client SigningClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := client.GetX509CertificateAvailableSigningKeys(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -42,7 +42,7 @@ func request_Signing_GetX509CertificateAvailableSigningKeys_0(ctx context.Contex
 }
 
 func local_request_Signing_GetX509CertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, server SigningServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := server.GetX509CertificateAvailableSigningKeys(ctx, &protoReq)
@@ -171,7 +171,7 @@ func local_request_Signing_PostX509Certificate_0(ctx context.Context, marshaler 
 }
 
 func request_Signing_GetUserSSHCertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, client SigningClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := client.GetUserSSHCertificateAvailableSigningKeys(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -180,7 +180,7 @@ func request_Signing_GetUserSSHCertificateAvailableSigningKeys_0(ctx context.Con
 }
 
 func local_request_Signing_GetUserSSHCertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, server SigningServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := server.GetUserSSHCertificateAvailableSigningKeys(ctx, &protoReq)
@@ -309,7 +309,7 @@ func local_request_Signing_PostUserSSHCertificate_0(ctx context.Context, marshal
 }
 
 func request_Signing_GetHostSSHCertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, client SigningClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := client.GetHostSSHCertificateAvailableSigningKeys(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -318,7 +318,7 @@ func request_Signing_GetHostSSHCertificateAvailableSigningKeys_0(ctx context.Con
 }
 
 func local_request_Signing_GetHostSSHCertificateAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, server SigningServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := server.GetHostSSHCertificateAvailableSigningKeys(ctx, &protoReq)
@@ -447,7 +447,7 @@ func local_request_Signing_PostHostSSHCertificate_0(ctx context.Context, marshal
 }
 
 func request_Signing_GetBlobAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, client SigningClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := client.GetBlobAvailableSigningKeys(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -456,7 +456,7 @@ func request_Signing_GetBlobAvailableSigningKeys_0(ctx context.Context, marshale
 }
 
 func local_request_Signing_GetBlobAvailableSigningKeys_0(ctx context.Context, marshaler runtime.Marshaler, server SigningServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq empty.Empty
+	var protoReq emptypb.Empty
 	var metadata runtime.ServerMetadata
 
 	msg, err := server.GetBlobAvailableSigningKeys(ctx, &protoReq)

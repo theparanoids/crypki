@@ -11,16 +11,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/x509cert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // GetX509CertificateAvailableSigningKeys returns all available keys that can sign X509 certificates.
-func (s *SigningService) GetX509CertificateAvailableSigningKeys(ctx context.Context, e *empty.Empty) (*proto.KeyMetas, error) {
+func (s *SigningService) GetX509CertificateAvailableSigningKeys(ctx context.Context, e *emptypb.Empty) (*proto.KeyMetas, error) {
 	const methodName = "GetX509CertificateAvailableSigningKeys"
 	statusCode := http.StatusOK
 	start := time.Now()

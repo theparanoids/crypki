@@ -11,8 +11,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func init() {
@@ -62,7 +62,7 @@ func TestGetBlobAvailableSigningKeys(t *testing.T) {
 			mssp := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ss := initMockSigningService(mssp)
 			var ctx context.Context
-			var e *empty.Empty
+			var e *emptypb.Empty
 			keyMetas, err := ss.GetBlobAvailableSigningKeys(ctx, e)
 			if err != nil {
 				t.Fatal(err)

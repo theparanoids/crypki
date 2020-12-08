@@ -27,6 +27,10 @@ const (
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
 	defaultShutdownOnSigningFailureTimerCount          = 10
 
+	defaultIdleTimeout  = 30
+	defaultReadTimeout  = 10
+	defaultWriteTimeout = 10
+
 	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
 	X509CertEndpoint = "/sig/x509-cert"
 	// SSHUserCertEndpoint specifies the endpoint for signing SSH user certificate.
@@ -104,6 +108,11 @@ type Config struct {
 		TimerDurationSecond   uint
 		TimerCountLimit       uint
 	}
+
+	// timeouts used in initialization of http.Server (in seconds)
+	IdleTimeout  uint
+	ReadTimeout  uint
+	WriteTimeout uint
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.
@@ -211,5 +220,15 @@ func (c *Config) loadDefaults() {
 	}
 	if c.ShutdownOnInternalFailureCriteria.TimerCountLimit == 0 {
 		c.ShutdownOnInternalFailureCriteria.TimerCountLimit = defaultShutdownOnSigningFailureTimerCount
+	}
+
+	if c.IdleTimeout == 0 {
+		c.IdleTimeout = defaultIdleTimeout
+	}
+	if c.ReadTimeout == 0 {
+		c.ReadTimeout = defaultReadTimeout
+	}
+	if c.WriteTimeout == 0 {
+		c.WriteTimeout = defaultWriteTimeout
 	}
 }

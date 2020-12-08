@@ -50,7 +50,9 @@ func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler 
 }
 
 // initHTTPServer initializes HTTP server with TLS credentials and returns http.Server.
-func initHTTPServer(ctx context.Context, tlsConfig *tls.Config, grpcServer *grpc.Server, gwmux *runtime.ServeMux, addr string) *http.Server {
+func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
+	grpcServer *grpc.Server, gwmux *runtime.ServeMux, addr string,
+	idleTimeout, readTimeout, writeTimeout uint) *http.Server {
 	mux := http.NewServeMux()
 	// handler to check if service is up
 	mux.HandleFunc("/ruok", func(w http.ResponseWriter, req *http.Request) {
@@ -64,9 +66,9 @@ func initHTTPServer(ctx context.Context, tlsConfig *tls.Config, grpcServer *grpc
 		// "http: TLS handshake error from 1.2.3.4:53651: EOF"
 		ErrorLog:     log.New(ioutil.Discard, "", 0),
 		Handler:      grpcHandlerFunc(ctx, grpcServer, mux),
-		IdleTimeout:  30 * time.Second,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  time.Duration(idleTimeout) * time.Second,
+		ReadTimeout:  time.Duration(readTimeout) * time.Second,
+		WriteTimeout: time.Duration(writeTimeout) * time.Second,
 		TLSConfig:    tlsConfig,
 	}
 	return srv
@@ -206,7 +208,8 @@ func Main(keyP crypki.KeyIDProcessor) {
 
 	proto.RegisterSigningServer(grpcServer, ss)
 
-	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort))
+	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
+		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

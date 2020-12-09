@@ -41,6 +41,9 @@ func TestParse(t *testing.T) {
 			TimerDurationSecond:   120,
 			TimerCountLimit:       20,
 		},
+		IdleTimeout:  30,
+		ReadTimeout:  10,
+		WriteTimeout: 10,
 	}
 	testcases := map[string]struct {
 		filePath    string

@@ -4,6 +4,7 @@
 package pkcs11
 
 import (
+	"context"
 	"crypto"
 	"fmt"
 
@@ -12,7 +13,7 @@ import (
 
 // sPool is an abstract interface of pool of crypto.Signer
 type sPool interface {
-	get() signerWithSignAlgorithm
+	get(ctx context.Context) (signerWithSignAlgorithm, error)
 	put(s signerWithSignAlgorithm)
 }
 
@@ -42,8 +43,13 @@ func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, tokenLabel string
 	}, nil
 }
 
-func (c *SignerPool) get() signerWithSignAlgorithm {
-	return <-c.signers
+func (c *SignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
+	select {
+	case signer := <-c.signers:
+		return signer, nil
+	case <-ctx.Done():
+		return nil, fmt.Errorf("request cancelled: %v", ctx.Err())
+	}
 }
 
 func (c *SignerPool) put(instance signerWithSignAlgorithm) {

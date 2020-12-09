@@ -69,7 +69,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	cert, err := s.GetX509CACert(keyMeta.Identifier)
+	cert, err := s.GetX509CACert(ctx, keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")
@@ -96,20 +96,13 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// If client disconnects or has timed out, we do not need to process the request.
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusServiceUnavailable
-		err = fmt.Errorf("%s for request %q", ctx.Err(), config.X509CertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
-	}
-
 	var reqCtx context.Context
 	var cancel context.CancelFunc
 	// create child context with timeout remaining from client request if present else until canceled
 	if elapsed, ok := ctx.Deadline(); ok {
 		// The request has a timeout, so create a context that is
 		// canceled automatically when the timeout expires.
-		reqCtx, cancel = context.WithTimeout(ctx, elapsed.Sub(time.Now()))
+		reqCtx, cancel = context.WithTimeout(ctx, time.Until(elapsed))
 	} else {
 		reqCtx, cancel = context.WithCancel(ctx)
 	}
@@ -139,10 +132,10 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		err  error
 	}
 	respCh := make(chan resp)
-	go func(ctx context.Context) {
-		data, err := s.SignX509Cert(ctx, req, request.KeyMeta.Identifier)
+	go func() {
+		data, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier)
 		respCh <- resp{data, err}
-	}(reqCtx)
+	}()
 
 	select {
 	case <-reqCtx.Done():

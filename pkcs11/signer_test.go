@@ -71,11 +71,12 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetSSHCertSigningKey(tt.identifier)
+			_, err = signer.GetSSHCertSigningKey(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -169,11 +170,12 @@ func TestSignSSHCert(t *testing.T) {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			data, err := signer.SignSSHCert(tt.cert, tt.identifier)
+			data, err := signer.SignSSHCert(ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -211,11 +213,12 @@ func TestGetX509CACert(t *testing.T) {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetX509CACert(tt.identifier)
+			_, err = signer.GetX509CACert(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -342,11 +345,12 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetBlobSigningPublicKey(tt.identifier)
+			_, err = signer.GetBlobSigningPublicKey(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -392,11 +396,12 @@ func TestSignBlob(t *testing.T) {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			signature, err := signer.SignBlob(tt.digest, tt.opts, tt.identifier)
+			signature, err := signer.SignBlob(ctx, tt.digest, tt.opts, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}

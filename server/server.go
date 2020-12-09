@@ -148,7 +148,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		log.Fatal(err)
 	}
 
-	signer, err := pkcs11.NewCertSign(cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips)
+	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}

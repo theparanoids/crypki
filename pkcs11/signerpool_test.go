@@ -1,6 +1,7 @@
 package pkcs11
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
@@ -31,8 +32,8 @@ type MockSignerPool struct {
 	signer crypto.Signer
 }
 
-func (c MockSignerPool) get() signerWithSignAlgorithm {
-	return c
+func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
+	return c, nil
 }
 
 func (c MockSignerPool) put(instance signerWithSignAlgorithm) {

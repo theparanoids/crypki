@@ -58,25 +58,29 @@ func initMockSigner(isBad bool) (*signer, error) {
 
 func TestGetSSHCertSigningKey(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-signer":    {defaultIdentifier, false, false},
-		"bad-identifier": {badIdentifier, false, true},
-		"bad-signer":     {defaultIdentifier, true, true},
+		"good-signer":         {ctx, defaultIdentifier, false, false},
+		"bad-identifier":      {ctx, badIdentifier, false, true},
+		"bad-signer":          {ctx, defaultIdentifier, true, true},
+		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetSSHCertSigningKey(ctx, tt.identifier)
+			_, err = signer.GetSSHCertSigningKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -99,9 +103,6 @@ func TestSignSSHCert(t *testing.T) {
 		t.Fatalf("unable to generate EC key: %v", err)
 	}
 	ecPubKey, _ := ssh.NewPublicKey(&eckey.PublicKey)
-	if err != nil {
-		t.Fatalf("unable to create ssh EC public key: %v", err)
-	}
 
 	exts := make(map[string]string)
 	exts["permit-pty"] = ""
@@ -151,31 +152,35 @@ func TestSignSSHCert(t *testing.T) {
 		ValidAfter:  uint64(now - 1000),
 		Key:         ecPubKey,
 	}
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		cert        *ssh.Certificate
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"host-cert-rsa":            {hostCertRSA, defaultIdentifier, false, false},
-		"host-cert-ec":             {hostCertEC, defaultIdentifier, false, false},
-		"host-cert-bad-identifier": {hostCertRSA, badIdentifier, false, true},
-		"host-cert-bad-signer":     {hostCertRSA, defaultIdentifier, true, true},
-		"user-cert-rsa":            {userCertRSA, defaultIdentifier, false, false},
-		"user-cert-ec":             {userCertEC, defaultIdentifier, false, false},
-		"user-cert-bad-identifier": {userCertRSA, badIdentifier, false, true},
-		"user-cert-bad-signer":     {userCertRSA, defaultIdentifier, true, true},
+		"host-cert-rsa":             {ctx, hostCertRSA, defaultIdentifier, false, false},
+		"host-cert-ec":              {ctx, hostCertEC, defaultIdentifier, false, false},
+		"host-cert-bad-identifier":  {ctx, hostCertRSA, badIdentifier, false, true},
+		"host-cert-bad-signer":      {ctx, hostCertRSA, defaultIdentifier, true, true},
+		"user-cert-rsa":             {ctx, userCertRSA, defaultIdentifier, false, false},
+		"user-cert-ec":              {ctx, userCertEC, defaultIdentifier, false, false},
+		"user-cert-bad-identifier":  {ctx, userCertRSA, badIdentifier, false, true},
+		"user-cert-bad-signer":      {ctx, userCertRSA, defaultIdentifier, true, true},
+		"user-cert-request-timeout": {timeoutCtx, userCertRSA, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			data, err := signer.SignSSHCert(ctx, tt.cert, tt.identifier)
+			data, err := signer.SignSSHCert(tt.ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -200,25 +205,29 @@ func TestSignSSHCert(t *testing.T) {
 
 func TestGetX509CACert(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-signer":    {defaultIdentifier, false, false},
-		"bad-identifier": {badIdentifier, false, true},
-		"bad-signer":     {defaultIdentifier, true, false},
+		"good-signer":         {ctx, defaultIdentifier, false, false},
+		"bad-identifier":      {ctx, badIdentifier, false, true},
+		"bad-signer":          {ctx, defaultIdentifier, true, false},
+		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetX509CACert(ctx, tt.identifier)
+			_, err = signer.GetX509CACert(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -282,27 +291,31 @@ func TestSignX509Cert(t *testing.T) {
 	}
 	cp.AddCert(caCert)
 
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	defer cancel()
+
 	testcases := map[string]struct {
+		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-rsa-good-signer": {certRSA, defaultIdentifier, false, false},
-		"cert-ec-good-signer":  {certEC, defaultIdentifier, false, false},
-		"cert-bad-identifier":  {certRSA, badIdentifier, false, true},
-		"cert-bad-signer":      {certRSA, defaultIdentifier, true, true},
+		"cert-rsa-good-signer": {context.Background(), certRSA, defaultIdentifier, false, false},
+		"cert-ec-good-signer":  {context.Background(), certEC, defaultIdentifier, false, false},
+		"cert-bad-identifier":  {context.Background(), certRSA, badIdentifier, false, true},
+		"cert-bad-signer":      {context.Background(), certRSA, defaultIdentifier, true, true},
+		"cert-request-timeout": {timeoutCtx, certRSA, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			data, err := signer.SignX509Cert(ctx, tt.cert, tt.identifier)
+			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -332,25 +345,29 @@ func TestSignX509Cert(t *testing.T) {
 
 func TestGetBlobSigningPublicKey(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-signer":    {defaultIdentifier, false, false},
-		"bad-identifier": {badIdentifier, false, true},
-		"bad-signer":     {defaultIdentifier, true, true},
+		"good-signer":    {ctx, defaultIdentifier, false, false},
+		"bad-identifier": {ctx, badIdentifier, false, true},
+		"bad-signer":     {ctx, defaultIdentifier, true, true},
+		"client-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			_, err = signer.GetBlobSigningPublicKey(ctx, tt.identifier)
+			_, err = signer.GetBlobSigningPublicKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -376,32 +393,36 @@ func TestSignBlob(t *testing.T) {
 		t.Fatalf("unable to parse private key: %v", err)
 	}
 
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		digest      []byte
 		opts        crypto.SignerOpts
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-SHA224":    {goodDigestSHA224[:], crypto.SHA224, defaultIdentifier, false, false},
-		"good-SHA256":    {goodDigestSHA256[:], crypto.SHA256, defaultIdentifier, false, false},
-		"good-SHA384":    {goodDigestSHA384[:], crypto.SHA384, defaultIdentifier, false, false},
-		"good-SHA512":    {goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false},
-		"bad-digest":     {[]byte("bad digest"), crypto.SHA256, defaultIdentifier, false, true},
-		"bad-wrong-hash": {goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, false, true},
-		"bad-identifier": {goodDigestSHA224[:], crypto.SHA256, badIdentifier, false, true},
-		"bad-signer":     {goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, true},
+		"good-SHA224":         {ctx, goodDigestSHA224[:], crypto.SHA224, defaultIdentifier, false, false},
+		"good-SHA256":         {ctx, goodDigestSHA256[:], crypto.SHA256, defaultIdentifier, false, false},
+		"good-SHA384":         {ctx, goodDigestSHA384[:], crypto.SHA384, defaultIdentifier, false, false},
+		"good-SHA512":         {ctx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false},
+		"bad-digest":          {ctx, []byte("bad digest"), crypto.SHA256, defaultIdentifier, false, true},
+		"bad-wrong-hash":      {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, false, true},
+		"bad-identifier":      {ctx, goodDigestSHA224[:], crypto.SHA256, badIdentifier, false, true},
+		"bad-signer":          {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, true},
+		"bad-request-timeout": {timeoutCtx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			signer, err := initMockSigner(tt.isBadSigner)
 			if err != nil {
 				t.Fatalf("unable to init mock signer: %v", err)
 			}
-			signature, err := signer.SignBlob(ctx, tt.digest, tt.opts, tt.identifier)
+			signature, err := signer.SignBlob(tt.ctx, tt.digest, tt.opts, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}

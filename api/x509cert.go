@@ -104,7 +104,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		// canceled automatically when the timeout expires.
 		reqCtx, cancel = context.WithTimeout(ctx, time.Until(elapsed))
 	} else {
-		reqCtx, cancel = context.WithCancel(ctx)
+		reqCtx, cancel = context.WithTimeout(ctx, config.DefaultRequestTimeout)
 	}
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 

@@ -33,7 +33,12 @@ type MockSignerPool struct {
 }
 
 func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
-	return c, nil
+	select {
+	case <-ctx.Done():
+		return nil, errors.New("client timeout")
+	default:
+		return c, nil
+	}
 }
 
 func (c MockSignerPool) put(instance signerWithSignAlgorithm) {

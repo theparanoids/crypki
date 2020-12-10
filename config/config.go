@@ -86,6 +86,8 @@ type KeyConfig struct {
 	X509CACertLocation string
 	// Fields of the CA cert in subject line.
 	Country, State, Locality, Organization, OrganizationalUnit, CommonName string
+	// The validity time period of the CA cert in seconds.
+	ValidityPeriod uint64
 }
 
 // Config defines struct to store configuration fields for crypki.

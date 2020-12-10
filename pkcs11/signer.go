@@ -244,6 +244,7 @@ func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.
 		Organization:       key.Organization,
 		OrganizationalUnit: key.OrganizationalUnit,
 		CommonName:         key.CommonName,
+		ValidityPeriod:     key.ValidityPeriod,
 	}, signer, hostname, ips, signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate x509 CA certificate: %v", err)

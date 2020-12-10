@@ -20,7 +20,7 @@ import (
 // GenCACert creates the CA certificate given signer.
 func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka crypki.PublicKeyAlgorithm) ([]byte, error) {
 	if config.ValidityPeriod == 0 {
-		config.ValidityPeriod = uint64(730 * 24 * 3600) // default validity period is 2 years
+		config.ValidityPeriod = uint64(730 * 24 * 3600) // 2 years by default
 	}
 
 	// Backdate start time by one hour as the current system clock may be ahead of other running systems.

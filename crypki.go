@@ -58,7 +58,7 @@ type CAConfig struct {
 	OrganizationalUnit string `json:"OrganizationalUnit"`
 	CommonName         string `json:"CommonName"`
 
-	// The time period in seconds for the new signed CA cert.
+	// The validity time period of the CA cert, which is specified in seconds.
 	ValidityPeriod uint64 `json:"ValidityPeriod"`
 
 	// PKCS#11 device fields.

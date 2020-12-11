@@ -68,3 +68,28 @@ type CAConfig struct {
 	UserPinPath      string `json:"UserPinPath"`
 	PKCS11ModulePath string `json:"PKCS11ModulePath"`
 }
+
+// LoadDefaults assigns default values to missing required configuration fields.
+func (c *CAConfig) LoadDefaults() {
+	if c.Country == "" {
+		c.CommonName = "ZZ" // Unknown or unspecified country
+	}
+	if c.State == "" {
+		c.State = "StateName"
+	}
+	if c.Locality == "" {
+		c.Locality = "CityName"
+	}
+	if c.Organization == "" {
+		c.Organization = "CompanyName"
+	}
+	if c.OrganizationalUnit == "" {
+		c.OrganizationalUnit = "OrganizationUnitName"
+	}
+	if c.CommonName == "" {
+		c.CommonName = "www.example.com"
+	}
+	if c.ValidityPeriod <= 0 {
+		c.ValidityPeriod = uint64(730 * 24 * 3600) // 2 years
+	}
+}

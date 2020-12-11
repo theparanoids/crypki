@@ -237,7 +237,7 @@ func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.
 	signer := pool.get()
 	defer pool.put(signer)
 
-	out, err := x509cert.GenCACert(&crypki.CAConfig{
+	caConfig := &crypki.CAConfig{
 		Country:            key.Country,
 		State:              key.State,
 		Locality:           key.Locality,
@@ -245,7 +245,10 @@ func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.
 		OrganizationalUnit: key.OrganizationalUnit,
 		CommonName:         key.CommonName,
 		ValidityPeriod:     key.ValidityPeriod,
-	}, signer, hostname, ips, signer.signAlgorithm())
+	}
+	caConfig.LoadDefaults()
+
+	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate x509 CA certificate: %v", err)
 	}

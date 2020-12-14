@@ -30,6 +30,16 @@ const (
 	UnknownPublicKeyAlgorithm PublicKeyAlgorithm = iota
 	RSA
 	ECDSA
+
+	// Default values for CAconfig.
+	defaultCounty = "ZZ" // Unknown or unspecified country
+	defaultState = "StateName"
+	defaultCity = "CityName"
+	defaultCompany = "CompanyName"
+	defaultOrganization = "OrganizationUnitName"
+	defaultCommonName = "www.example.com"
+	defaultValidityPeriod = uint64(730 * 24 * 3600) // 2 years
+
 )
 
 // CertSign interface contains methods related to signing certificates.
@@ -72,24 +82,24 @@ type CAConfig struct {
 // LoadDefaults assigns default values to missing required configuration fields.
 func (c *CAConfig) LoadDefaults() {
 	if c.Country == "" {
-		c.CommonName = "ZZ" // Unknown or unspecified country
+		c.Country = defaultCounty
 	}
 	if c.State == "" {
-		c.State = "StateName"
+		c.State = defaultState
 	}
 	if c.Locality == "" {
-		c.Locality = "CityName"
+		c.Locality = defaultCity
 	}
 	if c.Organization == "" {
-		c.Organization = "CompanyName"
+		c.Organization = defaultCompany
 	}
 	if c.OrganizationalUnit == "" {
-		c.OrganizationalUnit = "OrganizationUnitName"
+		c.OrganizationalUnit = defaultOrganization
 	}
 	if c.CommonName == "" {
-		c.CommonName = "www.example.com"
+		c.CommonName = defaultCommonName
 	}
 	if c.ValidityPeriod <= 0 {
-		c.ValidityPeriod = uint64(730 * 24 * 3600) // 2 years
+		c.ValidityPeriod = defaultValidityPeriod
 	}
 }

@@ -143,6 +143,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		switch reqCtx.Err() {
 		case context.DeadlineExceeded:
 			err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
+			return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 		case context.Canceled:
 			err = fmt.Errorf("client cancelled request for %q", config.X509CertEndpoint)
 		}

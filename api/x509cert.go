@@ -56,13 +56,6 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// ctx can have an error only when client cancels or request has timed out.
-	if err := ctx.Err(); err != nil {
-		statusCode = http.StatusBadRequest
-		err = fmt.Errorf("%s for request %q", ctx.Err(), config.X509CertEndpoint)
-		return nil, status.Errorf(codes.Canceled, "Bad request: %v", err)
-	}
-
 	if !s.KeyUsages[config.X509CertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.X509CertEndpoint)
@@ -96,16 +89,8 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	var reqCtx context.Context
-	var cancel context.CancelFunc
 	// create child context with timeout remaining from client request if present else until canceled
-	if elapsed, ok := ctx.Deadline(); ok {
-		// The request has a timeout, so create a context that is
-		// canceled automatically when the timeout expires.
-		reqCtx, cancel = context.WithTimeout(ctx, time.Until(elapsed))
-	} else {
-		reqCtx, cancel = context.WithTimeout(ctx, config.DefaultRequestTimeout)
-	}
+	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
@@ -138,16 +123,17 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}()
 
 	select {
-	case <-reqCtx.Done():
-		statusCode = http.StatusServiceUnavailable
-		switch reqCtx.Err() {
-		case context.DeadlineExceeded:
-			err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
-			return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
-		case context.Canceled:
-			err = fmt.Errorf("client cancelled request for %q", config.X509CertEndpoint)
-		}
+	case <-ctx.Done():
+		// client canceled the request. Cancel any pending server request and return
+		cancel()
+		statusCode = http.StatusInternalServerError
+		err = fmt.Errorf("client canceled request for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.Canceled, "%v", err)
+	case <-reqCtx.Done():
+		// server request timed out.
+		statusCode = http.StatusGatewayTimeout
+		err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
+		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:
 		if response.err != nil {
 			statusCode = http.StatusInternalServerError

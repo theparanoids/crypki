@@ -14,6 +14,10 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+const (
+	timeout = 1 * time.Second
+)
+
 func TestGetX509CertificateAvailableSigningKeys(t *testing.T) {
 	t.Parallel()
 	var expectedEmptyKey []*proto.KeyMeta
@@ -74,10 +78,7 @@ func TestGetX509CertificateAvailableSigningKeys(t *testing.T) {
 
 func TestGetX509CACertificate(t *testing.T) {
 	t.Parallel()
-	defaultCtx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(defaultCtx, 10*time.Microsecond)
 	testcases := map[string]struct {
-		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedCert set to nil, we are expecting an error while testing
@@ -115,32 +116,24 @@ func TestGetX509CACertificate(t *testing.T) {
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id2"},
 			expectedCert: nil,
 		},
-		"requestTimeout": {
-			ctx:          timeoutCtx,
-			KeyUsages:    combineKeyUsage,
-			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
-			expectedCert: nil,
-		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
-		if tt.ctx == nil {
-			tt.ctx = defaultCtx
-		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			var ctx context.Context
 			// bad certsign should return error anyways
 			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
 			ssBad := initMockSigningService(msspBad)
-			_, err := ssBad.GetX509CACertificate(tt.ctx, tt.KeyMeta)
+			_, err := ssBad.GetX509CACertificate(ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
 			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ssGood := initMockSigningService(msspGood)
-			cert, err := ssGood.GetX509CACertificate(tt.ctx, tt.KeyMeta)
+			cert, err := ssGood.GetX509CACertificate(ctx, tt.KeyMeta)
 			if err != nil && tt.expectedCert != nil {
 				t.Fatalf("in test %v: not expecting error but got error %v", label, err)
 			}
@@ -155,15 +148,17 @@ func TestGetX509CACertificate(t *testing.T) {
 			}
 		})
 	}
-	<-timeoutCtx.Done()
-	cancel()
 }
 
 func TestPostX509Certificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.X509CertEndpoint: 0}
-	defaultCtx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(defaultCtx, 10*time.Microsecond)
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	timeoutCtx, timeCancel := context.WithTimeout(ctx, timeout)
+	defer timeCancel()
+
 	testcases := map[string]struct {
 		ctx         context.Context
 		KeyUsages   map[string]map[string]bool
@@ -283,12 +278,24 @@ func TestPostX509Certificate(t *testing.T) {
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
 		},
+		"requestCanceled": {
+			ctx:          cancelCtx,
+			KeyUsages:    combineKeyUsage,
+			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
+			validity:     3600,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
+			expectedCert: nil,
+			CSR:          testGoodcsrRsa,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
 		if tt.ctx == nil {
-			tt.ctx = defaultCtx
+			tt.ctx = ctx
+		}
+		if label == "requestTimeout" {
+			time.Sleep(timeout)
 		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
@@ -317,8 +324,11 @@ func TestPostX509Certificate(t *testing.T) {
 					t.Errorf("output doesn't match for %v, got %+v\nwant %+v", label, cert, tt.expectedCert)
 				}
 			}
+			if label == "requestCanceled" {
+				// this is to test the behavior when client cancels the request while
+				// server is still processing the request.
+				cancel()
+			}
 		})
 	}
-	<-timeoutCtx.Done()
-	cancel()
 }

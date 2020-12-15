@@ -26,6 +26,7 @@ import (
 const (
 	defaultIdentifier = "dummy"
 	badIdentifier     = "unknown"
+	timeout           = 1 * time.Second
 )
 
 // enforce signer implements CertSign interface.
@@ -59,7 +60,7 @@ func initMockSigner(isBad bool) (*signer, error) {
 func TestGetSSHCertSigningKey(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
 		ctx         context.Context
@@ -153,7 +154,7 @@ func TestSignSSHCert(t *testing.T) {
 		Key:         ecPubKey,
 	}
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
 		ctx         context.Context
@@ -206,7 +207,7 @@ func TestSignSSHCert(t *testing.T) {
 func TestGetX509CACert(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
 		ctx         context.Context
@@ -291,7 +292,8 @@ func TestSignX509Cert(t *testing.T) {
 	}
 	cp.AddCert(caCert)
 
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	testcases := map[string]struct {
@@ -301,10 +303,10 @@ func TestSignX509Cert(t *testing.T) {
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-rsa-good-signer": {context.Background(), certRSA, defaultIdentifier, false, false},
-		"cert-ec-good-signer":  {context.Background(), certEC, defaultIdentifier, false, false},
-		"cert-bad-identifier":  {context.Background(), certRSA, badIdentifier, false, true},
-		"cert-bad-signer":      {context.Background(), certRSA, defaultIdentifier, true, true},
+		"cert-rsa-good-signer": {ctx, certRSA, defaultIdentifier, false, false},
+		"cert-ec-good-signer":  {ctx, certEC, defaultIdentifier, false, false},
+		"cert-bad-identifier":  {ctx, certRSA, badIdentifier, false, true},
+		"cert-bad-signer":      {ctx, certRSA, defaultIdentifier, true, true},
 		"cert-request-timeout": {timeoutCtx, certRSA, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
@@ -346,7 +348,7 @@ func TestSignX509Cert(t *testing.T) {
 func TestGetBlobSigningPublicKey(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
 		ctx         context.Context
@@ -354,10 +356,10 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-signer":    {ctx, defaultIdentifier, false, false},
-		"bad-identifier": {ctx, badIdentifier, false, true},
-		"bad-signer":     {ctx, defaultIdentifier, true, true},
-		"client-timeout": {timeoutCtx, defaultIdentifier, false, true},
+		"good-signer":         {ctx, defaultIdentifier, false, false},
+		"bad-identifier":      {ctx, badIdentifier, false, true},
+		"bad-signer":          {ctx, defaultIdentifier, true, true},
+		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
 		tt := tt
@@ -394,7 +396,7 @@ func TestSignBlob(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Microsecond)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
 		ctx         context.Context

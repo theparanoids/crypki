@@ -40,8 +40,8 @@ const (
 	SSHHostCertEndpoint = "/sig/ssh-host-cert"
 	// BlobEndpoint specifies the endpoint for raw signing.
 	BlobEndpoint = "/sig/blob"
-	// DefaultRequestTimeout specifies the max time required by HSM to sign a cert.
-	DefaultRequestTimeout = 5 * time.Second
+	// DefaultPKCS11Timeout specifies the max time required by HSM to sign a cert.
+	DefaultPKCS11Timeout = 5 * time.Second
 )
 
 var endpoints = map[string]bool{

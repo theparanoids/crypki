@@ -88,6 +88,7 @@ func main() {
 		Organization:           cc.Organization,
 		OrganizationalUnit:     cc.OrganizationalUnit,
 		CommonName:             cc.CommonName,
+		ValidityPeriod:         cc.ValidityPeriod,
 	}}, requireX509CACert, hostname, ips)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)

@@ -30,6 +30,16 @@ const (
 	UnknownPublicKeyAlgorithm PublicKeyAlgorithm = iota
 	RSA
 	ECDSA
+
+	// Default values for CAconfig.
+	defaultCounty = "ZZ" // Unknown or unspecified country
+	defaultState = "StateName"
+	defaultCity = "CityName"
+	defaultCompany = "CompanyName"
+	defaultOrganization = "OrganizationUnitName"
+	defaultCommonName = "www.example.com"
+	defaultValidityPeriod = uint64(730 * 24 * 3600) // 2 years
+
 )
 
 // CertSign interface contains methods related to signing certificates.
@@ -58,10 +68,38 @@ type CAConfig struct {
 	OrganizationalUnit string `json:"OrganizationalUnit"`
 	CommonName         string `json:"CommonName"`
 
+	// The validity time period of the CA cert, which is specified in seconds.
+	ValidityPeriod uint64 `json:"ValidityPeriod"`
+
 	// PKCS#11 device fields.
 	Identifier       string `json:"Identifier"`
 	KeyLabel         string `json:"KeyLabel"`
 	SlotNumber       int    `json:"SlotNumber"`
 	UserPinPath      string `json:"UserPinPath"`
 	PKCS11ModulePath string `json:"PKCS11ModulePath"`
+}
+
+// LoadDefaults assigns default values to missing required configuration fields.
+func (c *CAConfig) LoadDefaults() {
+	if c.Country == "" {
+		c.Country = defaultCounty
+	}
+	if c.State == "" {
+		c.State = defaultState
+	}
+	if c.Locality == "" {
+		c.Locality = defaultCity
+	}
+	if c.Organization == "" {
+		c.Organization = defaultCompany
+	}
+	if c.OrganizationalUnit == "" {
+		c.OrganizationalUnit = defaultOrganization
+	}
+	if c.CommonName == "" {
+		c.CommonName = defaultCommonName
+	}
+	if c.ValidityPeriod <= 0 {
+		c.ValidityPeriod = defaultValidityPeriod
+	}
 }

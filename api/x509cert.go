@@ -126,12 +126,12 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	case <-ctx.Done():
 		// client canceled the request. Cancel any pending server request and return
 		cancel()
-		statusCode = http.StatusInternalServerError
+		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("client canceled request for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
 		// server request timed out.
-		statusCode = http.StatusGatewayTimeout
+		statusCode = http.StatusServiceUnavailable
 		err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:

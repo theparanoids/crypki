@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
@@ -82,6 +83,7 @@ type mockSigningServiceParam struct {
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
 	sendError   bool
+	timeout     time.Duration
 }
 
 type mockBadCertSign struct {
@@ -138,6 +140,7 @@ func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
 	} else {
 		ss.CertSign = &mockGoodCertSign{}
 	}
+	time.Sleep(mssp.timeout)
 	return ss
 }
 

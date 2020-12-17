@@ -168,6 +168,7 @@ func TestPostX509Certificate(t *testing.T) {
 		// if expectedCert set to nil, we are expecting an error while testing
 		expectedCert *proto.X509Certificate
 		CSR          string
+		timeout      time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:      &proto.KeyMeta{Identifier: "randomid"},
@@ -277,6 +278,7 @@ func TestPostX509Certificate(t *testing.T) {
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
+			timeout:      2 * timeout,
 		},
 		"requestCanceled": {
 			ctx:          cancelCtx,
@@ -286,6 +288,7 @@ func TestPostX509Certificate(t *testing.T) {
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
+			timeout:      2 * timeout,
 		},
 	}
 	for label, tt := range testcases {
@@ -294,13 +297,10 @@ func TestPostX509Certificate(t *testing.T) {
 		if tt.ctx == nil {
 			tt.ctx = ctx
 		}
-		if label == "requestTimeout" {
-			time.Sleep(timeout)
-		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, timeout: tt.timeout}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
 			if _, err := ssBad.PostX509Certificate(tt.ctx, requestBad); err == nil {
@@ -308,7 +308,7 @@ func TestPostX509Certificate(t *testing.T) {
 			}
 
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, timeout: tt.timeout}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
 			cert, err := ssGood.PostX509Certificate(tt.ctx, requestGood)

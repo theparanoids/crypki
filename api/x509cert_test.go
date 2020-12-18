@@ -7,10 +7,15 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+const (
+	timeout = 1 * time.Second
 )
 
 func TestGetX509CertificateAvailableSigningKeys(t *testing.T) {
@@ -148,7 +153,14 @@ func TestGetX509CACertificate(t *testing.T) {
 func TestPostX509Certificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.X509CertEndpoint: 0}
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	timeoutCtx, timeCancel := context.WithTimeout(ctx, timeout)
+	defer timeCancel()
+
 	testcases := map[string]struct {
+		ctx         context.Context
 		KeyUsages   map[string]map[string]bool
 		maxValidity map[string]uint64
 		validity    uint64
@@ -156,6 +168,7 @@ func TestPostX509Certificate(t *testing.T) {
 		// if expectedCert set to nil, we are expecting an error while testing
 		expectedCert *proto.X509Certificate
 		CSR          string
+		timeout      time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:      &proto.KeyMeta{Identifier: "randomid"},
@@ -257,26 +270,48 @@ func TestPostX509Certificate(t *testing.T) {
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
 		},
+		"requestTimeout": {
+			ctx:          timeoutCtx,
+			KeyUsages:    combineKeyUsage,
+			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
+			validity:     3600,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
+			expectedCert: nil,
+			CSR:          testGoodcsrRsa,
+			timeout:      2 * timeout,
+		},
+		"requestCanceled": {
+			ctx:          cancelCtx,
+			KeyUsages:    combineKeyUsage,
+			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
+			validity:     3600,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
+			expectedCert: nil,
+			CSR:          testGoodcsrRsa,
+			timeout:      2 * timeout,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		if tt.ctx == nil {
+			tt.ctx = ctx
+		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, timeout: tt.timeout}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
-			if _, err := ssBad.PostX509Certificate(ctx, requestBad); err == nil {
+			if _, err := ssBad.PostX509Certificate(tt.ctx, requestBad); err == nil {
 				t.Fatalf("expected error for invalid test %v, got nil", label)
 			}
 
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, timeout: tt.timeout}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
-			cert, err := ssGood.PostX509Certificate(ctx, requestGood)
+			cert, err := ssGood.PostX509Certificate(tt.ctx, requestGood)
 			if tt.expectedCert == nil {
 				if err == nil {
 					t.Errorf("expected error for invalid test %v, got nil", label)
@@ -288,6 +323,11 @@ func TestPostX509Certificate(t *testing.T) {
 				if !reflect.DeepEqual(cert, tt.expectedCert) {
 					t.Errorf("output doesn't match for %v, got %+v\nwant %+v", label, cert, tt.expectedCert)
 				}
+			}
+			if label == "requestCanceled" {
+				// this is to test the behavior when client cancels the request while
+				// server is still processing the request.
+				cancel()
 			}
 		})
 	}

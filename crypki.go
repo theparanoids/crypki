@@ -4,6 +4,7 @@
 package crypki
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 
@@ -45,17 +46,17 @@ const (
 // CertSign interface contains methods related to signing certificates.
 type CertSign interface {
 	// GetSSHCertSigningKey returns the SSH signing key of the specified key.
-	GetSSHCertSigningKey(keyIdentifier string) ([]byte, error)
+	GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignSSHCert returns an SSH cert signed by the specified key.
-	SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byte, error)
+	SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error)
 	// GetX509CACert returns the X509 CA cert of the specified key.
-	GetX509CACert(keyIdentifier string) ([]byte, error)
+	GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignX509Cert returns an x509 cert signed by the specified key.
-	SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error)
+	SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error)
 	// GetBlobSigningPublicKey returns the public signing key of the specified key that signs the user's data.
-	GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error)
+	GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignBlob returns a signature signed by the specified key.
-	SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error)
+	SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error)
 }
 
 // CAConfig represents the configuration params for generating the CA certificate.

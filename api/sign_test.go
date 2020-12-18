@@ -3,10 +3,12 @@
 package api
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
@@ -81,49 +83,50 @@ type mockSigningServiceParam struct {
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
 	sendError   bool
+	timeout     time.Duration
 }
 
 type mockBadCertSign struct {
 }
 
-func (mbcs *mockBadCertSign) GetSSHCertSigningKey(keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) GetX509CACert(keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 
 type mockGoodCertSign struct {
 }
 
-func (mgcs *mockGoodCertSign) GetSSHCertSigningKey(keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good ssh signing key"), nil
 }
-func (mgcs *mockGoodCertSign) SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
 	return []byte("good ssh cert"), nil
 }
-func (mgcs *mockGoodCertSign) GetX509CACert(keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 ca cert"), nil
 }
-func (mgcs *mockGoodCertSign) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 cert"), nil
 }
-func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good blob signing key"), nil
 }
-func (mgcs *mockGoodCertSign) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	return []byte("good blob signature"), nil
 }
 
@@ -137,6 +140,7 @@ func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
 	} else {
 		ss.CertSign = &mockGoodCertSign{}
 	}
+	time.Sleep(mssp.timeout)
 	return ss
 }
 

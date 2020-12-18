@@ -63,7 +63,7 @@ func (s *SigningService) GetHostSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	key, err := s.GetSSHCertSigningKey(keyMeta.Identifier)
+	key, err := s.GetSSHCertSigningKey(ctx, keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")
@@ -113,7 +113,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	data, err := s.SignSSHCert(cert, request.KeyMeta.Identifier)
+	data, err := s.SignSSHCert(ctx, cert, request.KeyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")

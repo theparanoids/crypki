@@ -2,6 +2,7 @@ package pkcs11
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
@@ -38,7 +39,7 @@ type signer struct {
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
-func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP) (crypki.CertSign, error) {
+func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP) (crypki.CertSign, error) {
 	p11ctx, err := initPKCS11Context(pkcs11ModulePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
@@ -62,7 +63,7 @@ func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CA
 		s.sPool[key.Identifier] = pool
 		// Initialize x509 CA cert if this key will be used for signing x509 certs.
 		if requireX509CACert[key.Identifier] {
-			cert, err := getX509CACert(key, pool, hostname, ips)
+			cert, err := getX509CACert(ctx, key, pool, hostname, ips)
 			if err != nil {
 				log.Fatalf("failed to get x509 CA cert for key with identifier %q, err: %v", key.Identifier, err)
 			}
@@ -73,12 +74,15 @@ func NewCertSign(pkcs11ModulePath string, keys []config.KeyConfig, requireX509CA
 	return s, nil
 }
 
-func (s *signer) GetSSHCertSigningKey(keyIdentifier string) ([]byte, error) {
+func (s *signer) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 
 	sshSigner, err := ssh.NewSignerFromSigner(signer)
@@ -88,7 +92,7 @@ func (s *signer) GetSSHCertSigningKey(keyIdentifier string) ([]byte, error) {
 	return ssh.MarshalAuthorizedKey(sshSigner.PublicKey()), nil
 }
 
-func (s *signer) SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignSSHCert"
 	start := time.Now()
 	var ht int64
@@ -104,7 +108,10 @@ func (s *signer) SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byt
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 
 	sshSigner, err := ssh.NewSignerFromSigner(signer)
@@ -121,12 +128,15 @@ func (s *signer) SignSSHCert(cert *ssh.Certificate, keyIdentifier string) ([]byt
 	return bytes.TrimSpace(ssh.MarshalAuthorizedKey(cert)), nil
 }
 
-func (s *signer) GetX509CACert(keyIdentifier string) ([]byte, error) {
+func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 
 	cert, ok := s.x509CACerts[keyIdentifier]
@@ -140,7 +150,7 @@ func (s *signer) GetX509CACert(keyIdentifier string) ([]byte, error) {
 	return certBytes, nil
 }
 
-func (s *signer) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignX509Cert"
 	start := time.Now()
 	var ht int64
@@ -153,7 +163,10 @@ func (s *signer) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]b
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("client request timed out, skip signing cert")
+	}
 	defer pool.put(signer)
 	cert.SignatureAlgorithm = getSignatureAlgorithm(signer.signAlgorithm())
 	// measure time taken by hsm
@@ -167,12 +180,15 @@ func (s *signer) SignX509Cert(cert *x509.Certificate, keyIdentifier string) ([]b
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: signedCert}), nil
 }
 
-func (s *signer) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
+func (s *signer) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 	pk, err := x509.MarshalPKIXPublicKey(signer.Public())
 	if err != nil {
@@ -182,7 +198,7 @@ func (s *signer) GetBlobSigningPublicKey(keyIdentifier string) ([]byte, error) {
 	return pem.EncodeToMemory(b), nil
 }
 
-func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignBlob"
 	start := time.Now()
 	var ht int64
@@ -198,7 +214,10 @@ func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier s
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 
 	// measure time taken by hsm
@@ -215,7 +234,7 @@ func (s *signer) SignBlob(digest []byte, opts crypto.SignerOpts, keyIdentifier s
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.
 // If the certificate is not valid, and CreateCACertIfNotExist is true, a new CA
 // certificate will be generated based on the config, and wrote to X509CACertLocation.
-func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.IP) (*x509.Certificate, error) {
+func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostname string, ips []net.IP) (*x509.Certificate, error) {
 	// Try parse certificate in the given location.
 	if certBytes, err := ioutil.ReadFile(key.X509CACertLocation); err == nil {
 		block, _ := pem.Decode(certBytes)
@@ -234,7 +253,10 @@ func getX509CACert(key config.KeyConfig, pool sPool, hostname string, ips []net.
 		return nil, errors.New("unable to get x509 CA certificate, but CreateCACertIfNotExist is set to false")
 	}
 	// Create x509 CA cert.
-	signer := pool.get()
+	signer, err := pool.get(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer pool.put(signer)
 
 	caConfig := &crypki.CAConfig{

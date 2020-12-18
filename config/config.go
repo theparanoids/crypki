@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/theparanoids/crypki"
 )
@@ -39,6 +40,8 @@ const (
 	SSHHostCertEndpoint = "/sig/ssh-host-cert"
 	// BlobEndpoint specifies the endpoint for raw signing.
 	BlobEndpoint = "/sig/blob"
+	// DefaultPKCS11Timeout specifies the max time required by HSM to sign a cert.
+	DefaultPKCS11Timeout = 5 * time.Second
 )
 
 var endpoints = map[string]bool{

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -69,31 +70,36 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// create a new context, cancel it once the server exits
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// to make NewCertSign create the CA cert
 	requireX509CACert := map[string]bool{
 		cc.Identifier: true,
 	}
 
-	signer, err := pkcs11.NewCertSign(cc.PKCS11ModulePath, []config.KeyConfig{{
-		Identifier:             cc.Identifier,
-		SlotNumber:             uint(cc.SlotNumber),
-		UserPinPath:            cc.UserPinPath,
-		KeyLabel:               cc.KeyLabel,
-		SessionPoolSize:        2,
-		X509CACertLocation:     "/tmp/509_ca.crt",
-		CreateCACertIfNotExist: true,
-		Country:                cc.Country,
-		State:                  cc.State,
-		Locality:               cc.Locality,
-		Organization:           cc.Organization,
-		OrganizationalUnit:     cc.OrganizationalUnit,
-		CommonName:             cc.CommonName,
-		ValidityPeriod:         cc.ValidityPeriod,
-	}}, requireX509CACert, hostname, ips)
+	signer, err := pkcs11.NewCertSign(ctx, cc.PKCS11ModulePath,
+		[]config.KeyConfig{{
+			Identifier:             cc.Identifier,
+			SlotNumber:             uint(cc.SlotNumber),
+			UserPinPath:            cc.UserPinPath,
+			KeyLabel:               cc.KeyLabel,
+			SessionPoolSize:        2,
+			X509CACertLocation:     "/tmp/509_ca.crt",
+			CreateCACertIfNotExist: true,
+			Country:                cc.Country,
+			State:                  cc.State,
+			Locality:               cc.Locality,
+			Organization:           cc.Organization,
+			OrganizationalUnit:     cc.OrganizationalUnit,
+			CommonName:             cc.CommonName,
+			ValidityPeriod:         cc.ValidityPeriod,
+		}}, requireX509CACert, hostname, ips)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}
-	cert, err := signer.GetX509CACert(cc.Identifier)
+	cert, err := signer.GetX509CACert(ctx, cc.Identifier)
 	if err != nil {
 		log.Fatalf("unable to get x509 CA cert: %v", err)
 	}

@@ -62,7 +62,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	cert, err := s.GetX509CACert(keyMeta.Identifier)
+	cert, err := s.GetX509CACert(ctx, keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")
@@ -89,6 +89,10 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// create child context with timeout remaining from client request if present else until canceled
+	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
+
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
@@ -108,10 +112,33 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	data, err := s.SignX509Cert(req, request.KeyMeta.Identifier)
-	if err != nil {
-		statusCode = http.StatusInternalServerError
-		return nil, status.Error(codes.Internal, "Internal server error")
+	type resp struct {
+		data []byte
+		err  error
 	}
-	return &proto.X509Certificate{Cert: string(data)}, nil
+	respCh := make(chan resp)
+	go func() {
+		data, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier)
+		respCh <- resp{data, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// client canceled the request. Cancel any pending server request and return
+		cancel()
+		statusCode = http.StatusBadRequest
+		err = fmt.Errorf("client canceled request for %q", config.X509CertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "%v", err)
+	case <-reqCtx.Done():
+		// server request timed out.
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
+		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
+	case response := <-respCh:
+		if response.err != nil {
+			statusCode = http.StatusInternalServerError
+			return nil, status.Error(codes.Internal, "Internal server error")
+		}
+		return &proto.X509Certificate{Cert: string(response.data)}, nil
+	}
 }

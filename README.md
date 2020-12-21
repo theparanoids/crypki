@@ -131,8 +131,8 @@ This project is licensed under the terms of the [Apache 2.0](http://www.apache.o
 [build-url]:       https://github.com/theparanoids/crypki/actions?query=branch%3Amain+workflow%3ALinux
 [golang]:          http://golang.org/
 [golang-install]:  http://golang.org/doc/install.html#releases
-[godoc-badge]:     https://godoc.org/github.com/theparanoids/crypki?status.svg
-[godoc]:           https://godoc.org/github.com/theparanoids/crypki
+[godoc-badge]:     https://pkg.go.dev/badge/github.com/theparanoids/crypki.svg
+[godoc]:           https://pkg.go.dev/github.com/theparanoids/crypki
 [goreport-card-badge]: https://goreportcard.com/badge/theparanoids/crypki
 [goreport-card]: https://goreportcard.com/report/theparanoids/crypki
 [codecov-card-badge]: https://codecov.io/gh/theparanoids/crypki/branch/main/graph/badge.svg

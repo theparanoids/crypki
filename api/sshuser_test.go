@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
@@ -73,11 +74,16 @@ func TestGetUserSSHCertificateAvailableSigningKeys(t *testing.T) {
 
 func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	testcases := map[string]struct {
+		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedSSHKey set to nil, we are expecting an error while testing
 		expectedSSHKey *proto.SSHKey
+		timeout        time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:        &proto.KeyMeta{Identifier: "randomid"},
@@ -111,24 +117,33 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 			KeyMeta:        &proto.KeyMeta{Identifier: "sshuserid2"},
 			expectedSSHKey: nil,
 		},
+		"requestCancelled": {
+			ctx:            cancelCtx,
+			KeyUsages:      sshkeyUsage,
+			KeyMeta:        &proto.KeyMeta{Identifier: "sshuserid"},
+			expectedSSHKey: nil,
+			timeout:        2 * timeout,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		if tt.ctx == nil {
+			tt.ctx = ctx
+		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, timeout: tt.timeout}
 			ssBad := initMockSigningService(msspBad)
-			_, err := ssBad.GetUserSSHCertificateSigningKey(ctx, tt.KeyMeta)
+			_, err := ssBad.GetUserSSHCertificateSigningKey(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, timeout: tt.timeout}
 			ssGood := initMockSigningService(msspGood)
-			key, err := ssGood.GetUserSSHCertificateSigningKey(ctx, tt.KeyMeta)
+			key, err := ssGood.GetUserSSHCertificateSigningKey(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedSSHKey != nil {
 				t.Fatalf("in test %v: not expecting error but got error %v", label, err)
 			}
@@ -141,6 +156,11 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 					return
 				}
 			}
+			if label == "requestCancelled" {
+				// this is to test the behavior when client cancels the request while
+				// server is still processing the request.
+				cancel()
+			}
 		})
 	}
 }
@@ -148,7 +168,13 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 func TestPostUserSSHCertificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.SSHUserCertEndpoint: 0}
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	timeoutCtx, timeCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer timeCancel()
 	testcases := map[string]struct {
+		ctx         context.Context
 		KeyUsages   map[string]map[string]bool
 		maxValidity map[string]uint64
 		validity    uint64
@@ -157,6 +183,7 @@ func TestPostUserSSHCertificate(t *testing.T) {
 		expectedSSHKey *proto.SSHKey
 		PubKey         string
 		KeyID          string
+		timeout        time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:        &proto.KeyMeta{Identifier: "randomid"},
@@ -288,27 +315,51 @@ func TestPostUserSSHCertificate(t *testing.T) {
 			PubKey:         testGoodRsaPubKey,
 			KeyID:          testGoodKeyID,
 		},
+		"requestCancelled": {
+			ctx:            cancelCtx,
+			KeyUsages:      sshkeyUsage,
+			maxValidity:    map[string]uint64{config.SSHUserCertEndpoint: 3600},
+			validity:       3600,
+			KeyMeta:        &proto.KeyMeta{Identifier: "sshuserid1"},
+			expectedSSHKey: nil,
+			PubKey:         testGoodRsaPubKey,
+			KeyID:          testGoodKeyID,
+			timeout:        2 * timeout,
+		},
+		"requestTimeout": {
+			ctx:            timeoutCtx,
+			KeyUsages:      sshkeyUsage,
+			maxValidity:    map[string]uint64{config.SSHUserCertEndpoint: 3600},
+			validity:       3600,
+			KeyMeta:        &proto.KeyMeta{Identifier: "sshuserid1"},
+			expectedSSHKey: nil,
+			PubKey:         testGoodRsaPubKey,
+			KeyID:          testGoodKeyID,
+			timeout:        2 * timeout,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		if tt.ctx == nil {
+			tt.ctx = ctx
+		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, timeout: tt.timeout}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.SSHCertificateSigningRequest{KeyMeta: tt.KeyMeta, PublicKey: tt.PubKey, Validity: tt.validity, KeyId: tt.KeyID}
-			_, err := ssBad.PostUserSSHCertificate(ctx, requestBad)
+			_, err := ssBad.PostUserSSHCertificate(tt.ctx, requestBad)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, timeout: tt.timeout}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.SSHCertificateSigningRequest{KeyMeta: tt.KeyMeta, PublicKey: tt.PubKey, Validity: tt.validity, KeyId: tt.KeyID}
-			cert, err := ssGood.PostUserSSHCertificate(ctx, requestGood)
+			cert, err := ssGood.PostUserSSHCertificate(tt.ctx, requestGood)
 			if tt.expectedSSHKey == nil {
 				if err == nil {
 					t.Errorf("expected error for invalid test %v, got nil", label)
@@ -320,6 +371,11 @@ func TestPostUserSSHCertificate(t *testing.T) {
 				if !reflect.DeepEqual(cert, tt.expectedSSHKey) {
 					t.Errorf("output doesn't match for %v, got %+v\nwant %+v", label, cert, tt.expectedSSHKey)
 				}
+			}
+			if label == "requestCancelled" {
+				// this is to test the behavior when client cancels the request while
+				// server is still processing the request.
+				cancel()
 			}
 		})
 	}

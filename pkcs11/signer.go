@@ -102,7 +102,7 @@ func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIden
 	}()
 
 	if cert == nil {
-		return nil, errors.New("%s: cannot sign empty cert")
+		return nil, errors.New("signSSHCert: cannot sign empty cert")
 	}
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
@@ -110,7 +110,7 @@ func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIden
 	}
 	signer, err := pool.get(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("client request timed out, skip signing SSH cert")
 	}
 	defer pool.put(signer)
 
@@ -165,7 +165,7 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 	}
 	signer, err := pool.get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("client request timed out, skip signing cert")
+		return nil, errors.New("client request timed out, skip signing X509 cert")
 	}
 	defer pool.put(signer)
 	cert.SignatureAlgorithm = getSignatureAlgorithm(signer.signAlgorithm())

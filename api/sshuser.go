@@ -57,18 +57,45 @@ func (s *SigningService) GetUserSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// create child context with timeout remaining from client request if present else until canceled
+	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	defer cancel() // Cancel ctx as soon as GetUserSSHCertificateSigningKey returns
+
 	if !s.KeyUsages[config.SSHUserCertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.SSHUserCertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	key, err := s.GetSSHCertSigningKey(ctx, keyMeta.Identifier)
-	if err != nil {
-		statusCode = http.StatusInternalServerError
-		return nil, status.Error(codes.Internal, "Internal server error")
+	type resp struct {
+		key []byte
+		err error
 	}
-	return &proto.SSHKey{Key: string(key)}, nil
+	respCh := make(chan resp)
+	go func() {
+		key, err := s.GetSSHCertSigningKey(ctx, keyMeta.Identifier)
+		respCh <- resp{key, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// client canceled the request. Cancel any pending server request and return
+		cancel()
+		statusCode = http.StatusBadRequest
+		err = fmt.Errorf("client cancelled request for %q", config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "%v", err)
+	case <-reqCtx.Done():
+		// server request timed out.
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("request timed out for %q", config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
+	case response := <-respCh:
+		if response.err != nil {
+			statusCode = http.StatusInternalServerError
+			return nil, status.Error(codes.Internal, "Internal server error")
+		}
+		return &proto.SSHKey{Key: string(response.key)}, nil
+	}
 }
 
 // PostUserSSHCertificate signs the SSH user certificate given request fields using the specified key.
@@ -95,6 +122,10 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// create child context with timeout remaining from client request if present else until canceled
+	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	defer cancel() // Cancel ctx as soon as PostUserSSHCertificate returns
+
 	maxValidity := s.MaxValidity[config.SSHUserCertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
@@ -113,10 +144,33 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	data, err := s.SignSSHCert(ctx, cert, request.KeyMeta.Identifier)
-	if err != nil {
-		statusCode = http.StatusInternalServerError
-		return nil, status.Error(codes.Internal, "Internal server error")
+	type resp struct {
+		data []byte
+		err  error
 	}
-	return &proto.SSHKey{Key: string(data)}, nil
+	respCh := make(chan resp)
+	go func() {
+		data, err := s.SignSSHCert(reqCtx, cert, request.KeyMeta.Identifier)
+		respCh <- resp{data, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// client canceled the request. Cancel any pending server request and return
+		cancel()
+		statusCode = http.StatusBadRequest
+		err = fmt.Errorf("client canceled request for %q", config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "%v", err)
+	case <-reqCtx.Done():
+		// server request timed out.
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("request timed out for %q", config.SSHUserCertEndpoint)
+		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
+	case response := <-respCh:
+		if response.err != nil {
+			statusCode = http.StatusInternalServerError
+			return nil, status.Error(codes.Internal, "Internal server error")
+		}
+		return &proto.SSHKey{Key: string(response.data)}, nil
+	}
 }

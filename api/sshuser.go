@@ -57,7 +57,7 @@ func (s *SigningService) GetUserSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// create child context with timeout remaining from client request if present else until canceled
+	// create a context with server side timeout
 	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
 	defer cancel() // Cancel ctx as soon as GetUserSSHCertificateSigningKey returns
 
@@ -122,7 +122,7 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// create child context with timeout remaining from client request if present else until canceled
+	// create a context with server side timeout
 	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
 	defer cancel() // Cancel ctx as soon as PostUserSSHCertificate returns
 

@@ -89,7 +89,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// create child context with timeout remaining from client request if present else until canceled
+	// create a context with server side timeout
 	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 

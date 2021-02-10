@@ -273,17 +273,17 @@ func TestPostX509Certificate(t *testing.T) {
 		"requestTimeout": {
 			ctx:          timeoutCtx,
 			KeyUsages:    combineKeyUsage,
-			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
+			maxValidity:  defaultMaxValidity,
 			validity:     3600,
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
 			expectedCert: nil,
 			CSR:          testGoodcsrRsa,
 			timeout:      2 * timeout,
 		},
-		"requestCanceled": {
+		"requestCancelled": {
 			ctx:          cancelCtx,
 			KeyUsages:    combineKeyUsage,
-			maxValidity:  map[string]uint64{config.X509CertEndpoint: 3600},
+			maxValidity:  defaultMaxValidity,
 			validity:     3600,
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id1"},
 			expectedCert: nil,
@@ -324,7 +324,7 @@ func TestPostX509Certificate(t *testing.T) {
 					t.Errorf("output doesn't match for %v, got %+v\nwant %+v", label, cert, tt.expectedCert)
 				}
 			}
-			if label == "requestCanceled" {
+			if label == "requestCancelled" {
 				// this is to test the behavior when client cancels the request while
 				// server is still processing the request.
 				cancel()

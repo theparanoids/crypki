@@ -78,11 +78,18 @@ func TestGetX509CertificateAvailableSigningKeys(t *testing.T) {
 
 func TestGetX509CACertificate(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	timeoutCtx, timeCancel := context.WithTimeout(ctx, timeout)
+	defer timeCancel()
 	testcases := map[string]struct {
+		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedCert set to nil, we are expecting an error while testing
 		expectedCert *proto.X509Certificate
+		timeout      time.Duration
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:      &proto.KeyMeta{Identifier: "randomid"},
@@ -116,24 +123,40 @@ func TestGetX509CACertificate(t *testing.T) {
 			KeyMeta:      &proto.KeyMeta{Identifier: "x509id2"},
 			expectedCert: nil,
 		},
+		"requestTimeout": {
+			ctx:          timeoutCtx,
+			KeyUsages:    x509keyUsage,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id"},
+			expectedCert: nil,
+			timeout:      timeout,
+		},
+		"requestCancelled": {
+			ctx:          cancelCtx,
+			KeyUsages:    x509keyUsage,
+			KeyMeta:      &proto.KeyMeta{Identifier: "x509id"},
+			expectedCert: nil,
+			timeout:      timeout,
+		},
 	}
 	for label, tt := range testcases {
 		tt := tt
 		label := label
+		if tt.ctx == nil {
+			tt.ctx = ctx
+		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			var ctx context.Context
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, timeout: tt.timeout}
 			ssBad := initMockSigningService(msspBad)
-			_, err := ssBad.GetX509CACertificate(ctx, tt.KeyMeta)
+			_, err := ssBad.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, timeout: tt.timeout}
 			ssGood := initMockSigningService(msspGood)
-			cert, err := ssGood.GetX509CACertificate(ctx, tt.KeyMeta)
+			cert, err := ssGood.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedCert != nil {
 				t.Fatalf("in test %v: not expecting error but got error %v", label, err)
 			}

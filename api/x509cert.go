@@ -56,18 +56,43 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
+	// Create a context with server side timeout.
+	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	defer cancel() // Cancel ctx as soon as GetX509CACertificate returns.
+
 	if !s.KeyUsages[config.X509CertEndpoint][keyMeta.Identifier] {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("cannot use key %q for %q", keyMeta.Identifier, config.X509CertEndpoint)
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	cert, err := s.GetX509CACert(ctx, keyMeta.Identifier)
-	if err != nil {
-		statusCode = http.StatusInternalServerError
-		return nil, status.Error(codes.Internal, "Internal server error")
+	type resp struct {
+		cert []byte
+		err  error
 	}
-	return &proto.X509Certificate{Cert: string(cert)}, nil
+	respCh := make(chan resp)
+	go func() {
+		cert, err := s.GetX509CACert(ctx, keyMeta.Identifier)
+		respCh <- resp{cert, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		statusCode = http.StatusBadRequest
+		err = fmt.Errorf("client canceled request for %q", config.SSHHostCertEndpoint)
+		return nil, status.Errorf(codes.Canceled, "%v", err)
+	case <-reqCtx.Done():
+		// Handle the server timeout requests.
+		statusCode = http.StatusServiceUnavailable
+		err = fmt.Errorf("request timed out for %q", config.SSHHostCertEndpoint)
+		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
+	case response := <-respCh:
+		if response.err != nil {
+			statusCode = http.StatusInternalServerError
+			return nil, status.Error(codes.Internal, "Internal server error")
+		}
+		return &proto.X509Certificate{Cert: string(response.cert)}, nil
+	}
 }
 
 // PostX509Certificate signs the given CSR using the specified key and returns a PEM encoded X509 certificate.
@@ -89,7 +114,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// create a context with server side timeout
+	// Create a context with server side timeout.
 	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 
@@ -113,24 +138,22 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 
 	type resp struct {
-		data []byte
+		cert []byte
 		err  error
 	}
 	respCh := make(chan resp)
 	go func() {
-		data, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier)
-		respCh <- resp{data, err}
+		cert, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier)
+		respCh <- resp{cert, err}
 	}()
 
 	select {
 	case <-ctx.Done():
-		// client canceled the request. Cancel any pending server request and return
-		cancel()
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("client canceled request for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
-		// server request timed out.
+		// Handle the server timeout requests.
 		statusCode = http.StatusServiceUnavailable
 		err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
@@ -139,6 +162,6 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 			statusCode = http.StatusInternalServerError
 			return nil, status.Error(codes.Internal, "Internal server error")
 		}
-		return &proto.X509Certificate{Cert: string(response.data)}, nil
+		return &proto.X509Certificate{Cert: string(response.cert)}, nil
 	}
 }

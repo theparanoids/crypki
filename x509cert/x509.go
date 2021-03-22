@@ -18,7 +18,7 @@ import (
 )
 
 // GenCACert creates the CA certificate given signer.
-func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka crypki.PublicKeyAlgorithm) ([]byte, error) {
+func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka crypki.PublicKeyAlgorithm, sa crypki.SignatureAlgorithm) ([]byte, error) {
 	// Backdate start time by one hour as the current system clock may be ahead of other running systems.
 	start := uint64(time.Now().Unix())
 	end := start + config.ValidityPeriod
@@ -35,9 +35,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	template := &x509.Certificate{
 		Subject:               subj,
 		SerialNumber:          newSerial(),
-		PublicKeyAlgorithm:    x509.RSA,
+		PublicKeyAlgorithm:    getPublicKeyAlgorithm(pka),
 		PublicKey:             signer.Public(),
-		SignatureAlgorithm:    getSignatureAlgorithm(pka),
+		SignatureAlgorithm:    GetSignatureAlgorithm(pka, sa),
 		NotBefore:             time.Unix(int64(start), 0),
 		NotAfter:              time.Unix(int64(end), 0),
 		DNSNames:              []string{hostname},
@@ -59,13 +59,38 @@ func newSerial() *big.Int {
 	return serialNumber
 }
 
-func getSignatureAlgorithm(pka crypki.PublicKeyAlgorithm) x509.SignatureAlgorithm {
+// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to either the crypki signature algorithm passed
+// else based on the public key algorithm it chooses the default signature algorithm.
+// Currently the signature algorithm CRYPKI supports is SHA256WithRSA, ECDSAWithSHA256, ECDSAWithSHA384.
+func GetSignatureAlgorithm(pka crypki.PublicKeyAlgorithm, sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm {
+	if sa != crypki.UnknownSignatureAlgorithm {
+		switch sa {
+		case crypki.SHA256WithRSA:
+			return x509.SHA256WithRSA
+		case crypki.ECDSAWithSHA256:
+			return x509.ECDSAWithSHA256
+		case crypki.ECDSAWithSHA384:
+			return x509.ECDSAWithSHA384
+		}
+	}
+	// if signature algo doesn't match above use the default values based on public key algo
 	algo := x509.SHA256WithRSA // default
 	switch pka {
 	case crypki.RSA:
 		algo = x509.SHA256WithRSA
 	case crypki.ECDSA:
-		algo = x509.ECDSAWithSHA256
+		algo = x509.ECDSAWithSHA384
+	}
+	return algo
+}
+
+func getPublicKeyAlgorithm(pka crypki.PublicKeyAlgorithm) x509.PublicKeyAlgorithm {
+	algo := x509.RSA
+	switch pka {
+	case crypki.RSA:
+		algo = x509.RSA
+	case crypki.ECDSA:
+		algo = x509.ECDSA
 	}
 	return algo
 }

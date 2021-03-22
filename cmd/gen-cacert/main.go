@@ -85,6 +85,8 @@ func main() {
 			SlotNumber:             uint(cc.SlotNumber),
 			UserPinPath:            cc.UserPinPath,
 			KeyLabel:               cc.KeyLabel,
+			KeyType:                crypki.PublicKeyAlgorithm(cc.KeyType),
+			SignatureAlgo:          crypki.SignatureAlgorithm(cc.SignatureAlgo),
 			SessionPoolSize:        2,
 			X509CACertLocation:     "/tmp/509_ca.crt",
 			CreateCACertIfNotExist: true,

@@ -19,7 +19,8 @@ type sPool interface {
 
 type signerWithSignAlgorithm interface {
 	crypto.Signer
-	signAlgorithm() crypki.PublicKeyAlgorithm
+	publicKeyAlgorithm() crypki.PublicKeyAlgorithm
+	signAlgorithm() crypki.SignatureAlgorithm
 }
 
 // SignerPool is a pool of PKCS11 signers
@@ -29,10 +30,10 @@ type SignerPool struct {
 }
 
 // newSignerPool initializes a signer pool based on the configuration parameters
-func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
+func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (sPool, error) {
 	signers := make(chan signerWithSignAlgorithm, nSigners)
 	for i := 0; i < nSigners; i++ {
-		signerInstance, err := makeSigner(context, slot, tokenLabel, keyType)
+		signerInstance, err := makeSigner(context, slot, tokenLabel, keyType, signatureAlgo)
 		if err != nil {
 			return &SignerPool{nil}, fmt.Errorf("error making signer: %v", err)
 		}

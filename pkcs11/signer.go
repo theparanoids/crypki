@@ -15,11 +15,10 @@ import (
 	"time"
 
 	p11 "github.com/miekg/pkcs11"
-	"golang.org/x/crypto/ssh"
-
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/x509cert"
+	"golang.org/x/crypto/ssh"
 )
 
 // signer implements crypki.CertSign interface.
@@ -56,7 +55,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 		login:       login,
 	}
 	for _, key := range keys {
-		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType)
+		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType, key.SignatureAlgo)
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
 		}
@@ -168,7 +167,8 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 		return nil, errors.New("client request timed out, skip signing X509 cert")
 	}
 	defer pool.put(signer)
-	cert.SignatureAlgorithm = getSignatureAlgorithm(signer.signAlgorithm())
+	// override the cert signature algo with the signature algorithm which crypki supports
+	cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	// measure time taken by hsm
 	hStart := time.Now()
 	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)
@@ -270,7 +270,7 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	}
 	caConfig.LoadDefaults()
 
-	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, signer.signAlgorithm())
+	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate x509 CA certificate: %v", err)
 	}
@@ -283,15 +283,4 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	cd, _ := pem.Decode(out)
 	cert, _ := x509.ParseCertificate(cd.Bytes)
 	return cert, nil
-}
-
-func getSignatureAlgorithm(pka crypki.PublicKeyAlgorithm) x509.SignatureAlgorithm {
-	switch pka {
-	case crypki.RSA:
-		return x509.SHA256WithRSA
-	case crypki.ECDSA:
-		return x509.ECDSAWithSHA256
-	default:
-		return x509.SHA256WithRSA
-	}
 }

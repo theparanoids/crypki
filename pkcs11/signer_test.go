@@ -272,7 +272,7 @@ func TestSignX509Cert(t *testing.T) {
 		SerialNumber:          big.NewInt(0),
 		PublicKeyAlgorithm:    x509.ECDSA,
 		PublicKey:             &eckey.PublicKey,
-		SignatureAlgorithm:    x509.SHA256WithRSA,
+		SignatureAlgorithm:    x509.ECDSAWithSHA384,
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(time.Hour * 24),
 		DNSNames:              []string{subject.CommonName},

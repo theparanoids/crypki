@@ -14,14 +14,15 @@ import (
 )
 
 type p11Signer struct {
-	context    PKCS11Ctx
-	session    p11.SessionHandle
-	privateKey p11.ObjectHandle
-	publicKey  p11.ObjectHandle
-	keyType    crypki.PublicKeyAlgorithm
+	context       PKCS11Ctx
+	session       p11.SessionHandle
+	privateKey    p11.ObjectHandle
+	publicKey     p11.ObjectHandle
+	keyType       crypki.PublicKeyAlgorithm
+	signatureAlgo crypki.SignatureAlgorithm
 }
 
-func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm) (*p11Signer, error) {
+func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (*p11Signer, error) {
 	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
 	if err != nil {
 		return nil, errors.New("makeSigner: error in OpenSession: " + err.Error())
@@ -38,7 +39,7 @@ func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.
 		context.CloseSession(session)
 		return nil, errors.New("makeSigner: error in getPublicKey: " + err.Error())
 	}
-	return &p11Signer{context, session, privateKey, publicKey, keyType}, nil
+	return &p11Signer{context, session, privateKey, publicKey, keyType, signatureAlgo}, nil
 }
 
 // Sign signs the data using PKCS11 library. It is part of the crypto.Signer interface.
@@ -66,7 +67,12 @@ func (s *p11Signer) Public() crypto.PublicKey {
 	}
 }
 
-// signAlgorithm returns the signature algorithm of signer.
-func (s *p11Signer) signAlgorithm() crypki.PublicKeyAlgorithm {
+// publicAlgorithm returns the signature algorithm of signer.
+func (s *p11Signer) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
 	return s.keyType
+}
+
+// signAlgorithm returns the signature algorithm of signer.
+func (s *p11Signer) signAlgorithm() crypki.SignatureAlgorithm {
+	return s.signatureAlgo
 }

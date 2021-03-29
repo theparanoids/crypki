@@ -35,9 +35,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	template := &x509.Certificate{
 		Subject:               subj,
 		SerialNumber:          newSerial(),
-		PublicKeyAlgorithm:    getPublicKeyAlgorithm(pka),
+		PublicKeyAlgorithm:    GetPublicKeyAlgorithm(pka),
 		PublicKey:             signer.Public(),
-		SignatureAlgorithm:    GetSignatureAlgorithm(pka, sa),
+		SignatureAlgorithm:    GetSignatureAlgorithm(sa),
 		NotBefore:             time.Unix(int64(start), 0),
 		NotAfter:              time.Unix(int64(end), 0),
 		DNSNames:              []string{hostname},
@@ -59,32 +59,24 @@ func newSerial() *big.Int {
 	return serialNumber
 }
 
-// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to either the crypki signature algorithm passed
-// else based on the public key algorithm it chooses the default signature algorithm.
-// Currently the signature algorithm CRYPKI supports is SHA256WithRSA, ECDSAWithSHA256, ECDSAWithSHA384.
-func GetSignatureAlgorithm(pka crypki.PublicKeyAlgorithm, sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm {
-	if sa != crypki.UnknownSignatureAlgorithm {
-		switch sa {
-		case crypki.SHA256WithRSA:
-			return x509.SHA256WithRSA
-		case crypki.ECDSAWithSHA256:
-			return x509.ECDSAWithSHA256
-		case crypki.ECDSAWithSHA384:
-			return x509.ECDSAWithSHA384
-		}
-	}
-	// if signature algo doesn't match above use the default values based on public key algo
-	algo := x509.SHA256WithRSA // default
-	switch pka {
-	case crypki.RSA:
+// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to signature algorithm received as part of
+// CSR.
+func GetSignatureAlgorithm(sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm {
+	algo := x509.SHA256WithRSA
+	switch sa {
+	case crypki.SHA256WithRSA:
 		algo = x509.SHA256WithRSA
-	case crypki.ECDSA:
+	case crypki.ECDSAWithSHA256:
+		algo = x509.ECDSAWithSHA256
+	case crypki.ECDSAWithSHA384:
 		algo = x509.ECDSAWithSHA384
 	}
 	return algo
 }
 
-func getPublicKeyAlgorithm(pka crypki.PublicKeyAlgorithm) x509.PublicKeyAlgorithm {
+// GetPublicKeyAlgorithm returns the x509 Public algorithm corresponding to the public key algorithm received as part
+// of CSR
+func GetPublicKeyAlgorithm(pka crypki.PublicKeyAlgorithm) x509.PublicKeyAlgorithm {
 	algo := x509.RSA
 	switch pka {
 	case crypki.RSA:

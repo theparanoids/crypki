@@ -167,8 +167,12 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 		return nil, errors.New("client request timed out, skip signing X509 cert")
 	}
 	defer pool.put(signer)
-	// override the cert signature algo with the signature algorithm which crypki supports
-	cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.publicKeyAlgorithm(), signer.signAlgorithm())
+	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
+	if val := isValidCertRequest(cert, signer.publicKeyAlgorithm(), signer.signAlgorithm()); !val {
+		log.Printf("SignX509Cert: unsupported signature algo %d, supported algo %d", cert.SignatureAlgorithm, signer.signAlgorithm())
+		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
+		cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.signAlgorithm())
+	}
 	// measure time taken by hsm
 	hStart := time.Now()
 	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)
@@ -283,4 +287,14 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	cd, _ := pem.Decode(out)
 	cert, _ := x509.ParseCertificate(cd.Bytes)
 	return cert, nil
+}
+
+func isValidCertRequest(cert *x509.Certificate, pka crypki.PublicKeyAlgorithm, sa crypki.SignatureAlgorithm) bool {
+	x509ConfigPka := x509cert.GetPublicKeyAlgorithm(pka)
+	x509ConfigSa := x509cert.GetSignatureAlgorithm(sa)
+
+	if (cert.PublicKeyAlgorithm != x509ConfigPka) || (cert.SignatureAlgorithm != x509ConfigSa) {
+		return false
+	}
+	return true
 }

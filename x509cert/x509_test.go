@@ -12,43 +12,54 @@ import (
 func TestGetSignatureAlgorithm(t *testing.T) {
 	t.Parallel()
 	tests := map[string]struct {
-		pka  crypki.PublicKeyAlgorithm
 		sa   crypki.SignatureAlgorithm
 		want x509.SignatureAlgorithm
 	}{
 		"rsa key & signature": {
-			pka:  crypki.RSA,
 			sa:   crypki.SHA256WithRSA,
 			want: x509.SHA256WithRSA,
 		},
 		"ec key & 384 signature": {
-			pka:  crypki.ECDSA,
 			sa:   crypki.ECDSAWithSHA384,
 			want: x509.ECDSAWithSHA384,
 		},
 		"ec key & 256 signature": {
-			pka:  crypki.ECDSA,
 			sa:   crypki.ECDSAWithSHA256,
 			want: x509.ECDSAWithSHA256,
 		},
-		"no signature algo rsa key": {
-			pka:  crypki.RSA,
+		"no signature algo": {
 			sa:   crypki.UnknownSignatureAlgorithm,
 			want: x509.SHA256WithRSA,
-		},
-		"no signature algo ec key": {
-			pka:  crypki.ECDSA,
-			sa:   crypki.UnknownSignatureAlgorithm,
-			want: x509.ECDSAWithSHA384,
 		},
 	}
 	for name, tt := range tests {
 		name, tt := name, tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := GetSignatureAlgorithm(tt.pka, tt.sa)
+			got := GetSignatureAlgorithm(tt.sa)
 			if got != tt.want {
 				t.Errorf("%s: got %d want %d", name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetPublicKeyAlgorithm(t *testing.T) {
+	t.Parallel()
+	tests := map[string]struct {
+		pka  crypki.PublicKeyAlgorithm
+		want x509.PublicKeyAlgorithm
+	}{
+		"rsa":         {pka: crypki.RSA, want: x509.RSA},
+		"ec key":      {pka: crypki.ECDSA, want: x509.ECDSA},
+		"unknown key": {pka: crypki.UnknownPublicKeyAlgorithm, want: x509.RSA},
+	}
+	for name, tt := range tests {
+		name, tt := name, tt
+		t.Run(name, func(t *testing.T) {
+			got := GetPublicKeyAlgorithm(tt.pka)
+			if got != tt.want {
+				t.Fatalf("%s: got %d want %d", name, got, tt.want)
 			}
 		})
 	}

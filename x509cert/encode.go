@@ -31,13 +31,10 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 
 	// Construct an (unsigned) x509 certificate.
 	return &x509.Certificate{
-		Subject:            csr.Subject,
-		SerialNumber:       newSerial(),
-		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
-		PublicKey:          csr.PublicKey,
-		// SignatureAlgorithm will be over-written by in SignX509Cert as we support only a selected few signature type currently.
-		// Once we start supporting all signature algo, the check in SignX509Cert will be removed and
-		// we will honor the signature algorithm passed in the CSR.
+		Subject:               csr.Subject,
+		SerialNumber:          newSerial(),
+		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
+		PublicKey:             csr.PublicKey,
 		SignatureAlgorithm:    csr.SignatureAlgorithm,
 		NotBefore:             time.Unix(int64(start), 0),
 		NotAfter:              time.Unix(int64(end), 0),

@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
-
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
@@ -29,7 +28,8 @@ func (b *badSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) 
 }
 
 type MockSignerPool struct {
-	signer crypto.Signer
+	signer  crypto.Signer
+	keyType crypki.PublicKeyAlgorithm
 }
 
 func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
@@ -46,10 +46,13 @@ func (c MockSignerPool) put(instance signerWithSignAlgorithm) {
 }
 
 func (c MockSignerPool) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
-	return crypki.RSA
+	return c.keyType
 }
 
 func (c MockSignerPool) signAlgorithm() crypki.SignatureAlgorithm {
+	if c.keyType == crypki.ECDSA {
+		return crypki.ECDSAWithSHA256
+	}
 	return crypki.SHA256WithRSA
 }
 
@@ -61,20 +64,30 @@ func (c MockSignerPool) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return c.signer.Sign(rand, digest, opts)
 }
 
-func newMockSignerPool(isBad bool) (sPool, error) {
+func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
 	if isBad {
-		return MockSignerPool{&badSigner{}}, nil
+		return MockSignerPool{&badSigner{}, keyType}, nil
 	}
-	data, err := ioutil.ReadFile("testdata/rsa.key.pem")
-	if err != nil {
-		return nil, fmt.Errorf("unable to read private key: %v", err)
+	switch keyType {
+	case crypki.ECDSA:
+		data, err := ioutil.ReadFile("testdata/ec.key.pem")
+		if err != nil {
+			return nil, fmt.Errorf("unable to read private key: %v", err)
+		}
+		decoded, _ := pem.Decode(data)
+		key, err := x509.ParseECPrivateKey(decoded.Bytes)
+		return MockSignerPool{key, keyType}, err
+	case crypki.RSA:
+		fallthrough
+	default:
+		data, err := ioutil.ReadFile("testdata/rsa.key.pem")
+		if err != nil {
+			return nil, fmt.Errorf("unable to read private key: %v", err)
+		}
+		decoded, _ := pem.Decode(data)
+		key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
+		return MockSignerPool{key, keyType}, err
 	}
-	decoded, _ := pem.Decode(data)
-	key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse private key: %v", err)
-	}
-	return MockSignerPool{key}, nil
 }
 
 func TestNewSignerPool(t *testing.T) {

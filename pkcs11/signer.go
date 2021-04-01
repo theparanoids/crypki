@@ -9,9 +9,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	p11 "github.com/miekg/pkcs11"
@@ -236,7 +236,7 @@ func (s *signer) SignBlob(ctx context.Context, digest []byte, opts crypto.Signer
 // certificate will be generated based on the config, and wrote to X509CACertLocation.
 func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostname string, ips []net.IP) (*x509.Certificate, error) {
 	// Try parse certificate in the given location.
-	if certBytes, err := os.ReadFile(key.X509CACertLocation); err == nil {
+	if certBytes, err := ioutil.ReadFile(key.X509CACertLocation); err == nil {
 		block, _ := pem.Decode(certBytes)
 		if cert, err := x509.ParseCertificate(block.Bytes); err != nil {
 			log.Printf("unable to parse x509 certificate: %v", err)
@@ -274,7 +274,7 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate x509 CA certificate: %v", err)
 	}
-	if err := os.WriteFile(key.X509CACertLocation, out, 0644); err != nil {
+	if err := ioutil.WriteFile(key.X509CACertLocation, out, 0644); err != nil {
 		log.Printf("new CA cert generated, but unable to write to file %s: %v", key.X509CACertLocation, err)
 		log.Printf("cert generated: %q", string(out))
 	} else {

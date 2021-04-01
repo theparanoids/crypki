@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
+	"io/ioutil"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -61,7 +61,7 @@ func newMockSignerPool(isBad bool) (sPool, error) {
 	if isBad {
 		return MockSignerPool{&badSigner{}}, nil
 	}
-	data, err := os.ReadFile("testdata/rsa.key.pem")
+	data, err := ioutil.ReadFile("testdata/rsa.key.pem")
 	if err != nil {
 		return nil, fmt.Errorf("unable to read private key: %v", err)
 	}

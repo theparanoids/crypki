@@ -5,7 +5,7 @@ package x509cert
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"os"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -57,7 +57,7 @@ func TestDecodeRequest(t *testing.T) {
 		tt := tt // capture range variable - see https://blog.golang.org/subtests
 		t.Run(k, func(t *testing.T) {
 			t.Parallel()
-			pemData, err := os.ReadFile(tt.csrFile)
+			pemData, err := ioutil.ReadFile(tt.csrFile)
 			if err != nil {
 				t.Fatal(err)
 			}

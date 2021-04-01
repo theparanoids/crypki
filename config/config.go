@@ -41,7 +41,7 @@ const (
 	// BlobEndpoint specifies the endpoint for raw signing.
 	BlobEndpoint = "/sig/blob"
 	// DefaultPKCS11Timeout specifies the max time required by HSM to sign a cert.
-	DefaultPKCS11Timeout = 5 * time.Second
+	DefaultPKCS11Timeout = 15 * time.Second
 )
 
 var endpoints = map[string]bool{

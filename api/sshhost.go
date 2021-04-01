@@ -86,7 +86,7 @@ func (s *SigningService) GetHostSSHCertificateSigningKey(ctx context.Context, ke
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
 		// server request timed out.
-		statusCode = http.StatusServiceUnavailable
+		statusCode = http.StatusRequestTimeout
 		err = fmt.Errorf("request timed out for %q", config.SSHHostCertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:
@@ -163,7 +163,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
 		// server request timed out.
-		statusCode = http.StatusServiceUnavailable
+		statusCode = http.StatusRequestTimeout
 		err = fmt.Errorf("request timed out for %q", config.SSHHostCertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:

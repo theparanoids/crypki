@@ -83,7 +83,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
 		// Handle the server timeout requests.
-		statusCode = http.StatusServiceUnavailable
+		statusCode = http.StatusRequestTimeout
 		err = fmt.Errorf("request timed out for %q", config.SSHHostCertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:
@@ -154,7 +154,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.Canceled, "%v", err)
 	case <-reqCtx.Done():
 		// Handle the server timeout requests.
-		statusCode = http.StatusServiceUnavailable
+		statusCode = http.StatusRequestTimeout
 		err = fmt.Errorf("request timed out for %q", config.X509CertEndpoint)
 		return nil, status.Errorf(codes.DeadlineExceeded, "%v", err)
 	case response := <-respCh:

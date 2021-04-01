@@ -9,7 +9,7 @@
       openssl genrsa -out rsa.key.pem 4096
    ```
 
-   2. Generate signing requests from the RSA private key, EC private key and this conf
+   2. Generate signing requests from the RSA private key, EC private key and this conf.
 
    ```
       openssl req -new -key rsa.key.pem -config openssl.cnf -out csr.pem

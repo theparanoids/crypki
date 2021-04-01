@@ -79,7 +79,7 @@ type KeyConfig struct {
 	SessionPoolSize int
 	// KeyType specifies the type of key, such as RSA or ECDSA.
 	KeyType crypki.PublicKeyAlgorithm
-	// SignatureAlgo specifies the type of signature hash function such as SHA256WithRSA or ECDSAWithSHA384
+	// SignatureAlgo specifies the type of signature hash function such as SHA256WithRSA or ECDSAWithSHA384.
 	SignatureAlgo crypki.SignatureAlgorithm
 
 	// Below are configs of the x509 CA cert for this key. Useful when this key will be used

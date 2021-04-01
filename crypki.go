@@ -14,6 +14,15 @@ import (
 // SignType represents the type of signing to be performed.
 type SignType int
 
+const (
+	// HostSSHKey indicates that the request should be signed by Host SSHKey slot.
+	HostSSHKey SignType = iota
+	// X509Key indicates that the request should be signed by X509Key slot.
+	X509Key
+	// UserSSHKey indicates that the request should be signed by User SSHKey slot.
+	UserSSHKey
+)
+
 // PublicKeyAlgorithm is used to specify public key algorithm.
 type PublicKeyAlgorithm int
 
@@ -28,6 +37,7 @@ const (
 )
 
 // List of supported signature hash algorithms.
+// The naming convention adheres to x509.SignatureAlgorithm.
 const (
 	UnknownSignatureAlgorithm SignatureAlgorithm = iota
 	SHA256WithRSA

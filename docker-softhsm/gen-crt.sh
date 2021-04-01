@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # This file generates the rsa certificates and keys for demonstration
 
 set -euo pipefail

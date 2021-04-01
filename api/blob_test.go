@@ -5,7 +5,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
+	"io"
 	"log"
 	"reflect"
 	"sort"
@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func TestGetBlobAvailableSigningKeys(t *testing.T) {

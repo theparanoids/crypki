@@ -8,7 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -52,7 +51,7 @@ func main() {
 	if cfg == "" {
 		log.Fatal("no CA cert configuration file specified")
 	}
-	cfgData, err := ioutil.ReadFile(cfg)
+	cfgData, err := os.ReadFile(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

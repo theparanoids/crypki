@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -70,7 +70,7 @@ func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm) (sPool, er
 	}
 	switch keyType {
 	case crypki.ECDSA:
-		data, err := ioutil.ReadFile("testdata/ec.key.pem")
+		data, err := os.ReadFile("testdata/ec.key.pem")
 		if err != nil {
 			return nil, fmt.Errorf("unable to read private key: %v", err)
 		}
@@ -80,7 +80,7 @@ func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm) (sPool, er
 	case crypki.RSA:
 		fallthrough
 	default:
-		data, err := ioutil.ReadFile("testdata/rsa.key.pem")
+		data, err := os.ReadFile("testdata/rsa.key.pem")
 		if err != nil {
 			return nil, fmt.Errorf("unable to read private key: %v", err)
 		}

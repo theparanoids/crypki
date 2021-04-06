@@ -12,8 +12,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -47,11 +47,11 @@ func initMockSigner(isBad bool, keyType crypki.PublicKeyAlgorithm) (*signer, err
 	var bytes []byte
 	switch keyType {
 	case crypki.ECDSA:
-		bytes, err = ioutil.ReadFile("testdata/ec.cert.pem")
+		bytes, err = os.ReadFile("testdata/ec.cert.pem")
 	case crypki.RSA:
 		fallthrough
 	default:
-		bytes, err = ioutil.ReadFile("testdata/rsa.cert.pem")
+		bytes, err = os.ReadFile("testdata/rsa.cert.pem")
 	}
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func TestSignX509RSACert(t *testing.T) {
 		BasicConstraintsValid: true,
 	}
 	cp := x509.NewCertPool()
-	caCertBytes, err := ioutil.ReadFile("testdata/rsa.cert.pem")
+	caCertBytes, err := os.ReadFile("testdata/rsa.cert.pem")
 	if err != nil {
 		t.Fatalf("unable to read CA cert: %v", err)
 	}
@@ -364,7 +364,7 @@ func TestSignX509ECCert(t *testing.T) {
 		BasicConstraintsValid: true,
 	}
 	cp := x509.NewCertPool()
-	caCertBytes, err := ioutil.ReadFile("testdata/ec.cert.pem")
+	caCertBytes, err := os.ReadFile("testdata/ec.cert.pem")
 	if err != nil {
 		t.Fatalf("unable to read CA cert: %v", err)
 	}
@@ -463,7 +463,7 @@ func TestSignBlob(t *testing.T) {
 	goodDigestSHA384 := sha512.Sum384(blob)
 	goodDigestSHA512 := sha512.Sum512(blob)
 
-	data, err := ioutil.ReadFile("testdata/rsa.key.pem")
+	data, err := os.ReadFile("testdata/rsa.key.pem")
 	if err != nil {
 		t.Fatalf("unable to read private key: %v", err)
 	}

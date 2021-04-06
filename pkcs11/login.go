@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	p11 "github.com/miekg/pkcs11"
 
@@ -97,7 +97,7 @@ func getLoginSessions(p11ctx PKCS11Ctx, keys []config.KeyConfig, opts ...loginOp
 
 // getUserPinCode reads the pin code from the path and stores the pin code into the secure buffer.
 func getUserPinCode(path string) (*secureBuffer, error) {
-	pin, err := ioutil.ReadFile(path)
+	pin, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.New("Failed to open pin file: " + err.Error())
 	}

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -64,7 +64,7 @@ func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
 		Addr: addr,
 		// to discard noisy messages like
 		// "http: TLS handshake error from 1.2.3.4:53651: EOF"
-		ErrorLog:     log.New(ioutil.Discard, "", 0),
+		ErrorLog:     log.New(io.Discard, "", 0),
 		Handler:      grpcHandlerFunc(ctx, grpcServer, mux),
 		IdleTimeout:  time.Duration(idleTimeout) * time.Second,
 		ReadTimeout:  time.Duration(readTimeout) * time.Second,
@@ -225,17 +225,17 @@ func Main(keyP crypki.KeyIDProcessor) {
 func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMode tls.ClientAuthType) (*tls.Config, error) {
 	cfg := &tls.Config{}
 	certPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(caCertPath)
+	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
 		return nil, err
 	}
 	certPool.AppendCertsFromPEM(caCert)
 
-	keypem, err := ioutil.ReadFile(keyPath)
+	keypem, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, err
 	}
-	certpem, err := ioutil.ReadFile(certPath)
+	certpem, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, err
 	}

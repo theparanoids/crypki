@@ -546,18 +546,17 @@ func TestIsValidCertRequest(t *testing.T) {
 		BasicConstraintsValid: true,
 	}
 	tests := map[string]struct {
-		pka  crypki.PublicKeyAlgorithm
 		sa   crypki.SignatureAlgorithm
 		want bool
 	}{
-		"happy path":               {pka: crypki.ECDSA, sa: crypki.ECDSAWithSHA256, want: true},
-		"rsa-public-key-algo":      {pka: crypki.RSA, sa: crypki.SHA256WithRSA, want: false},
-		"incorrect-signature-algo": {pka: crypki.ECDSA, sa: crypki.ECDSAWithSHA384, want: false},
+		"happy path":               {sa: crypki.ECDSAWithSHA256, want: true},
+		"rsa-public-key-algo":      {sa: crypki.SHA256WithRSA, want: false},
+		"incorrect-signature-algo": {sa: crypki.ECDSAWithSHA384, want: false},
 	}
 	for name, tt := range tests {
 		name, tt := name, tt
 		t.Run(name, func(t *testing.T) {
-			got := isValidCertRequest(certEC, tt.pka, tt.sa)
+			got := isValidCertRequest(certEC, tt.sa)
 			if got != tt.want {
 				t.Fatalf("%s: got %v want %v", name, got, tt.want)
 			}

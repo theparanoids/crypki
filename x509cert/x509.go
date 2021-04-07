@@ -18,7 +18,7 @@ import (
 )
 
 // GenCACert creates the CA certificate given signer.
-func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka crypki.PublicKeyAlgorithm) ([]byte, error) {
+func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka crypki.PublicKeyAlgorithm, sa crypki.SignatureAlgorithm) ([]byte, error) {
 	// Backdate start time by one hour as the current system clock may be ahead of other running systems.
 	start := uint64(time.Now().Unix())
 	end := start + config.ValidityPeriod
@@ -35,9 +35,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	template := &x509.Certificate{
 		Subject:               subj,
 		SerialNumber:          newSerial(),
-		PublicKeyAlgorithm:    x509.RSA,
+		PublicKeyAlgorithm:    GetPublicKeyAlgorithm(pka),
 		PublicKey:             signer.Public(),
-		SignatureAlgorithm:    getSignatureAlgorithm(pka),
+		SignatureAlgorithm:    GetSignatureAlgorithm(sa),
 		NotBefore:             time.Unix(int64(start), 0),
 		NotAfter:              time.Unix(int64(end), 0),
 		DNSNames:              []string{hostname},
@@ -59,13 +59,30 @@ func newSerial() *big.Int {
 	return serialNumber
 }
 
-func getSignatureAlgorithm(pka crypki.PublicKeyAlgorithm) x509.SignatureAlgorithm {
-	algo := x509.SHA256WithRSA // default
+// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to signature algorithm received as part of
+// CSR.
+func GetSignatureAlgorithm(sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm {
+	algo := x509.SHA256WithRSA
+	switch sa {
+	case crypki.SHA256WithRSA:
+		algo = x509.SHA256WithRSA
+	case crypki.ECDSAWithSHA256:
+		algo = x509.ECDSAWithSHA256
+	case crypki.ECDSAWithSHA384:
+		algo = x509.ECDSAWithSHA384
+	}
+	return algo
+}
+
+// GetPublicKeyAlgorithm returns the x509 Public algorithm corresponding to the public key algorithm received as part
+// of CSR
+func GetPublicKeyAlgorithm(pka crypki.PublicKeyAlgorithm) x509.PublicKeyAlgorithm {
+	algo := x509.RSA
 	switch pka {
 	case crypki.RSA:
-		algo = x509.SHA256WithRSA
+		algo = x509.RSA
 	case crypki.ECDSA:
-		algo = x509.ECDSAWithSHA256
+		algo = x509.ECDSA
 	}
 	return algo
 }

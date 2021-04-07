@@ -19,9 +19,9 @@ func TestParse(t *testing.T) {
 		TLSPort:           "4443",
 		SignersPerPool:    2,
 		Keys: []KeyConfig{
-			{"key1", 1, "/path/1", "foo", 2, 1, true, "/path/foo", "", "", "", "", "", "My CA", 0},
-			{"key2", 2, "/path/2", "bar", 2, 1, false, "", "", "", "", "", "", "", 0},
-			{"key3", 3, "/path/3", "baz", 2, 1, false, "/path/baz", "", "", "", "", "", "", 0},
+			{"key1", 1, "/path/1", "foo", 2, 2, 3, true, "/path/foo", "", "", "", "", "", "My CA", 0},
+			{"key2", 2, "/path/2", "bar", 2, 1, 1, false, "", "", "", "", "", "", "", 0},
+			{"key3", 3, "/path/3", "baz", 2, 1, 1, false, "/path/baz", "", "", "", "", "", "", 0},
 		},
 		KeyUsages: []KeyUsage{
 			{"/sig/x509-cert", []string{"key1", "key3"}, 3600},
@@ -93,6 +93,14 @@ func TestParse(t *testing.T) {
 		},
 		"bad-config-missing": {
 			filePath:    "testdata/nonexist.json",
+			expectError: true,
+		},
+		"bad-config-unknown-signature-algo": {
+			filePath:    "testdata/testconf-bad-unknown-signature-algo.json",
+			expectError: true,
+		},
+		"bad-config-endpoints": {
+			filePath:    "testdata/testconf-bad-endpoints.json",
 			expectError: true,
 		},
 	}

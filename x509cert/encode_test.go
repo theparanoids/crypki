@@ -105,7 +105,7 @@ func TestDecodeRequest(t *testing.T) {
 				Subject:               csr.Subject,
 				PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 				PublicKey:             csr.PublicKey,
-				SignatureAlgorithm:    x509.SHA256WithRSA,
+				SignatureAlgorithm:    csr.SignatureAlgorithm,
 				DNSNames:              csr.DNSNames,
 				IPAddresses:           csr.IPAddresses,
 				EmailAddresses:        csr.EmailAddresses,

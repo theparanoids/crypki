@@ -26,19 +26,33 @@ const (
 // PublicKeyAlgorithm is used to specify public key algorithm.
 type PublicKeyAlgorithm int
 
+// SignatureAlgorithm is used to specify signature key algorithm.
+type SignatureAlgorithm int
+
 // List of supported public key algorithms.
 const (
 	UnknownPublicKeyAlgorithm PublicKeyAlgorithm = iota
 	RSA
 	ECDSA
+)
 
+// List of supported signature hash algorithms.
+// The naming convention adheres to x509.SignatureAlgorithm.
+const (
+	UnknownSignatureAlgorithm SignatureAlgorithm = iota
+	SHA256WithRSA
+	ECDSAWithSHA256
+	ECDSAWithSHA384
+)
+
+const (
 	// Default values for CAconfig.
-	defaultCounty = "ZZ" // Unknown or unspecified country
-	defaultState = "StateName"
-	defaultCity = "CityName"
-	defaultCompany = "CompanyName"
-	defaultOrganization = "OrganizationUnitName"
-	defaultCommonName = "www.example.com"
+	defaultCounty         = "ZZ" // Unknown or unspecified country
+	defaultState          = "StateName"
+	defaultCity           = "CityName"
+	defaultCompany        = "CompanyName"
+	defaultOrganization   = "OrganizationUnitName"
+	defaultCommonName     = "www.example.com"
 	defaultValidityPeriod = uint64(730 * 24 * 3600) // 2 years
 
 )
@@ -75,6 +89,8 @@ type CAConfig struct {
 	// PKCS#11 device fields.
 	Identifier       string `json:"Identifier"`
 	KeyLabel         string `json:"KeyLabel"`
+	KeyType          int    `json:"KeyType"`
+	SignatureAlgo    int    `json:"SignatureAlgo"`
 	SlotNumber       int    `json:"SlotNumber"`
 	UserPinPath      string `json:"UserPinPath"`
 	PKCS11ModulePath string `json:"PKCS11ModulePath"`

@@ -23,6 +23,7 @@ const (
 	defaultTLSPort           = "4443"
 	defaultPoolSize          = 2
 	defaultKeyType           = crypki.RSA
+	defaultSignatureAlgo     = crypki.SHA256WithRSA
 
 	defaultShutdownOnSigningFailureConsecutiveCount    = 4
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
@@ -78,6 +79,8 @@ type KeyConfig struct {
 	SessionPoolSize int
 	// KeyType specifies the type of key, such as RSA or ECDSA.
 	KeyType crypki.PublicKeyAlgorithm
+	// SignatureAlgo specifies the type of signature hash function such as SHA256WithRSA or ECDSAWithSHA384.
+	SignatureAlgo crypki.SignatureAlgorithm
 
 	// Below are configs of the x509 CA cert for this key. Useful when this key will be used
 	// for signing x509 certificates.
@@ -164,6 +167,10 @@ func (c *Config) validate() error {
 		if key.KeyType < crypki.RSA || key.KeyType > crypki.ECDSA {
 			return fmt.Errorf("key %q: invalid Key type specified", key.Identifier)
 		}
+
+		if key.SignatureAlgo < crypki.SHA256WithRSA || key.SignatureAlgo > crypki.ECDSAWithSHA384 {
+			return fmt.Errorf("key %q: invalid signature hash algo specified", key.Identifier)
+		}
 	}
 
 	for _, ku := range c.KeyUsages {
@@ -214,6 +221,9 @@ func (c *Config) loadDefaults() {
 		}
 		if c.Keys[i].SessionPoolSize == 0 {
 			c.Keys[i].SessionPoolSize = defaultPoolSize
+		}
+		if c.Keys[i].SignatureAlgo == 0 {
+			c.Keys[i].SignatureAlgo = defaultSignatureAlgo
 		}
 	}
 

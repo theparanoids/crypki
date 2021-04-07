@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
-
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
@@ -29,7 +28,8 @@ func (b *badSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) 
 }
 
 type MockSignerPool struct {
-	signer crypto.Signer
+	signer  crypto.Signer
+	keyType crypki.PublicKeyAlgorithm
 }
 
 func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
@@ -45,8 +45,15 @@ func (c MockSignerPool) put(instance signerWithSignAlgorithm) {
 
 }
 
-func (c MockSignerPool) signAlgorithm() crypki.PublicKeyAlgorithm {
-	return crypki.RSA
+func (c MockSignerPool) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
+	return c.keyType
+}
+
+func (c MockSignerPool) signAlgorithm() crypki.SignatureAlgorithm {
+	if c.keyType == crypki.ECDSA {
+		return crypki.ECDSAWithSHA256
+	}
+	return crypki.SHA256WithRSA
 }
 
 func (c MockSignerPool) Public() crypto.PublicKey {
@@ -57,62 +64,84 @@ func (c MockSignerPool) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return c.signer.Sign(rand, digest, opts)
 }
 
-func newMockSignerPool(isBad bool) (sPool, error) {
+func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
 	if isBad {
-		return MockSignerPool{&badSigner{}}, nil
+		return MockSignerPool{&badSigner{}, keyType}, nil
 	}
-	data, err := ioutil.ReadFile("testdata/rsa.key.pem")
-	if err != nil {
-		return nil, fmt.Errorf("unable to read private key: %v", err)
+	switch keyType {
+	case crypki.ECDSA:
+		data, err := ioutil.ReadFile("testdata/ec.key.pem")
+		if err != nil {
+			return nil, fmt.Errorf("unable to read private key: %v", err)
+		}
+		decoded, _ := pem.Decode(data)
+		key, err := x509.ParseECPrivateKey(decoded.Bytes)
+		return MockSignerPool{key, keyType}, err
+	case crypki.RSA:
+		fallthrough
+	default:
+		data, err := ioutil.ReadFile("testdata/rsa.key.pem")
+		if err != nil {
+			return nil, fmt.Errorf("unable to read private key: %v", err)
+		}
+		decoded, _ := pem.Decode(data)
+		key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
+		return MockSignerPool{key, keyType}, err
 	}
-	decoded, _ := pem.Decode(data)
-	key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse private key: %v", err)
-	}
-	return MockSignerPool{key}, nil
 }
 
 func TestNewSignerPool(t *testing.T) {
 	t.Parallel()
 
 	table := map[string]struct {
-		nSigners    int
-		pin         string
-		slot        uint
-		token       string
-		objects     []p11.ObjectHandle
-		session     p11.SessionHandle
-		keyType     crypki.PublicKeyAlgorithm
-		expectError bool
-		errMsg      map[string]error
+		nSigners      int
+		pin           string
+		slot          uint
+		token         string
+		objects       []p11.ObjectHandle
+		session       p11.SessionHandle
+		keyType       crypki.PublicKeyAlgorithm
+		signatureAlgo crypki.SignatureAlgorithm
+		expectError   bool
+		errMsg        map[string]error
 	}{
 		"good": {
-			nSigners:    10,
-			keyType:     crypki.UnknownPublicKeyAlgorithm, // should default to RSA
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: false,
+			nSigners:      10,
+			keyType:       crypki.UnknownPublicKeyAlgorithm, // should default to RSA
+			signatureAlgo: crypki.UnknownSignatureAlgorithm, // should default to SHA256WithRSA
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   false,
+		},
+		"good_ec": {
+			nSigners:      10,
+			keyType:       crypki.ECDSA,
+			signatureAlgo: crypki.ECDSAWithSHA384,
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   false,
 		},
 		"good_zero_signers": {
-			nSigners:    0,
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: false,
+			nSigners:      0,
+			keyType:       crypki.RSA,
+			signatureAlgo: crypki.SHA256WithRSA,
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   false,
 		},
 		"bad_OpenSession": {
-			nSigners:    10,
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: true,
+			nSigners:      10,
+			keyType:       crypki.RSA,
+			signatureAlgo: crypki.SHA256WithRSA,
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   true,
 			errMsg: map[string]error{
 				"OpenSession": errors.New("failed to open a new Session"),
 			},
 		},
 		"bad_FindObjectsInit": {
-			nSigners:    10,
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: true,
+			nSigners:      10,
+			keyType:       crypki.RSA,
+			signatureAlgo: crypki.SHA256WithRSA,
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   true,
 			errMsg: map[string]error{
 				"FindObjectsInit": errors.New("failed to FindObjectsInit"),
 			},
@@ -126,16 +155,18 @@ func TestNewSignerPool(t *testing.T) {
 			},
 		},
 		"bad_no_objects": {
-			nSigners:    10,
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{},
-			expectError: true,
+			nSigners:      10,
+			keyType:       crypki.RSA,
+			signatureAlgo: crypki.SHA256WithRSA,
+			objects:       []p11.ObjectHandle{},
+			expectError:   true,
 		},
 		"bad_FindObjectsFinal": {
-			nSigners:    10,
-			keyType:     crypki.RSA,
-			objects:     []p11.ObjectHandle{1, 2},
-			expectError: true,
+			nSigners:      10,
+			keyType:       crypki.RSA,
+			signatureAlgo: crypki.SHA256WithRSA,
+			objects:       []p11.ObjectHandle{1, 2},
+			expectError:   true,
 			errMsg: map[string]error{
 				"FindObjectsFinal": errors.New("failed to FindObjectsFinal"),
 			},
@@ -180,7 +211,7 @@ func TestNewSignerPool(t *testing.T) {
 				Return(tt.errMsg["FindObjectsFinal"]).
 				AnyTimes()
 
-			ret, err := newSignerPool(mockCtx, tt.nSigners, tt.slot, tt.token, tt.keyType)
+			ret, err := newSignerPool(mockCtx, tt.nSigners, tt.slot, tt.token, tt.keyType, tt.signatureAlgo)
 			if tt.expectError {
 				if err == nil {
 					t.Error("expected error, but got nil")

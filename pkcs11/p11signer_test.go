@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	p11 "github.com/miekg/pkcs11"
-
+	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
 
@@ -101,7 +101,7 @@ func TestSignRSA(t *testing.T) {
 			defer mockctrl.Finish()
 
 			mockCtx := mock_pkcs11.NewMockPKCS11Ctx(mockctrl)
-			signer := &p11Signer{mockCtx, 0, 0, 0, 1}
+			signer := &p11Signer{mockCtx, 0, 0, 0, crypki.RSA, crypki.SHA256WithRSA}
 
 			mockCtx.EXPECT().
 				SignInit(gomock.Any(), []*p11.Mechanism{p11.NewMechanism(p11.CKM_RSA_PKCS, nil)}, gomock.Any()).
@@ -229,7 +229,7 @@ func TestSignECDSA(t *testing.T) {
 			defer mockctrl.Finish()
 
 			mockCtx := mock_pkcs11.NewMockPKCS11Ctx(mockctrl)
-			signer := &p11Signer{mockCtx, 0, 0, 0, 2}
+			signer := &p11Signer{mockCtx, 0, 0, 0, crypki.ECDSA, crypki.ECDSAWithSHA256}
 
 			mockCtx.EXPECT().
 				SignInit(gomock.Any(), []*p11.Mechanism{p11.NewMechanism(p11.CKM_ECDSA, nil)}, gomock.Any()).

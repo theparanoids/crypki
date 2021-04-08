@@ -169,8 +169,8 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 	defer pool.put(signer)
 	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
 	if val := isValidCertRequest(cert, signer.signAlgorithm()); !val {
-		log.Printf("signX509cert: CN '%s' unsupported signature algo %d, supported signature algo %d",
-			s.x509CACerts[keyIdentifier].Subject.CommonName, cert.SignatureAlgorithm, signer.signAlgorithm())
+		log.Printf("signX509cert: cn=%q unsupported-sa=%q supported-sa=%d",
+			s.x509CACerts[keyIdentifier].Subject.CommonName, cert.SignatureAlgorithm.String(), signer.signAlgorithm())
 		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
 		cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.signAlgorithm())
 	}

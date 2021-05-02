@@ -23,8 +23,10 @@ import (
 
 // signer implements crypki.CertSign interface.
 type signer struct {
-	x509CACerts map[string]*x509.Certificate
-	sPool       map[string]sPool
+	x509CACerts           map[string]*x509.Certificate
+	ocspServer            map[string][]string
+	crlDistributionPoints map[string][]string
+	sPool                 map[string]sPool
 
 	// login keeps all login sessions using the slot number as key.
 	//
@@ -50,9 +52,11 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 	}
 
 	s := &signer{
-		x509CACerts: make(map[string]*x509.Certificate),
-		sPool:       make(map[string]sPool),
-		login:       login,
+		x509CACerts:           make(map[string]*x509.Certificate),
+		ocspServer:            make(map[string][]string),
+		crlDistributionPoints: make(map[string][]string),
+		sPool:                 make(map[string]sPool),
+		login:                 login,
 	}
 	for _, key := range keys {
 		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType, key.SignatureAlgo)
@@ -69,6 +73,8 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 			s.x509CACerts[key.Identifier] = cert
 			log.Printf("x509 CA cert loaded for key %q", key.Identifier)
 		}
+		s.ocspServer[key.Identifier] = key.OCSPServer
+		s.crlDistributionPoints[key.Identifier] = key.CRLDistributionPoints
 	}
 	return s, nil
 }
@@ -174,6 +180,10 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
 		cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.signAlgorithm())
 	}
+
+	cert.OCSPServer = s.ocspServer[keyIdentifier]
+	cert.CRLDistributionPoints = s.crlDistributionPoints[keyIdentifier]
+
 	// measure time taken by hsm
 	hStart := time.Now()
 	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)

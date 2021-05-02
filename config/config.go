@@ -82,6 +82,14 @@ type KeyConfig struct {
 	// SignatureAlgo specifies the type of signature hash function such as SHA256WithRSA or ECDSAWithSHA384.
 	SignatureAlgo crypki.SignatureAlgorithm
 
+	// Below are configs of x509 extensions for this key. Useful when this key will be used
+	// for signing x509 certificates.
+
+	// OCSPServer is the locations of OCSP responder.
+	OCSPServer []string
+	// CRLDistributionPoints is the URIs of CRL distribution endpoint.
+	CRLDistributionPoints []string
+
 	// Below are configs of the x509 CA cert for this key. Useful when this key will be used
 	// for signing x509 certificates.
 

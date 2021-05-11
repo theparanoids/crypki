@@ -85,9 +85,9 @@ type KeyConfig struct {
 	// Below are configs of x509 extensions for this key. Useful when this key will be used
 	// for signing x509 certificates.
 
-	// OCSPServer is the locations of OCSP responder.
-	OCSPServer []string
-	// CRLDistributionPoints is the URIs of CRL distribution endpoint.
+	// OCSPServers are the locations of OCSP responders.
+	OCSPServers []string
+	// CRLDistributionPoints are the URIs of CRL distribution endpoints.
 	CRLDistributionPoints []string
 
 	// Below are configs of the x509 CA cert for this key. Useful when this key will be used

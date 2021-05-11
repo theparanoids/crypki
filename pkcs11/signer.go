@@ -24,7 +24,7 @@ import (
 // signer implements crypki.CertSign interface.
 type signer struct {
 	x509CACerts           map[string]*x509.Certificate
-	ocspServer            map[string][]string
+	ocspServers           map[string][]string
 	crlDistributionPoints map[string][]string
 	sPool                 map[string]sPool
 
@@ -53,7 +53,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 
 	s := &signer{
 		x509CACerts:           make(map[string]*x509.Certificate),
-		ocspServer:            make(map[string][]string),
+		ocspServers:           make(map[string][]string),
 		crlDistributionPoints: make(map[string][]string),
 		sPool:                 make(map[string]sPool),
 		login:                 login,
@@ -73,7 +73,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 			s.x509CACerts[key.Identifier] = cert
 			log.Printf("x509 CA cert loaded for key %q", key.Identifier)
 		}
-		s.ocspServer[key.Identifier] = key.OCSPServer
+		s.ocspServers[key.Identifier] = key.OCSPServers
 		s.crlDistributionPoints[key.Identifier] = key.CRLDistributionPoints
 	}
 	return s, nil
@@ -181,7 +181,7 @@ func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyId
 		cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.signAlgorithm())
 	}
 
-	cert.OCSPServer = s.ocspServer[keyIdentifier]
+	cert.OCSPServer = s.ocspServers[keyIdentifier]
 	cert.CRLDistributionPoints = s.crlDistributionPoints[keyIdentifier]
 
 	// measure time taken by hsm

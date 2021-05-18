@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.5.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.4.0
 	github.com/miekg/pkcs11 v1.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad

@@ -1,0 +1,10 @@
+# Copyright 2021, Verizon Media
+# Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "15:00"
+  open-pull-requests-limit: 10

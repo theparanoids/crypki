@@ -5,122 +5,50 @@
 package mock_pkcs11
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	pkcs11 "github.com/miekg/pkcs11"
-	reflect "reflect"
 )
 
-// MockPKCS11Ctx is a mock of PKCS11Ctx interface
+// MockPKCS11Ctx is a mock of PKCS11Ctx interface.
 type MockPKCS11Ctx struct {
 	ctrl     *gomock.Controller
 	recorder *MockPKCS11CtxMockRecorder
 }
 
-// MockPKCS11CtxMockRecorder is the mock recorder for MockPKCS11Ctx
+// MockPKCS11CtxMockRecorder is the mock recorder for MockPKCS11Ctx.
 type MockPKCS11CtxMockRecorder struct {
 	mock *MockPKCS11Ctx
 }
 
-// NewMockPKCS11Ctx creates a new mock instance
+// NewMockPKCS11Ctx creates a new mock instance.
 func NewMockPKCS11Ctx(ctrl *gomock.Controller) *MockPKCS11Ctx {
 	mock := &MockPKCS11Ctx{ctrl: ctrl}
 	mock.recorder = &MockPKCS11CtxMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPKCS11Ctx) EXPECT() *MockPKCS11CtxMockRecorder {
 	return m.recorder
 }
 
-// GetAttributeValue mocks base method
-func (m *MockPKCS11Ctx) GetAttributeValue(arg0 pkcs11.SessionHandle, arg1 pkcs11.ObjectHandle, arg2 []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+// CloseSession mocks base method.
+func (m *MockPKCS11Ctx) CloseSession(sh pkcs11.SessionHandle) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAttributeValue", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]*pkcs11.Attribute)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAttributeValue indicates an expected call of GetAttributeValue
-func (mr *MockPKCS11CtxMockRecorder) GetAttributeValue(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeValue", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetAttributeValue), arg0, arg1, arg2)
-}
-
-// SignInit mocks base method
-func (m *MockPKCS11Ctx) SignInit(arg0 pkcs11.SessionHandle, arg1 []*pkcs11.Mechanism, arg2 pkcs11.ObjectHandle) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SignInit", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CloseSession", sh)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SignInit indicates an expected call of SignInit
-func (mr *MockPKCS11CtxMockRecorder) SignInit(arg0, arg1, arg2 interface{}) *gomock.Call {
+// CloseSession indicates an expected call of CloseSession.
+func (mr *MockPKCS11CtxMockRecorder) CloseSession(sh interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignInit", reflect.TypeOf((*MockPKCS11Ctx)(nil).SignInit), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSession", reflect.TypeOf((*MockPKCS11Ctx)(nil).CloseSession), sh)
 }
 
-// Sign mocks base method
-func (m *MockPKCS11Ctx) Sign(arg0 pkcs11.SessionHandle, arg1 []byte) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Sign", arg0, arg1)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Sign indicates an expected call of Sign
-func (mr *MockPKCS11CtxMockRecorder) Sign(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Sign", reflect.TypeOf((*MockPKCS11Ctx)(nil).Sign), arg0, arg1)
-}
-
-// Login mocks base method
-func (m *MockPKCS11Ctx) Login(arg0 pkcs11.SessionHandle, arg1 uint, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Login indicates an expected call of Login
-func (mr *MockPKCS11CtxMockRecorder) Login(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockPKCS11Ctx)(nil).Login), arg0, arg1, arg2)
-}
-
-// GenerateRandom mocks base method
-func (m *MockPKCS11Ctx) GenerateRandom(arg0 pkcs11.SessionHandle, arg1 int) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateRandom", arg0, arg1)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenerateRandom indicates an expected call of GenerateRandom
-func (mr *MockPKCS11CtxMockRecorder) GenerateRandom(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateRandom", reflect.TypeOf((*MockPKCS11Ctx)(nil).GenerateRandom), arg0, arg1)
-}
-
-// FindObjectsInit mocks base method
-func (m *MockPKCS11Ctx) FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindObjectsInit", sh, temp)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FindObjectsInit indicates an expected call of FindObjectsInit
-func (mr *MockPKCS11CtxMockRecorder) FindObjectsInit(sh, temp interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindObjectsInit", reflect.TypeOf((*MockPKCS11Ctx)(nil).FindObjectsInit), sh, temp)
-}
-
-// FindObjects mocks base method
+// FindObjects mocks base method.
 func (m *MockPKCS11Ctx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindObjects", sh, max)
@@ -130,13 +58,13 @@ func (m *MockPKCS11Ctx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.
 	return ret0, ret1, ret2
 }
 
-// FindObjects indicates an expected call of FindObjects
+// FindObjects indicates an expected call of FindObjects.
 func (mr *MockPKCS11CtxMockRecorder) FindObjects(sh, max interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindObjects", reflect.TypeOf((*MockPKCS11Ctx)(nil).FindObjects), sh, max)
 }
 
-// FindObjectsFinal mocks base method
+// FindObjectsFinal mocks base method.
 func (m *MockPKCS11Ctx) FindObjectsFinal(sh pkcs11.SessionHandle) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindObjectsFinal", sh)
@@ -144,57 +72,57 @@ func (m *MockPKCS11Ctx) FindObjectsFinal(sh pkcs11.SessionHandle) error {
 	return ret0
 }
 
-// FindObjectsFinal indicates an expected call of FindObjectsFinal
+// FindObjectsFinal indicates an expected call of FindObjectsFinal.
 func (mr *MockPKCS11CtxMockRecorder) FindObjectsFinal(sh interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindObjectsFinal", reflect.TypeOf((*MockPKCS11Ctx)(nil).FindObjectsFinal), sh)
 }
 
-// CloseSession mocks base method
-func (m *MockPKCS11Ctx) CloseSession(sh pkcs11.SessionHandle) error {
+// FindObjectsInit mocks base method.
+func (m *MockPKCS11Ctx) FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloseSession", sh)
+	ret := m.ctrl.Call(m, "FindObjectsInit", sh, temp)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CloseSession indicates an expected call of CloseSession
-func (mr *MockPKCS11CtxMockRecorder) CloseSession(sh interface{}) *gomock.Call {
+// FindObjectsInit indicates an expected call of FindObjectsInit.
+func (mr *MockPKCS11CtxMockRecorder) FindObjectsInit(sh, temp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSession", reflect.TypeOf((*MockPKCS11Ctx)(nil).CloseSession), sh)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindObjectsInit", reflect.TypeOf((*MockPKCS11Ctx)(nil).FindObjectsInit), sh, temp)
 }
 
-// OpenSession mocks base method
-func (m *MockPKCS11Ctx) OpenSession(slotID, flags uint) (pkcs11.SessionHandle, error) {
+// GenerateRandom mocks base method.
+func (m *MockPKCS11Ctx) GenerateRandom(arg0 pkcs11.SessionHandle, arg1 int) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OpenSession", slotID, flags)
-	ret0, _ := ret[0].(pkcs11.SessionHandle)
+	ret := m.ctrl.Call(m, "GenerateRandom", arg0, arg1)
+	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// OpenSession indicates an expected call of OpenSession
-func (mr *MockPKCS11CtxMockRecorder) OpenSession(slotID, flags interface{}) *gomock.Call {
+// GenerateRandom indicates an expected call of GenerateRandom.
+func (mr *MockPKCS11CtxMockRecorder) GenerateRandom(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSession", reflect.TypeOf((*MockPKCS11Ctx)(nil).OpenSession), slotID, flags)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateRandom", reflect.TypeOf((*MockPKCS11Ctx)(nil).GenerateRandom), arg0, arg1)
 }
 
-// GetSlotList mocks base method
-func (m *MockPKCS11Ctx) GetSlotList(tokenPresent bool) ([]uint, error) {
+// GetAttributeValue mocks base method.
+func (m *MockPKCS11Ctx) GetAttributeValue(arg0 pkcs11.SessionHandle, arg1 pkcs11.ObjectHandle, arg2 []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSlotList", tokenPresent)
-	ret0, _ := ret[0].([]uint)
+	ret := m.ctrl.Call(m, "GetAttributeValue", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*pkcs11.Attribute)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSlotList indicates an expected call of GetSlotList
-func (mr *MockPKCS11CtxMockRecorder) GetSlotList(tokenPresent interface{}) *gomock.Call {
+// GetAttributeValue indicates an expected call of GetAttributeValue.
+func (mr *MockPKCS11CtxMockRecorder) GetAttributeValue(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSlotList", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetSlotList), tokenPresent)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeValue", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetAttributeValue), arg0, arg1, arg2)
 }
 
-// GetSlotInfo mocks base method
+// GetSlotInfo mocks base method.
 func (m *MockPKCS11Ctx) GetSlotInfo(slotID uint) (pkcs11.SlotInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSlotInfo", slotID)
@@ -203,13 +131,28 @@ func (m *MockPKCS11Ctx) GetSlotInfo(slotID uint) (pkcs11.SlotInfo, error) {
 	return ret0, ret1
 }
 
-// GetSlotInfo indicates an expected call of GetSlotInfo
+// GetSlotInfo indicates an expected call of GetSlotInfo.
 func (mr *MockPKCS11CtxMockRecorder) GetSlotInfo(slotID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSlotInfo", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetSlotInfo), slotID)
 }
 
-// GetTokenInfo mocks base method
+// GetSlotList mocks base method.
+func (m *MockPKCS11Ctx) GetSlotList(tokenPresent bool) ([]uint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSlotList", tokenPresent)
+	ret0, _ := ret[0].([]uint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSlotList indicates an expected call of GetSlotList.
+func (mr *MockPKCS11CtxMockRecorder) GetSlotList(tokenPresent interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSlotList", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetSlotList), tokenPresent)
+}
+
+// GetTokenInfo mocks base method.
 func (m *MockPKCS11Ctx) GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTokenInfo", slotID)
@@ -218,8 +161,66 @@ func (m *MockPKCS11Ctx) GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error) {
 	return ret0, ret1
 }
 
-// GetTokenInfo indicates an expected call of GetTokenInfo
+// GetTokenInfo indicates an expected call of GetTokenInfo.
 func (mr *MockPKCS11CtxMockRecorder) GetTokenInfo(slotID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenInfo", reflect.TypeOf((*MockPKCS11Ctx)(nil).GetTokenInfo), slotID)
+}
+
+// Login mocks base method.
+func (m *MockPKCS11Ctx) Login(arg0 pkcs11.SessionHandle, arg1 uint, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Login", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Login indicates an expected call of Login.
+func (mr *MockPKCS11CtxMockRecorder) Login(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockPKCS11Ctx)(nil).Login), arg0, arg1, arg2)
+}
+
+// OpenSession mocks base method.
+func (m *MockPKCS11Ctx) OpenSession(slotID, flags uint) (pkcs11.SessionHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OpenSession", slotID, flags)
+	ret0, _ := ret[0].(pkcs11.SessionHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OpenSession indicates an expected call of OpenSession.
+func (mr *MockPKCS11CtxMockRecorder) OpenSession(slotID, flags interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSession", reflect.TypeOf((*MockPKCS11Ctx)(nil).OpenSession), slotID, flags)
+}
+
+// Sign mocks base method.
+func (m *MockPKCS11Ctx) Sign(arg0 pkcs11.SessionHandle, arg1 []byte) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Sign", arg0, arg1)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Sign indicates an expected call of Sign.
+func (mr *MockPKCS11CtxMockRecorder) Sign(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Sign", reflect.TypeOf((*MockPKCS11Ctx)(nil).Sign), arg0, arg1)
+}
+
+// SignInit mocks base method.
+func (m *MockPKCS11Ctx) SignInit(arg0 pkcs11.SessionHandle, arg1 []*pkcs11.Mechanism, arg2 pkcs11.ObjectHandle) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SignInit", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SignInit indicates an expected call of SignInit.
+func (mr *MockPKCS11CtxMockRecorder) SignInit(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignInit", reflect.TypeOf((*MockPKCS11Ctx)(nil).SignInit), arg0, arg1, arg2)
 }

@@ -6,217 +6,38 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	proto "github.com/theparanoids/crypki/proto"
 	grpc "google.golang.org/grpc"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	reflect "reflect"
 )
 
-// MockSigningClient is a mock of SigningClient interface
+// MockSigningClient is a mock of SigningClient interface.
 type MockSigningClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockSigningClientMockRecorder
 }
 
-// MockSigningClientMockRecorder is the mock recorder for MockSigningClient
+// MockSigningClientMockRecorder is the mock recorder for MockSigningClient.
 type MockSigningClientMockRecorder struct {
 	mock *MockSigningClient
 }
 
-// NewMockSigningClient creates a new mock instance
+// NewMockSigningClient creates a new mock instance.
 func NewMockSigningClient(ctrl *gomock.Controller) *MockSigningClient {
 	mock := &MockSigningClient{ctrl: ctrl}
 	mock.recorder = &MockSigningClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSigningClient) EXPECT() *MockSigningClientMockRecorder {
 	return m.recorder
 }
 
-// GetX509CertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetX509CertificateAvailableSigningKeys", varargs...)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetX509CertificateAvailableSigningKeys indicates an expected call of GetX509CertificateAvailableSigningKeys
-func (mr *MockSigningClientMockRecorder) GetX509CertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetX509CertificateAvailableSigningKeys), varargs...)
-}
-
-// GetX509CACertificate mocks base method
-func (m *MockSigningClient) GetX509CACertificate(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.X509Certificate, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetX509CACertificate", varargs...)
-	ret0, _ := ret[0].(*proto.X509Certificate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetX509CACertificate indicates an expected call of GetX509CACertificate
-func (mr *MockSigningClientMockRecorder) GetX509CACertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CACertificate", reflect.TypeOf((*MockSigningClient)(nil).GetX509CACertificate), varargs...)
-}
-
-// PostX509Certificate mocks base method
-func (m *MockSigningClient) PostX509Certificate(ctx context.Context, in *proto.X509CertificateSigningRequest, opts ...grpc.CallOption) (*proto.X509Certificate, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "PostX509Certificate", varargs...)
-	ret0, _ := ret[0].(*proto.X509Certificate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostX509Certificate indicates an expected call of PostX509Certificate
-func (mr *MockSigningClientMockRecorder) PostX509Certificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostX509Certificate", reflect.TypeOf((*MockSigningClient)(nil).PostX509Certificate), varargs...)
-}
-
-// GetUserSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetUserSSHCertificateAvailableSigningKeys", varargs...)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserSSHCertificateAvailableSigningKeys indicates an expected call of GetUserSSHCertificateAvailableSigningKeys
-func (mr *MockSigningClientMockRecorder) GetUserSSHCertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetUserSSHCertificateAvailableSigningKeys), varargs...)
-}
-
-// GetUserSSHCertificateSigningKey mocks base method
-func (m *MockSigningClient) GetUserSSHCertificateSigningKey(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetUserSSHCertificateSigningKey", varargs...)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserSSHCertificateSigningKey indicates an expected call of GetUserSSHCertificateSigningKey
-func (mr *MockSigningClientMockRecorder) GetUserSSHCertificateSigningKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateSigningKey", reflect.TypeOf((*MockSigningClient)(nil).GetUserSSHCertificateSigningKey), varargs...)
-}
-
-// PostUserSSHCertificate mocks base method
-func (m *MockSigningClient) PostUserSSHCertificate(ctx context.Context, in *proto.SSHCertificateSigningRequest, opts ...grpc.CallOption) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "PostUserSSHCertificate", varargs...)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostUserSSHCertificate indicates an expected call of PostUserSSHCertificate
-func (mr *MockSigningClientMockRecorder) PostUserSSHCertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUserSSHCertificate", reflect.TypeOf((*MockSigningClient)(nil).PostUserSSHCertificate), varargs...)
-}
-
-// GetHostSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetHostSSHCertificateAvailableSigningKeys", varargs...)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostSSHCertificateAvailableSigningKeys indicates an expected call of GetHostSSHCertificateAvailableSigningKeys
-func (mr *MockSigningClientMockRecorder) GetHostSSHCertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetHostSSHCertificateAvailableSigningKeys), varargs...)
-}
-
-// GetHostSSHCertificateSigningKey mocks base method
-func (m *MockSigningClient) GetHostSSHCertificateSigningKey(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetHostSSHCertificateSigningKey", varargs...)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostSSHCertificateSigningKey indicates an expected call of GetHostSSHCertificateSigningKey
-func (mr *MockSigningClientMockRecorder) GetHostSSHCertificateSigningKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateSigningKey", reflect.TypeOf((*MockSigningClient)(nil).GetHostSSHCertificateSigningKey), varargs...)
-}
-
-// PostHostSSHCertificate mocks base method
-func (m *MockSigningClient) PostHostSSHCertificate(ctx context.Context, in *proto.SSHCertificateSigningRequest, opts ...grpc.CallOption) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "PostHostSSHCertificate", varargs...)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostHostSSHCertificate indicates an expected call of PostHostSSHCertificate
-func (mr *MockSigningClientMockRecorder) PostHostSSHCertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostSSHCertificate", reflect.TypeOf((*MockSigningClient)(nil).PostHostSSHCertificate), varargs...)
-}
-
-// GetBlobAvailableSigningKeys mocks base method
+// GetBlobAvailableSigningKeys mocks base method.
 func (m *MockSigningClient) GetBlobAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -229,14 +50,14 @@ func (m *MockSigningClient) GetBlobAvailableSigningKeys(ctx context.Context, in 
 	return ret0, ret1
 }
 
-// GetBlobAvailableSigningKeys indicates an expected call of GetBlobAvailableSigningKeys
+// GetBlobAvailableSigningKeys indicates an expected call of GetBlobAvailableSigningKeys.
 func (mr *MockSigningClientMockRecorder) GetBlobAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlobAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetBlobAvailableSigningKeys), varargs...)
 }
 
-// GetBlobSigningKey mocks base method
+// GetBlobSigningKey mocks base method.
 func (m *MockSigningClient) GetBlobSigningKey(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.PublicKey, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -249,14 +70,154 @@ func (m *MockSigningClient) GetBlobSigningKey(ctx context.Context, in *proto.Key
 	return ret0, ret1
 }
 
-// GetBlobSigningKey indicates an expected call of GetBlobSigningKey
+// GetBlobSigningKey indicates an expected call of GetBlobSigningKey.
 func (mr *MockSigningClientMockRecorder) GetBlobSigningKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlobSigningKey", reflect.TypeOf((*MockSigningClient)(nil).GetBlobSigningKey), varargs...)
 }
 
-// PostSignBlob mocks base method
+// GetHostSSHCertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningClient) GetHostSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetHostSSHCertificateAvailableSigningKeys", varargs...)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostSSHCertificateAvailableSigningKeys indicates an expected call of GetHostSSHCertificateAvailableSigningKeys.
+func (mr *MockSigningClientMockRecorder) GetHostSSHCertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetHostSSHCertificateAvailableSigningKeys), varargs...)
+}
+
+// GetHostSSHCertificateSigningKey mocks base method.
+func (m *MockSigningClient) GetHostSSHCertificateSigningKey(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetHostSSHCertificateSigningKey", varargs...)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostSSHCertificateSigningKey indicates an expected call of GetHostSSHCertificateSigningKey.
+func (mr *MockSigningClientMockRecorder) GetHostSSHCertificateSigningKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateSigningKey", reflect.TypeOf((*MockSigningClient)(nil).GetHostSSHCertificateSigningKey), varargs...)
+}
+
+// GetUserSSHCertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningClient) GetUserSSHCertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserSSHCertificateAvailableSigningKeys", varargs...)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSSHCertificateAvailableSigningKeys indicates an expected call of GetUserSSHCertificateAvailableSigningKeys.
+func (mr *MockSigningClientMockRecorder) GetUserSSHCertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetUserSSHCertificateAvailableSigningKeys), varargs...)
+}
+
+// GetUserSSHCertificateSigningKey mocks base method.
+func (m *MockSigningClient) GetUserSSHCertificateSigningKey(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserSSHCertificateSigningKey", varargs...)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSSHCertificateSigningKey indicates an expected call of GetUserSSHCertificateSigningKey.
+func (mr *MockSigningClientMockRecorder) GetUserSSHCertificateSigningKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateSigningKey", reflect.TypeOf((*MockSigningClient)(nil).GetUserSSHCertificateSigningKey), varargs...)
+}
+
+// GetX509CACertificate mocks base method.
+func (m *MockSigningClient) GetX509CACertificate(ctx context.Context, in *proto.KeyMeta, opts ...grpc.CallOption) (*proto.X509Certificate, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetX509CACertificate", varargs...)
+	ret0, _ := ret[0].(*proto.X509Certificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetX509CACertificate indicates an expected call of GetX509CACertificate.
+func (mr *MockSigningClientMockRecorder) GetX509CACertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CACertificate", reflect.TypeOf((*MockSigningClient)(nil).GetX509CACertificate), varargs...)
+}
+
+// GetX509CertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningClient) GetX509CertificateAvailableSigningKeys(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetX509CertificateAvailableSigningKeys", varargs...)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetX509CertificateAvailableSigningKeys indicates an expected call of GetX509CertificateAvailableSigningKeys.
+func (mr *MockSigningClientMockRecorder) GetX509CertificateAvailableSigningKeys(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningClient)(nil).GetX509CertificateAvailableSigningKeys), varargs...)
+}
+
+// PostHostSSHCertificate mocks base method.
+func (m *MockSigningClient) PostHostSSHCertificate(ctx context.Context, in *proto.SSHCertificateSigningRequest, opts ...grpc.CallOption) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PostHostSSHCertificate", varargs...)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostHostSSHCertificate indicates an expected call of PostHostSSHCertificate.
+func (mr *MockSigningClientMockRecorder) PostHostSSHCertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostSSHCertificate", reflect.TypeOf((*MockSigningClient)(nil).PostHostSSHCertificate), varargs...)
+}
+
+// PostSignBlob mocks base method.
 func (m *MockSigningClient) PostSignBlob(ctx context.Context, in *proto.BlobSigningRequest, opts ...grpc.CallOption) (*proto.Signature, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -269,172 +230,77 @@ func (m *MockSigningClient) PostSignBlob(ctx context.Context, in *proto.BlobSign
 	return ret0, ret1
 }
 
-// PostSignBlob indicates an expected call of PostSignBlob
+// PostSignBlob indicates an expected call of PostSignBlob.
 func (mr *MockSigningClientMockRecorder) PostSignBlob(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostSignBlob", reflect.TypeOf((*MockSigningClient)(nil).PostSignBlob), varargs...)
 }
 
-// MockSigningServer is a mock of SigningServer interface
+// PostUserSSHCertificate mocks base method.
+func (m *MockSigningClient) PostUserSSHCertificate(ctx context.Context, in *proto.SSHCertificateSigningRequest, opts ...grpc.CallOption) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PostUserSSHCertificate", varargs...)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostUserSSHCertificate indicates an expected call of PostUserSSHCertificate.
+func (mr *MockSigningClientMockRecorder) PostUserSSHCertificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUserSSHCertificate", reflect.TypeOf((*MockSigningClient)(nil).PostUserSSHCertificate), varargs...)
+}
+
+// PostX509Certificate mocks base method.
+func (m *MockSigningClient) PostX509Certificate(ctx context.Context, in *proto.X509CertificateSigningRequest, opts ...grpc.CallOption) (*proto.X509Certificate, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PostX509Certificate", varargs...)
+	ret0, _ := ret[0].(*proto.X509Certificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostX509Certificate indicates an expected call of PostX509Certificate.
+func (mr *MockSigningClientMockRecorder) PostX509Certificate(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostX509Certificate", reflect.TypeOf((*MockSigningClient)(nil).PostX509Certificate), varargs...)
+}
+
+// MockSigningServer is a mock of SigningServer interface.
 type MockSigningServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockSigningServerMockRecorder
 }
 
-// MockSigningServerMockRecorder is the mock recorder for MockSigningServer
+// MockSigningServerMockRecorder is the mock recorder for MockSigningServer.
 type MockSigningServerMockRecorder struct {
 	mock *MockSigningServer
 }
 
-// NewMockSigningServer creates a new mock instance
+// NewMockSigningServer creates a new mock instance.
 func NewMockSigningServer(ctrl *gomock.Controller) *MockSigningServer {
 	mock := &MockSigningServer{ctrl: ctrl}
 	mock.recorder = &MockSigningServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSigningServer) EXPECT() *MockSigningServerMockRecorder {
 	return m.recorder
 }
 
-// GetX509CertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetX509CertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetX509CertificateAvailableSigningKeys", arg0, arg1)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetX509CertificateAvailableSigningKeys indicates an expected call of GetX509CertificateAvailableSigningKeys
-func (mr *MockSigningServerMockRecorder) GetX509CertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetX509CertificateAvailableSigningKeys), arg0, arg1)
-}
-
-// GetX509CACertificate mocks base method
-func (m *MockSigningServer) GetX509CACertificate(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.X509Certificate, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetX509CACertificate", arg0, arg1)
-	ret0, _ := ret[0].(*proto.X509Certificate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetX509CACertificate indicates an expected call of GetX509CACertificate
-func (mr *MockSigningServerMockRecorder) GetX509CACertificate(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CACertificate", reflect.TypeOf((*MockSigningServer)(nil).GetX509CACertificate), arg0, arg1)
-}
-
-// PostX509Certificate mocks base method
-func (m *MockSigningServer) PostX509Certificate(arg0 context.Context, arg1 *proto.X509CertificateSigningRequest) (*proto.X509Certificate, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostX509Certificate", arg0, arg1)
-	ret0, _ := ret[0].(*proto.X509Certificate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostX509Certificate indicates an expected call of PostX509Certificate
-func (mr *MockSigningServerMockRecorder) PostX509Certificate(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostX509Certificate", reflect.TypeOf((*MockSigningServer)(nil).PostX509Certificate), arg0, arg1)
-}
-
-// GetUserSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetUserSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserSSHCertificateAvailableSigningKeys", arg0, arg1)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserSSHCertificateAvailableSigningKeys indicates an expected call of GetUserSSHCertificateAvailableSigningKeys
-func (mr *MockSigningServerMockRecorder) GetUserSSHCertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetUserSSHCertificateAvailableSigningKeys), arg0, arg1)
-}
-
-// GetUserSSHCertificateSigningKey mocks base method
-func (m *MockSigningServer) GetUserSSHCertificateSigningKey(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserSSHCertificateSigningKey", arg0, arg1)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserSSHCertificateSigningKey indicates an expected call of GetUserSSHCertificateSigningKey
-func (mr *MockSigningServerMockRecorder) GetUserSSHCertificateSigningKey(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateSigningKey", reflect.TypeOf((*MockSigningServer)(nil).GetUserSSHCertificateSigningKey), arg0, arg1)
-}
-
-// PostUserSSHCertificate mocks base method
-func (m *MockSigningServer) PostUserSSHCertificate(arg0 context.Context, arg1 *proto.SSHCertificateSigningRequest) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostUserSSHCertificate", arg0, arg1)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostUserSSHCertificate indicates an expected call of PostUserSSHCertificate
-func (mr *MockSigningServerMockRecorder) PostUserSSHCertificate(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUserSSHCertificate", reflect.TypeOf((*MockSigningServer)(nil).PostUserSSHCertificate), arg0, arg1)
-}
-
-// GetHostSSHCertificateAvailableSigningKeys mocks base method
-func (m *MockSigningServer) GetHostSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostSSHCertificateAvailableSigningKeys", arg0, arg1)
-	ret0, _ := ret[0].(*proto.KeyMetas)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostSSHCertificateAvailableSigningKeys indicates an expected call of GetHostSSHCertificateAvailableSigningKeys
-func (mr *MockSigningServerMockRecorder) GetHostSSHCertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetHostSSHCertificateAvailableSigningKeys), arg0, arg1)
-}
-
-// GetHostSSHCertificateSigningKey mocks base method
-func (m *MockSigningServer) GetHostSSHCertificateSigningKey(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostSSHCertificateSigningKey", arg0, arg1)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostSSHCertificateSigningKey indicates an expected call of GetHostSSHCertificateSigningKey
-func (mr *MockSigningServerMockRecorder) GetHostSSHCertificateSigningKey(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateSigningKey", reflect.TypeOf((*MockSigningServer)(nil).GetHostSSHCertificateSigningKey), arg0, arg1)
-}
-
-// PostHostSSHCertificate mocks base method
-func (m *MockSigningServer) PostHostSSHCertificate(arg0 context.Context, arg1 *proto.SSHCertificateSigningRequest) (*proto.SSHKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostHostSSHCertificate", arg0, arg1)
-	ret0, _ := ret[0].(*proto.SSHKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PostHostSSHCertificate indicates an expected call of PostHostSSHCertificate
-func (mr *MockSigningServerMockRecorder) PostHostSSHCertificate(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostSSHCertificate", reflect.TypeOf((*MockSigningServer)(nil).PostHostSSHCertificate), arg0, arg1)
-}
-
-// GetBlobAvailableSigningKeys mocks base method
+// GetBlobAvailableSigningKeys mocks base method.
 func (m *MockSigningServer) GetBlobAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlobAvailableSigningKeys", arg0, arg1)
@@ -443,13 +309,13 @@ func (m *MockSigningServer) GetBlobAvailableSigningKeys(arg0 context.Context, ar
 	return ret0, ret1
 }
 
-// GetBlobAvailableSigningKeys indicates an expected call of GetBlobAvailableSigningKeys
+// GetBlobAvailableSigningKeys indicates an expected call of GetBlobAvailableSigningKeys.
 func (mr *MockSigningServerMockRecorder) GetBlobAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlobAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetBlobAvailableSigningKeys), arg0, arg1)
 }
 
-// GetBlobSigningKey mocks base method
+// GetBlobSigningKey mocks base method.
 func (m *MockSigningServer) GetBlobSigningKey(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.PublicKey, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlobSigningKey", arg0, arg1)
@@ -458,13 +324,118 @@ func (m *MockSigningServer) GetBlobSigningKey(arg0 context.Context, arg1 *proto.
 	return ret0, ret1
 }
 
-// GetBlobSigningKey indicates an expected call of GetBlobSigningKey
+// GetBlobSigningKey indicates an expected call of GetBlobSigningKey.
 func (mr *MockSigningServerMockRecorder) GetBlobSigningKey(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlobSigningKey", reflect.TypeOf((*MockSigningServer)(nil).GetBlobSigningKey), arg0, arg1)
 }
 
-// PostSignBlob mocks base method
+// GetHostSSHCertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningServer) GetHostSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostSSHCertificateAvailableSigningKeys", arg0, arg1)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostSSHCertificateAvailableSigningKeys indicates an expected call of GetHostSSHCertificateAvailableSigningKeys.
+func (mr *MockSigningServerMockRecorder) GetHostSSHCertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetHostSSHCertificateAvailableSigningKeys), arg0, arg1)
+}
+
+// GetHostSSHCertificateSigningKey mocks base method.
+func (m *MockSigningServer) GetHostSSHCertificateSigningKey(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostSSHCertificateSigningKey", arg0, arg1)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostSSHCertificateSigningKey indicates an expected call of GetHostSSHCertificateSigningKey.
+func (mr *MockSigningServerMockRecorder) GetHostSSHCertificateSigningKey(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostSSHCertificateSigningKey", reflect.TypeOf((*MockSigningServer)(nil).GetHostSSHCertificateSigningKey), arg0, arg1)
+}
+
+// GetUserSSHCertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningServer) GetUserSSHCertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSSHCertificateAvailableSigningKeys", arg0, arg1)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSSHCertificateAvailableSigningKeys indicates an expected call of GetUserSSHCertificateAvailableSigningKeys.
+func (mr *MockSigningServerMockRecorder) GetUserSSHCertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetUserSSHCertificateAvailableSigningKeys), arg0, arg1)
+}
+
+// GetUserSSHCertificateSigningKey mocks base method.
+func (m *MockSigningServer) GetUserSSHCertificateSigningKey(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSSHCertificateSigningKey", arg0, arg1)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSSHCertificateSigningKey indicates an expected call of GetUserSSHCertificateSigningKey.
+func (mr *MockSigningServerMockRecorder) GetUserSSHCertificateSigningKey(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSSHCertificateSigningKey", reflect.TypeOf((*MockSigningServer)(nil).GetUserSSHCertificateSigningKey), arg0, arg1)
+}
+
+// GetX509CACertificate mocks base method.
+func (m *MockSigningServer) GetX509CACertificate(arg0 context.Context, arg1 *proto.KeyMeta) (*proto.X509Certificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetX509CACertificate", arg0, arg1)
+	ret0, _ := ret[0].(*proto.X509Certificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetX509CACertificate indicates an expected call of GetX509CACertificate.
+func (mr *MockSigningServerMockRecorder) GetX509CACertificate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CACertificate", reflect.TypeOf((*MockSigningServer)(nil).GetX509CACertificate), arg0, arg1)
+}
+
+// GetX509CertificateAvailableSigningKeys mocks base method.
+func (m *MockSigningServer) GetX509CertificateAvailableSigningKeys(arg0 context.Context, arg1 *emptypb.Empty) (*proto.KeyMetas, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetX509CertificateAvailableSigningKeys", arg0, arg1)
+	ret0, _ := ret[0].(*proto.KeyMetas)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetX509CertificateAvailableSigningKeys indicates an expected call of GetX509CertificateAvailableSigningKeys.
+func (mr *MockSigningServerMockRecorder) GetX509CertificateAvailableSigningKeys(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetX509CertificateAvailableSigningKeys", reflect.TypeOf((*MockSigningServer)(nil).GetX509CertificateAvailableSigningKeys), arg0, arg1)
+}
+
+// PostHostSSHCertificate mocks base method.
+func (m *MockSigningServer) PostHostSSHCertificate(arg0 context.Context, arg1 *proto.SSHCertificateSigningRequest) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostHostSSHCertificate", arg0, arg1)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostHostSSHCertificate indicates an expected call of PostHostSSHCertificate.
+func (mr *MockSigningServerMockRecorder) PostHostSSHCertificate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostSSHCertificate", reflect.TypeOf((*MockSigningServer)(nil).PostHostSSHCertificate), arg0, arg1)
+}
+
+// PostSignBlob mocks base method.
 func (m *MockSigningServer) PostSignBlob(arg0 context.Context, arg1 *proto.BlobSigningRequest) (*proto.Signature, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PostSignBlob", arg0, arg1)
@@ -473,54 +444,84 @@ func (m *MockSigningServer) PostSignBlob(arg0 context.Context, arg1 *proto.BlobS
 	return ret0, ret1
 }
 
-// PostSignBlob indicates an expected call of PostSignBlob
+// PostSignBlob indicates an expected call of PostSignBlob.
 func (mr *MockSigningServerMockRecorder) PostSignBlob(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostSignBlob", reflect.TypeOf((*MockSigningServer)(nil).PostSignBlob), arg0, arg1)
 }
 
-// mustEmbedUnimplementedSigningServer mocks base method
+// PostUserSSHCertificate mocks base method.
+func (m *MockSigningServer) PostUserSSHCertificate(arg0 context.Context, arg1 *proto.SSHCertificateSigningRequest) (*proto.SSHKey, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostUserSSHCertificate", arg0, arg1)
+	ret0, _ := ret[0].(*proto.SSHKey)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostUserSSHCertificate indicates an expected call of PostUserSSHCertificate.
+func (mr *MockSigningServerMockRecorder) PostUserSSHCertificate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUserSSHCertificate", reflect.TypeOf((*MockSigningServer)(nil).PostUserSSHCertificate), arg0, arg1)
+}
+
+// PostX509Certificate mocks base method.
+func (m *MockSigningServer) PostX509Certificate(arg0 context.Context, arg1 *proto.X509CertificateSigningRequest) (*proto.X509Certificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostX509Certificate", arg0, arg1)
+	ret0, _ := ret[0].(*proto.X509Certificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PostX509Certificate indicates an expected call of PostX509Certificate.
+func (mr *MockSigningServerMockRecorder) PostX509Certificate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostX509Certificate", reflect.TypeOf((*MockSigningServer)(nil).PostX509Certificate), arg0, arg1)
+}
+
+// mustEmbedUnimplementedSigningServer mocks base method.
 func (m *MockSigningServer) mustEmbedUnimplementedSigningServer() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "mustEmbedUnimplementedSigningServer")
 }
 
-// mustEmbedUnimplementedSigningServer indicates an expected call of mustEmbedUnimplementedSigningServer
+// mustEmbedUnimplementedSigningServer indicates an expected call of mustEmbedUnimplementedSigningServer.
 func (mr *MockSigningServerMockRecorder) mustEmbedUnimplementedSigningServer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "mustEmbedUnimplementedSigningServer", reflect.TypeOf((*MockSigningServer)(nil).mustEmbedUnimplementedSigningServer))
 }
 
-// MockUnsafeSigningServer is a mock of UnsafeSigningServer interface
+// MockUnsafeSigningServer is a mock of UnsafeSigningServer interface.
 type MockUnsafeSigningServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockUnsafeSigningServerMockRecorder
 }
 
-// MockUnsafeSigningServerMockRecorder is the mock recorder for MockUnsafeSigningServer
+// MockUnsafeSigningServerMockRecorder is the mock recorder for MockUnsafeSigningServer.
 type MockUnsafeSigningServerMockRecorder struct {
 	mock *MockUnsafeSigningServer
 }
 
-// NewMockUnsafeSigningServer creates a new mock instance
+// NewMockUnsafeSigningServer creates a new mock instance.
 func NewMockUnsafeSigningServer(ctrl *gomock.Controller) *MockUnsafeSigningServer {
 	mock := &MockUnsafeSigningServer{ctrl: ctrl}
 	mock.recorder = &MockUnsafeSigningServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockUnsafeSigningServer) EXPECT() *MockUnsafeSigningServerMockRecorder {
 	return m.recorder
 }
 
-// mustEmbedUnimplementedSigningServer mocks base method
+// mustEmbedUnimplementedSigningServer mocks base method.
 func (m *MockUnsafeSigningServer) mustEmbedUnimplementedSigningServer() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "mustEmbedUnimplementedSigningServer")
 }
 
-// mustEmbedUnimplementedSigningServer indicates an expected call of mustEmbedUnimplementedSigningServer
+// mustEmbedUnimplementedSigningServer indicates an expected call of mustEmbedUnimplementedSigningServer.
 func (mr *MockUnsafeSigningServerMockRecorder) mustEmbedUnimplementedSigningServer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "mustEmbedUnimplementedSigningServer", reflect.TypeOf((*MockUnsafeSigningServer)(nil).mustEmbedUnimplementedSigningServer))

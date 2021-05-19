@@ -24,3 +24,7 @@ Before you submit any code, we need you to agree to our [Contributor License Agr
 Please follow [best practices](https://github.com/trein/dev-best-practices/wiki/Git-Commit-Best-Practices) for creating git commits.
 
 When your code is ready to be submitted, you can [submit a pull request](https://help.github.com/articles/creating-a-pull-request/) to begin the code review process.
+
+#### Generate Go Code
+
+If your work requires re-generating the code (e.g. mock), please run `./gen.sh` at the project root.

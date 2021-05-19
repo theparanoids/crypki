@@ -8,3 +8,4 @@ vendor
 cmd/crypki/crypki
 docker-softhsm/log
 docker-softhsm/tls-crt
+tools_bin/

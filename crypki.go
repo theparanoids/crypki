@@ -48,8 +48,6 @@ const (
 const (
 	// Default values for CAconfig.
 	defaultCounty         = "ZZ" // Unknown or unspecified country
-	defaultState          = "StateName"
-	defaultCity           = "CityName"
 	defaultCompany        = "CompanyName"
 	defaultOrganization   = "OrganizationUnitName"
 	defaultCommonName     = "www.example.com"
@@ -100,12 +98,6 @@ type CAConfig struct {
 func (c *CAConfig) LoadDefaults() {
 	if c.Country == "" {
 		c.Country = defaultCounty
-	}
-	if c.State == "" {
-		c.State = defaultState
-	}
-	if c.Locality == "" {
-		c.Locality = defaultCity
 	}
 	if c.Organization == "" {
 		c.Organization = defaultCompany

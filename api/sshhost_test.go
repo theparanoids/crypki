@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestGetHostSSHCertificateAvailableSigningKeys(t *testing.T) {
@@ -53,7 +53,7 @@ func TestGetHostSSHCertificateAvailableSigningKeys(t *testing.T) {
 			mssp := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false}
 			ss := initMockSigningService(mssp)
 			var ctx context.Context
-			var e *empty.Empty
+			var e *emptypb.Empty
 			keyMetas, err := ss.GetHostSSHCertificateAvailableSigningKeys(ctx, e)
 			if err != nil {
 				t.Fatal(err)

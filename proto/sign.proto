@@ -20,6 +20,23 @@ message KeyMetas {
     repeated KeyMeta keys = 1;
 }
 
+
+enum HashAlgo {
+    Unspecified_Hash = 0;
+    SHA224 = 1;
+    SHA256 = 2;
+    SHA384 = 3;
+    SHA512 = 4;
+}
+
+
+enum Priority {
+  Unspecified_priority = 0;
+  Low = 1;
+  Medium = 2;
+  High = 3;
+}
+
 // SSHCertificateSigningRequest specifies the info used for signing an SSH certificate.
 message SSHCertificateSigningRequest {
     // Identifies the signing key in the HSM used for signing the certificate.
@@ -36,6 +53,11 @@ message SSHCertificateSigningRequest {
     map<string, string> critical_options = 6;
     // Extensions field in the certificate.
     map<string, string> extensions = 7;
+    // Priority of the request as specified by client. If the server is under heavy load, it may
+    // decide to process higher priority requests before the lower priority requests.
+    // This feature is currently EXPERIMENTAL where priority value is only logged and not used for anything else. 
+    // Specific implementation will be based on analysis of client request patterns.
+    Priority priority = 10;
 }
 
 // SSHKey specifies an SSH key that can either be an:
@@ -57,6 +79,11 @@ message X509CertificateSigningRequest {
     // X509 certificate ExtKeyUsage.
     // https://godoc.org/crypto/x509#ExtKeyUsage
     repeated int32 ext_key_usage = 4;
+    // Priority of the request as specified by client. If the server is under heavy load, it may
+    // decide to process higher priority requests before the lower priority requests.
+    // This feature is currently EXPERIMENTAL where priority value is only logged and not used for anything else. 
+    // Specific implementation will be based on analysis of client request patterns.
+    Priority priority = 10;
 }
 
 // X509Certificate specifies an X509 certificate.
@@ -71,14 +98,6 @@ message PublicKey {
     string key = 1;
 }
 
-enum HashAlgo {
-    Unspecified_Hash = 0;
-    SHA224 = 1;
-    SHA256 = 2;
-    SHA384 = 3;
-    SHA512 = 4;
-}
-
 message BlobSigningRequest {
     // Identifies the signing key in the PKCS#11 device used for signing the blob.
     KeyMeta key_meta = 1;
@@ -87,6 +106,11 @@ message BlobSigningRequest {
     // the algorithm of hash function used to generate the digest  
     // https://golang.org/pkg/crypto/#Hash.
     HashAlgo hash_algorithm = 3;
+    // Priority of the request as specified by client. If the server is under heavy load, it may
+    // decide to process higher priority requests before the lower priority requests.
+    // This feature is currently EXPERIMENTAL where priority value is only logged and not used for anything else. 
+    // Specific implementation will be based on analysis of client request patterns.
+    Priority priority = 10;
 }
 
 // Signature is a base64 encoded result of signing a blob. 

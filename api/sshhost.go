@@ -111,8 +111,8 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 		if cert != nil {
 			kid = cert.KeyId
 		}
-		log.Printf(`m=%s,id=%q,principals=%q,st=%d,et=%d,err="%v"`,
-			methodName, kid, request.Principals, statusCode, timeElapsedSince(start), err)
+		log.Printf(`m=%s,id=%q,principals=%q,st=%d,p=%d,et=%d,err="%v"`,
+			methodName, kid, request.Principals, statusCode, request.Priority, timeElapsedSince(start), err)
 	}
 	defer logWithCheckingPanic(f, &statusCode, &err)
 

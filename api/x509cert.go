@@ -104,7 +104,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	var err error
 
 	f := func(statusCode int, err error) {
-		log.Printf(`m=%s,sub=%q,st=%d,et=%d,err="%v"`, methodName, subject, statusCode, timeElapsedSince(start), err)
+		log.Printf(`m=%s,sub=%q,st=%d,p=%d,et=%d,err="%v"`, methodName, subject, statusCode, request.Priority, timeElapsedSince(start), err)
 	}
 	defer logWithCheckingPanic(f, &statusCode, &err)
 

@@ -7,9 +7,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.4.0
 	github.com/miekg/pkcs11 v1.0.3
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/mod v0.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20210426193834-eac7f76ac494
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	google.golang.org/genproto v0.0.0-20210607140030-00d4fb20b1ae
 	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.26.0

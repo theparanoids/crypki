@@ -32,9 +32,9 @@ enum HashAlgo {
 
 enum Priority {
   Unspecified_priority = 0;
-  Low = 1;
-  Medium = 2;
-  High = 3;
+  High = 5;
+  Medium = 10;
+  Low = 15;
 }
 
 // SSHCertificateSigningRequest specifies the info used for signing an SSH certificate.

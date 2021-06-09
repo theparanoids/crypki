@@ -3,12 +3,8 @@ package pkcs11
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
-	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -64,30 +60,11 @@ func (c MockSignerPool) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return c.signer.Sign(rand, digest, opts)
 }
 
-func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm) (sPool, error) {
+func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm, priv crypto.Signer) sPool {
 	if isBad {
-		return MockSignerPool{&badSigner{}, keyType}, nil
+		return MockSignerPool{&badSigner{}, keyType}
 	}
-	switch keyType {
-	case crypki.ECDSA:
-		data, err := os.ReadFile("testdata/ec.key.pem")
-		if err != nil {
-			return nil, fmt.Errorf("unable to read private key: %v", err)
-		}
-		decoded, _ := pem.Decode(data)
-		key, err := x509.ParseECPrivateKey(decoded.Bytes)
-		return MockSignerPool{key, keyType}, err
-	case crypki.RSA:
-		fallthrough
-	default:
-		data, err := os.ReadFile("testdata/rsa.key.pem")
-		if err != nil {
-			return nil, fmt.Errorf("unable to read private key: %v", err)
-		}
-		decoded, _ := pem.Decode(data)
-		key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-		return MockSignerPool{key, keyType}, err
-	}
+	return MockSignerPool{priv, keyType}
 }
 
 func TestNewSignerPool(t *testing.T) {

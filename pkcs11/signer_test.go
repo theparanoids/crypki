@@ -13,7 +13,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -32,37 +31,63 @@ const (
 // enforce signer implements CertSign interface.
 var _ crypki.CertSign = (*signer)(nil)
 
-// initMockSigner initializes a mock signer which loads credentials from local files
-func initMockSigner(isBad bool, keyType crypki.PublicKeyAlgorithm) (*signer, error) {
+// createCAKeysAndCert generates key pairs and the corresponding x509 certificate for unit tests CA based on key type.
+func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer, cert *x509.Certificate, err error) {
+	var pkAlgo x509.PublicKeyAlgorithm
+	var sigAlgo x509.SignatureAlgorithm
+	switch keyType {
+	case crypki.ECDSA:
+		pkAlgo = x509.ECDSA
+		sigAlgo = x509.ECDSAWithSHA256
+		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case crypki.RSA:
+		fallthrough
+	default:
+		pkAlgo = x509.RSA
+		sigAlgo = x509.SHA256WithRSA
+		priv, err = rsa.GenerateKey(rand.Reader, 2048)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	template := &x509.Certificate{
+		Subject: pkix.Name{
+			Country:      []string{"US"},
+			Organization: []string{"Oath Inc."},
+			Locality:     []string{"Sunnyvale"},
+			CommonName:   "testca.cameo.ouroath.com",
+		},
+		SerialNumber:          big.NewInt(1),
+		PublicKeyAlgorithm:    pkAlgo,
+		PublicKey:             priv.Public(),
+		SignatureAlgorithm:    sigAlgo,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, priv.Public(), priv)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, err = x509.ParseCertificate(certBytes)
+	return
+}
+
+// initMockSigner initializes a mock signer.
+func initMockSigner(keyType crypki.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
 	}
-	sp, err := newMockSignerPool(isBad, keyType)
-	if err != nil {
-		return nil, err
-	}
-	s.sPool[defaultIdentifier] = sp
 
-	var bytes []byte
-	switch keyType {
-	case crypki.ECDSA:
-		bytes, err = os.ReadFile("testdata/ec.cert.pem")
-	case crypki.RSA:
-		fallthrough
-	default:
-		bytes, err = os.ReadFile("testdata/rsa.cert.pem")
-	}
-	if err != nil {
-		return nil, err
-	}
-	block, _ := pem.Decode(bytes)
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
+	sp := newMockSignerPool(isBad, keyType, priv)
+	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
-	return s, nil
+	return s
 }
 
 func TestGetSSHCertSigningKey(t *testing.T) {
@@ -82,13 +107,14 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
 			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
+				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
+			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetSSHCertSigningKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -183,13 +209,14 @@ func TestSignSSHCert(t *testing.T) {
 		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, tt.keyType)
+			caPriv, caCert, err := createCAKeysAndCert(tt.keyType)
 			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
+				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
+			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner)
 			data, err := signer.SignSSHCert(tt.ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -230,13 +257,14 @@ func TestGetX509CACert(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
 			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
+				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
+			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetX509CACert(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -272,16 +300,12 @@ func TestSignX509RSACert(t *testing.T) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
+
+	caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+	if err != nil {
+		t.Fatalf("unable to create CA keys and certificate: %v", err)
+	}
 	cp := x509.NewCertPool()
-	caCertBytes, err := os.ReadFile("testdata/rsa.cert.pem")
-	if err != nil {
-		t.Fatalf("unable to read CA cert: %v", err)
-	}
-	caCertDecoded, _ := pem.Decode(caCertBytes)
-	caCert, err := x509.ParseCertificate(caCertDecoded.Bytes)
-	if err != nil {
-		t.Fatalf("unable to parse CA cert: %v", err)
-	}
 	cp.AddCert(caCert)
 
 	ctx := context.Background()
@@ -301,13 +325,10 @@ func TestSignX509RSACert(t *testing.T) {
 		"cert-request-timeout": {timeoutCtx, certRSA, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.RSA)
-			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
-			}
+			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
 			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
@@ -363,16 +384,11 @@ func TestSignX509ECCert(t *testing.T) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
+	caPriv, caCert, err := createCAKeysAndCert(crypki.ECDSA)
+	if err != nil {
+		t.Fatalf("unable to create CA keys and certificate: %v", err)
+	}
 	cp := x509.NewCertPool()
-	caCertBytes, err := os.ReadFile("testdata/ec.cert.pem")
-	if err != nil {
-		t.Fatalf("unable to read CA cert: %v", err)
-	}
-	caCertDecoded, _ := pem.Decode(caCertBytes)
-	caCert, err := x509.ParseCertificate(caCertDecoded.Bytes)
-	if err != nil {
-		t.Fatalf("unable to parse CA cert: %v", err)
-	}
 	cp.AddCert(caCert)
 
 	ctx := context.Background()
@@ -388,13 +404,10 @@ func TestSignX509ECCert(t *testing.T) {
 		"cert-ec-bad-signer":  {ctx, certEC, badIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.ECDSA)
-			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
-			}
+			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
 			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
@@ -440,13 +453,14 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
 			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
+				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
+			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetBlobSigningPublicKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -463,14 +477,13 @@ func TestSignBlob(t *testing.T) {
 	goodDigestSHA384 := sha512.Sum384(blob)
 	goodDigestSHA512 := sha512.Sum512(blob)
 
-	data, err := os.ReadFile("testdata/rsa.key.pem")
+	caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
 	if err != nil {
-		t.Fatalf("unable to read private key: %v", err)
+		t.Fatalf("unable to create CA keys and certificate: %v", err)
 	}
-	decoded, _ := pem.Decode(data)
-	key, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-	if err != nil {
-		t.Fatalf("unable to parse private key: %v", err)
+	key, ok := caPriv.(*rsa.PrivateKey)
+	if !ok {
+		t.Fatal("unable to create RSA CA keys")
 	}
 
 	ctx := context.Background()
@@ -495,13 +508,10 @@ func TestSignBlob(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, true},
 	}
 	for label, tt := range testcases {
-		tt := tt
+		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer, err := initMockSigner(tt.isBadSigner, crypki.RSA)
-			if err != nil {
-				t.Fatalf("unable to init mock signer: %v", err)
-			}
+			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
 			signature, err := signer.SignBlob(tt.ctx, tt.digest, tt.opts, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)

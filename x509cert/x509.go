@@ -75,8 +75,7 @@ func newSerial() *big.Int {
 	return serialNumber
 }
 
-// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to signature algorithm received as part of
-// CSR.
+// GetSignatureAlgorithm returns x509 Signature algorithm corresponding to signature algorithm received as part of CSR.
 func GetSignatureAlgorithm(sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm {
 	algo := x509.SHA256WithRSA
 	switch sa {
@@ -90,8 +89,7 @@ func GetSignatureAlgorithm(sa crypki.SignatureAlgorithm) x509.SignatureAlgorithm
 	return algo
 }
 
-// GetPublicKeyAlgorithm returns the x509 Public algorithm corresponding to the public key algorithm received as part
-// of CSR
+// GetPublicKeyAlgorithm returns the x509 Public algorithm corresponding to the public key algorithm received as part of CSR.
 func GetPublicKeyAlgorithm(pka crypki.PublicKeyAlgorithm) x509.PublicKeyAlgorithm {
 	algo := x509.RSA
 	switch pka {

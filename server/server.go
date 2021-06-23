@@ -29,6 +29,8 @@ import (
 
 	"github.com/theparanoids/crypki/api"
 	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/healthcheck"
+	"github.com/theparanoids/crypki/oor"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/interceptor"
@@ -226,9 +228,38 @@ func Main() {
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
+	hs := &healthcheck.HealthCheckService{SigningService: ss, KeyID: cfg.HealthCheck.KeyID}
+	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
+		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
+	}
 
 	proto.RegisterSigningServer(grpcServer, ss)
+	proto.RegisterHealthServer(grpcServer, hs)
 
+	go func() {
+		if !cfg.HealthCheck.Disabled {
+			// only enable oor handler if we want to enable health check listener
+			// TODO: need a separate config to enable/disable this?
+			oorh := oor.NewHandler(true) // TODO: do we want to start with inRotation true?
+			hs.InRotation = oorh.InRotation
+			// healthcheck http listener tls config
+			hh := &hcHandler{hcService: hs}
+			hctc, err := tlsConfiguration(
+				cfg.TLSCACertPath,
+				cfg.TLSServerCertPath,
+				cfg.TLSServerKeyPath,
+				tls.RequestClientCert) // TODO: clientAuthType can be made configurable.
+			if err != nil {
+				log.Fatalf("crypki: failed to setup healthcheck listener TLS config: %v", err)
+			}
+			hcServer := &http.Server{
+				Addr:      cfg.HealthCheck.Address,
+				Handler:   hh,
+				TLSConfig: hctc,
+			}
+			log.Fatal(hcServer.ListenAndServeTLS("", ""))
+		}
+	}()
 	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
 		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
 	listener, err := net.Listen("tcp", server.Addr)
@@ -240,6 +271,30 @@ func Main() {
 		log.Fatalf("failed to serve: %s", err)
 	}
 
+}
+
+type hcHandler struct {
+	hcService *healthcheck.HealthCheckService
+}
+
+func (h *hcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if (r.URL.Path != "/ruok" && r.URL.Path != "/status") || r.Method != "GET" {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	resp, err := h.hcService.Check(context.Background(), &proto.HealthCheckRequest{})
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "healthcheck failed", http.StatusBadRequest)
+		return
+	}
+	if resp.Status != proto.HealthCheckResponse_SERVING {
+		log.Printf("not in rotation, status=%v\n", resp.Status)
+		http.Error(w, "not in rotation", http.StatusBadRequest)
+		return
+	}
+	w.Write([]byte("imok\n"))
+	return
 }
 
 // tlsConfiguration returns tls configuration.

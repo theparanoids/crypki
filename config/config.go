@@ -23,6 +23,7 @@ const (
 	defaultPoolSize          = 2
 	defaultKeyType           = x509.RSA
 	defaultSignatureAlgo     = x509.SHA256WithRSA
+	defaultHealthCheckKeyID  = "ssh-user-key"
 
 	defaultShutdownOnSigningFailureConsecutiveCount    = 4
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
@@ -49,6 +50,17 @@ var endpoints = map[string]bool{
 	SSHUserCertEndpoint: true,
 	SSHHostCertEndpoint: true,
 	BlobEndpoint:        true,
+}
+
+// HealthCheck specifies configs related to healthcheck listener.
+type HealthCheck struct {
+	// Disabled specifies whether healthcheck listener should be disabled.
+	Disabled bool
+	// Address specifies the address for the http listener.
+	Address string
+	// KeyID specifies the identifier of the key to be used by
+	// healthcheck listener.
+	KeyID string
 }
 
 // KeyUsage configures which key(s) can be used for the API call.
@@ -120,6 +132,7 @@ type Config struct {
 	SignersPerPool    int
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
+	HealthCheck
 
 	ShutdownOnInternalFailure         bool
 	ShutdownOnInternalFailureCriteria struct {
@@ -226,6 +239,9 @@ func (c *Config) loadDefaults() {
 	}
 	if c.SignersPerPool == 0 {
 		c.SignersPerPool = defaultPoolSize
+	}
+	if c.HealthCheck.KeyID == "" {
+		c.HealthCheck.KeyID = defaultHealthCheckKeyID
 	}
 	if strings.TrimSpace(c.TLSHost) == "" {
 		c.TLSHost = defaultTLSHost

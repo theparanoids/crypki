@@ -71,6 +71,8 @@ type KeyConfig struct {
 	Identifier string
 	// SlotNumber is the slot number in HSM.
 	SlotNumber uint
+	// TokenLabel is the token label in HSM. If this value is specified, SlotNumber is specified by this.
+	TokenLabel string
 	// UserPinPath is the path to the file that contains the pin to login to the specified slot.
 	UserPinPath string
 	// KeyLabel is the label of the key on the slot.
@@ -149,11 +151,22 @@ func Parse(configPath string) (*Config, error) {
 	return cfg, nil
 }
 
+// ValidatePinIntegrity checks whether the same slot uses the same pinfile.
+func ValidatePinIntegrity(keys []KeyConfig) error {
+	slotMap := make(map[uint]string, len(keys))
+	for _, key := range keys {
+		if cachedPinPath, exist := slotMap[key.SlotNumber]; exist && key.UserPinPath != cachedPinPath {
+			return fmt.Errorf("key %q: unmatched pin code path for slot number #%d", key.Identifier, key.SlotNumber)
+		}
+		slotMap[key.SlotNumber] = key.UserPinPath
+	}
+	return nil
+}
+
 // validate does basic validation on the configuration.
 func (c *Config) validate() error {
 	// Do a basic validation on Keys and KeyUsages.
 	identifierMap := make(map[string]*KeyConfig, len(c.Keys))
-	slotMap := make(map[uint]string, len(c.Keys))
 	for idx, key := range c.Keys {
 		if _, exist := identifierMap[key.Identifier]; key.Identifier == "" || exist {
 			return fmt.Errorf("key %q: require a unique name for Identifier field", key.Identifier)
@@ -163,11 +176,6 @@ func (c *Config) validate() error {
 		if key.UserPinPath == "" {
 			return fmt.Errorf("key %q: require the pin code file path for slot number #%d", key.Identifier, key.SlotNumber)
 		}
-		if cachedPinPath, exist := slotMap[key.SlotNumber]; exist && key.UserPinPath != cachedPinPath {
-			return fmt.Errorf("key %q: unmatched pin code path for slot number #%d", key.Identifier, key.SlotNumber)
-		}
-		slotMap[key.SlotNumber] = key.UserPinPath
-
 		if key.CreateCACertIfNotExist && key.X509CACertLocation == "" {
 			return fmt.Errorf("key %q: CA cert is supposed to be created if it doesn't exist but X509CACertLocation is not specified", key.Identifier)
 		}

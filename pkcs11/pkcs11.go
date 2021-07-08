@@ -106,6 +106,8 @@ type Config struct {
 type KeyInfo struct {
 	// SlotNumber indicates slot number on the HSM
 	SlotNumber uint
+	// TokenLabel indicates token label on the HSM
+	TokenLabel string
 	// UserPinPath indicates the filepath which contains the pin to login
 	// to the specified slot.
 	UserPinPath string

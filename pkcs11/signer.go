@@ -46,6 +46,18 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
 	}
 
+	for idx, key := range keys {
+		if key.TokenLabel != "" {
+			if keys[idx].SlotNumber, err = findSlotNumber(p11ctx, key.TokenLabel); err != nil {
+				return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
+			}
+		}
+	}
+	err = config.ValidatePinIntegrity(keys)
+	if err != nil {
+		return nil, err
+	}
+
 	login, err := getLoginSessions(p11ctx, keys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create login sessions, err: %v", err)

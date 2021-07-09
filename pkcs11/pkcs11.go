@@ -77,6 +77,23 @@ func findObjects(context PKCS11Ctx, session p11.SessionHandle, template []*p11.A
 	return objs, nil
 }
 
+func findSlotNumber(context PKCS11Ctx, tokenLabel string) (uint, error) {
+	slots, err := context.GetSlotList(true)
+	if err != nil {
+		return 0, err
+	}
+	for _, slot := range slots {
+		tokenInfo, err := context.GetTokenInfo(slot)
+		if err != nil {
+			return 0, err
+		}
+		if tokenInfo.Label == tokenLabel {
+			return slot, nil
+		}
+	}
+	return 0, errors.New("slot not found")
+}
+
 // Config is the config struct used in pkcs11
 type Config struct {
 	// Keys are a map of key identifier and info
@@ -89,6 +106,8 @@ type Config struct {
 type KeyInfo struct {
 	// SlotNumber indicates slot number on the HSM
 	SlotNumber uint
+	// TokenLabel indicates token label on the HSM
+	TokenLabel string
 	// UserPinPath indicates the filepath which contains the pin to login
 	// to the specified slot.
 	UserPinPath string

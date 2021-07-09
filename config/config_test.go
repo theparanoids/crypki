@@ -19,9 +19,9 @@ func TestParse(t *testing.T) {
 		TLSPort:           "4443",
 		SignersPerPool:    2,
 		Keys: []KeyConfig{
-			{"key1", 1, "/path/1", "foo", 2, 2, 3, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0},
-			{"key2", 2, "/path/2", "bar", 2, 1, 1, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0},
-			{"key3", 3, "/path/3", "baz", 2, 1, 1, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
+			{"key1", 1, "", "/path/1", "foo", 2, 2, 3, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0},
+			{"key2", 2, "", "/path/2", "bar", 2, 1, 1, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0},
+			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 1, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
 		},
 		KeyUsages: []KeyUsage{
 			{"/sig/x509-cert", []string{"key1", "key3"}, 3600},
@@ -79,10 +79,6 @@ func TestParse(t *testing.T) {
 			filePath:    "testdata/testconf-bad-non-x509-cert-for-x509-endpoint.json",
 			expectError: true,
 		},
-		"bad-config-bad-same-slot-different-pin-path": {
-			filePath:    "testdata/testconf-bad-same-slot-different-pin-path.json",
-			expectError: true,
-		},
 		"bad-config-bad-unsupported-key-type": {
 			filePath:    "testdata/testconf-bad-unsupported-key-type.json",
 			expectError: true,
@@ -123,6 +119,50 @@ func TestParse(t *testing.T) {
 			}
 			if !reflect.DeepEqual(cfg, tt.config) {
 				t.Errorf("config mismatch, got: \n%+v\n, want: \n%+v\n", cfg, tt.config)
+			}
+		})
+	}
+}
+
+func TestValidatePinIntegrity(t *testing.T) {
+	tests := []struct {
+		name    string
+		keys    []KeyConfig
+		wantErr bool
+	}{
+		{
+			name: "same-slots-have-same-pin-path",
+			keys: []KeyConfig{
+				{
+					SlotNumber:  1,
+					UserPinPath: "/path/1",
+				},
+				{
+					SlotNumber:  1,
+					UserPinPath: "/path/1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "same-slots-have-different-pin-path",
+			keys: []KeyConfig{
+				{
+					SlotNumber:  1,
+					UserPinPath: "/path/1",
+				},
+				{
+					SlotNumber:  1,
+					UserPinPath: "/path/2",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := ValidatePinIntegrity(tt.keys); (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePinIntegrity() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

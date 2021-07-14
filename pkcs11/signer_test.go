@@ -243,18 +243,14 @@ func TestSignSSHCert(t *testing.T) {
 func TestGetX509CACert(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 	testcases := map[string]struct {
-		ctx         context.Context
 		identifier  string
 		isBadSigner bool
 		expectError bool
 	}{
-		"good-signer":         {ctx, defaultIdentifier, false, false},
-		"bad-identifier":      {ctx, badIdentifier, false, true},
-		"bad-signer":          {ctx, defaultIdentifier, true, false},
-		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
+		"good-signer":    {defaultIdentifier, false, false},
+		"bad-identifier": {badIdentifier, false, true},
+		"bad-signer":     {defaultIdentifier, true, false},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
@@ -265,7 +261,7 @@ func TestGetX509CACert(t *testing.T) {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
 			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
-			_, err = signer.GetX509CACert(tt.ctx, tt.identifier)
+			_, err = signer.GetX509CACert(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}

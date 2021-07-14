@@ -134,16 +134,6 @@ func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIden
 }
 
 func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
-	pool, ok := s.sPool[keyIdentifier]
-	if !ok {
-		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
-	}
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.put(signer)
-
 	cert, ok := s.x509CACerts[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unable to find CA cert for key identifier %q", keyIdentifier)

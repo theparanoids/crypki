@@ -112,10 +112,10 @@ func (s *signer) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string)
 func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignSSHCert"
 	start := time.Now()
-	var ht int64
+	var ht, st int64
 	defer func() {
 		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, tt=%d", methodName, ht, tt)
+		log.Printf("m=%s: ht=%d, tt=%d, st=%d", methodName, ht, tt, st)
 	}()
 
 	if cert == nil {
@@ -125,10 +125,13 @@ func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIden
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
+	sStart := time.Now()
 	signer, err := pool.get(ctx)
 	if err != nil {
+		st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, errors.New("client request timed out, skip signing SSH cert")
 	}
+	st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
 
 	sshSigner, err := ssh.NewSignerFromSigner(signer)
@@ -160,20 +163,23 @@ func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byt
 func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
 	const methodName = "SignX509Cert"
 	start := time.Now()
-	var ht int64
+	var ht, st int64
 	defer func() {
 		xt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, xt=%d", methodName, ht, xt)
+		log.Printf("m=%s: ht=%d, xt=%d st=%d", methodName, ht, xt, st)
 	}()
 
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
+	sStart := time.Now()
 	signer, err := pool.get(ctx)
 	if err != nil {
+		st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, errors.New("client request timed out, skip signing X509 cert")
 	}
+	st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
 	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
 	if val := isValidCertRequest(cert, signer.signAlgorithm()); !val {

@@ -137,3 +137,4 @@ This project is licensed under the terms of the [Apache 2.0](http://www.apache.o
 [goreport-card]: https://goreportcard.com/report/theparanoids/crypki
 [codecov-card-badge]: https://codecov.io/gh/theparanoids/crypki/branch/main/graph/badge.svg
 [codecov-card]: https://codecov.io/gh/theparanoids/crypki
+

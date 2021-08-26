@@ -191,6 +191,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 			},
 		}
 		interceptors = append([]grpc.UnaryServerInterceptor{
+			interceptor.AccessLogInterceptor(),
 			interceptor.StatusInterceptor((interceptor.NewShutdownCounter(ctx, shutdownCounterConfig)).InterceptorFn),
 		}, interceptors...)
 	}

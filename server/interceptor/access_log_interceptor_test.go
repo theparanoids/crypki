@@ -106,7 +106,6 @@ func genAndSignX509Cert(cname string, caCert *x509.Certificate, caKey *rsa.Priva
 		NotBefore: time.Now().Add(-10 * time.Second),
 		NotAfter:  time.Now().AddDate(10, 0, 0),
 		KeyUsage:  x509.KeyUsageCRLSign,
-		//ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		IsCA: false,
 	}
 
@@ -129,18 +128,16 @@ func TestAccessLogInterceptor(t *testing.T) {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(ca)
 
-	listener := bufconn.Listen(1024 * 1024)
-
 	tests := []struct {
 		name        string
 		init        func()
-		setupServer func(ctx context.Context, t *testing.T) (*grpc.Server, func())
-		setupClient func(ctx context.Context, svr *grpc.Server) pb_testproto.TestServiceClient
+		setupServer func(ctx context.Context, t *testing.T, listener *bufconn.Listener) (*grpc.Server, func())
+		setupClient func(ctx context.Context, svr *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient
 		wantLog     string
 	}{
 		{
 			name: "happy path",
-			setupServer: func(ctx context.Context, t *testing.T) (*grpc.Server, func()) {
+			setupServer: func(ctx context.Context, t *testing.T, listener *bufconn.Listener) (*grpc.Server, func()) {
 				svrCertPem, svrPrivPem, err := genAndSignX509Cert(serverCName, ca, caPriv)
 				if err != nil {
 					t.Fatalf("failed to gerenate server cert, err: %v", err)
@@ -183,7 +180,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 
 				return grpcServer, closer
 			},
-			setupClient: func(ctx context.Context, server *grpc.Server) pb_testproto.TestServiceClient {
+			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
 				clientCertPem, clientPrivPem, err := genAndSignX509Cert(clientCName, ca, caPriv)
 				if err != nil {
 					t.Fatalf("failed to gerenate server cert, err: %v", err)
@@ -209,7 +206,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 		},
 		{
 			name: "unknown tls info",
-			setupServer: func(ctx context.Context, t *testing.T) (*grpc.Server, func()) {
+			setupServer: func(ctx context.Context, t *testing.T, listener *bufconn.Listener) (*grpc.Server, func()) {
 				timer := &fakeTimer{}
 				interceptor := &accessLogInterceptor{
 					timeNow: timer.now,
@@ -235,7 +232,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 
 				return grpcServer, closer
 			},
-			setupClient: func(ctx context.Context, server *grpc.Server) pb_testproto.TestServiceClient {
+			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
 				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 					return listener.Dial()
 				}), grpc.WithInsecure())
@@ -249,12 +246,12 @@ func TestAccessLogInterceptor(t *testing.T) {
 			buffer := new(bytes.Buffer)
 			log.SetOutput(buffer)
 			defer log.SetOutput(os.Stderr)
-
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			grpcServer, cleanup := tt.setupServer(ctx, t)
+			listener := bufconn.Listen(1024 * 1024)
+			grpcServer, cleanup := tt.setupServer(ctx, t, listener)
 			defer cleanup()
-			client := tt.setupClient(ctx, grpcServer)
+			client := tt.setupClient(ctx, grpcServer, listener)
 			_, err := client.Ping(ctx, ping)
 			if err != nil {
 				require.NoError(t, err, "no error should occur.")

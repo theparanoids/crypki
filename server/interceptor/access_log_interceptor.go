@@ -2,12 +2,12 @@ package interceptor
 
 import (
 	"context"
-	"google.golang.org/grpc/credentials"
 	"log"
 	"path"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )

@@ -64,7 +64,7 @@ func getPrincipalFromContext(ctx context.Context) string {
 	}
 	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		return "unknown tls in"
+		return "unknown tls info"
 	}
 	certs := tlsInfo.State.PeerCertificates
 	if len(certs) == 0 || certs[0] == nil {

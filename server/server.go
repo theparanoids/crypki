@@ -175,6 +175,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 	var grpcServer *grpc.Server
 	interceptors := []grpc.UnaryServerInterceptor{
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
+		interceptor.AccessLogInterceptor(),
 	}
 	if cfg.ShutdownOnInternalFailure {
 		criteria := cfg.ShutdownOnInternalFailureCriteria
@@ -191,7 +192,6 @@ func Main(keyP crypki.KeyIDProcessor) {
 			},
 		}
 		interceptors = append([]grpc.UnaryServerInterceptor{
-			interceptor.AccessLogInterceptor(),
 			interceptor.StatusInterceptor((interceptor.NewShutdownCounter(ctx, shutdownCounterConfig)).InterceptorFn),
 		}, interceptors...)
 	}

@@ -60,7 +60,7 @@ func TestLogWithCheckingPanic(t *testing.T) {
 
 			defer func() {
 				// Capture the panic thrown from logWithCheckingPanic.
-				recover()
+				_ = recover() // ignore the return value
 				if got != tc.want {
 					t.Errorf("got: %q, want: %q", got, tc.want)
 				}

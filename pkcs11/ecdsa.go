@@ -55,6 +55,9 @@ func publicECDSA(s *p11Signer) crypto.PublicKey {
 		p11.NewAttribute(p11.CKA_EC_PARAMS, nil),
 		p11.NewAttribute(p11.CKA_EC_POINT, nil),
 	})
+	if err != nil {
+		panic("publicECDSA: GetAttributeValue failed: " + err.Error())
+	}
 	if len(attrs) < 2 {
 		panic("publicECDSA: expected two attributes")
 	}

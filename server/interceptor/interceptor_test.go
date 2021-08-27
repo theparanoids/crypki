@@ -47,7 +47,16 @@ func TestStatusInterceptor(t *testing.T) {
 				}
 			})
 
-			interceptor(nil, nil, nil, handler)
+			_, err := interceptor(nil, nil, nil, handler)
+			if err != nil {
+				if tt.err != err {
+					t.Errorf("error mismatch, got: %v, want: %v", err, tt.err)
+				}
+				return
+			}
+			if tt.err != nil {
+				t.Errorf("no error returned, want: %v", tt.err)
+			}
 		})
 	}
 

@@ -6,6 +6,7 @@ package pkcs11
 import (
 	"crypto"
 	"errors"
+	"fmt"
 	"io"
 
 	p11 "github.com/miekg/pkcs11"
@@ -30,14 +31,24 @@ func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.
 
 	privateKey, err := getKey(context, session, tokenLabel, p11.CKO_PRIVATE_KEY)
 	if err != nil {
-		context.CloseSession(session)
-		return nil, errors.New("makeSigner: error in getPrivateKey: " + err.Error())
+		err = errors.New("makeSigner: error in getPrivateKey: " + err.Error())
+		err2 := context.CloseSession(session)
+		// append CloseSession error to getPrivateKey error
+		if err2 != nil {
+			return nil, fmt.Errorf(err.Error() + ", CloseSession: " + err2.Error())
+		}
+		return nil, err
 	}
 
 	publicKey, err := getKey(context, session, tokenLabel, p11.CKO_PUBLIC_KEY)
 	if err != nil {
-		context.CloseSession(session)
-		return nil, errors.New("makeSigner: error in getPublicKey: " + err.Error())
+		err = errors.New("makeSigner: error in getPublicKey: " + err.Error())
+		err2 := context.CloseSession(session)
+		// append CloseSession error to getPublicKey error
+		if err2 != nil {
+			return nil, fmt.Errorf(err.Error() + ", CloseSession: " + err2.Error())
+		}
+		return nil, err
 	}
 	return &p11Signer{context, session, privateKey, publicKey, keyType, signatureAlgo}, nil
 }

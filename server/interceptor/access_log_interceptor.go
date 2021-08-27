@@ -60,15 +60,15 @@ func (i *accessLogInterceptor) Func(
 func getPrincipalFromContext(ctx context.Context) string {
 	p, ok := peer.FromContext(ctx)
 	if !ok || p == nil {
-		return "unknown peer"
+		return "unknownPeer"
 	}
 	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		return "unknown tls info"
+		return "unknownTLSInfo"
 	}
 	certs := tlsInfo.State.PeerCertificates
 	if len(certs) == 0 || certs[0] == nil {
-		return "peer certificate not found"
+		return "peerCertificateNotFound"
 	}
 	return certs[0].Subject.CommonName
 }

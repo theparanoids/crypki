@@ -205,31 +205,22 @@ func TestAccessLogInterceptor(t *testing.T) {
 			wantLog: "m=grpcAccessLog,prin=client-example,sts=-6795364578.871346,mtd=Ping,st=0,dur=1234",
 		},
 		{
-			name: "unknown tls info",
+			name: "unknown tls info, without time check",
 			setupServer: func(ctx context.Context, t *testing.T, listener *bufconn.Listener) (*grpc.Server, func()) {
-				timer := &fakeTimer{}
-				interceptor := &accessLogInterceptor{
-					timeNow: timer.now,
-				}
-
 				grpcServer := grpc.NewServer([]grpc.ServerOption{
-					grpc.UnaryInterceptor(interceptor.Func),
+					grpc.UnaryInterceptor(AccessLogInterceptor()),
 				}...)
-
 				testService := &grpc_testing.TestPingService{T: t}
 				pb_testproto.RegisterTestServiceServer(grpcServer, testService)
-
 				go func() {
 					if err := grpcServer.Serve(listener); err != nil {
 						panic(err)
 					}
 				}()
-
 				closer := func() {
 					listener.Close()
 					grpcServer.Stop()
 				}
-
 				return grpcServer, closer
 			},
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
@@ -238,7 +229,51 @@ func TestAccessLogInterceptor(t *testing.T) {
 				}), grpc.WithInsecure())
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},
-			wantLog: "m=grpcAccessLog,prin=unknown tls info,sts=-6795364578.871346,mtd=Ping,st=0,dur=1234",
+			wantLog: "m=grpcAccessLog,prin=unknownTLSInfo",
+		},
+		{
+			name: "unknown tls info, without time check",
+			setupServer: func(ctx context.Context, t *testing.T, listener *bufconn.Listener) (*grpc.Server, func()) {
+				svrCertPem, svrPrivPem, err := genAndSignX509Cert(serverCName, ca, caPriv)
+				if err != nil {
+					t.Fatalf("failed to gerenate server cert, err: %v", err)
+				}
+
+				svrCertificate, err := tls.X509KeyPair(svrCertPem, svrPrivPem)
+				if err != nil {
+					t.Fatalf("failed to load x509 key pair, err: %v", err)
+				}
+
+				svrTLSConfig := &tls.Config{
+					Certificates: []tls.Certificate{svrCertificate},
+					ClientCAs:    caCertPool,
+				}
+
+				grpcServer := grpc.NewServer([]grpc.ServerOption{
+					grpc.Creds(credentials.NewTLS(svrTLSConfig)),
+					grpc.UnaryInterceptor(AccessLogInterceptor()),
+				}...)
+				testService := &grpc_testing.TestPingService{T: t}
+				pb_testproto.RegisterTestServiceServer(grpcServer, testService)
+				go func() {
+					if err := grpcServer.Serve(listener); err != nil {
+						panic(err)
+					}
+				}()
+				closer := func() {
+					listener.Close()
+					grpcServer.Stop()
+				}
+				return grpcServer, closer
+			},
+			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
+				clientTLConfig := &tls.Config{ServerName: serverCName, RootCAs: caCertPool}
+				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+					return listener.Dial()
+				}), grpc.WithTransportCredentials(credentials.NewTLS(clientTLConfig)))
+				return pb_testproto.NewTestServiceClient(clientConn)
+			},
+			wantLog: "m=grpcAccessLog,prin=peerCertificateNotFound",
 		},
 	}
 	for _, tt := range tests {
@@ -254,7 +289,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 			client := tt.setupClient(ctx, grpcServer, listener)
 			_, err := client.Ping(ctx, ping)
 			if err != nil {
-				require.NoError(t, err, "no error should occur.")
+				require.NoError(t, err, "no error should occur")
 			}
 			actualLog := string(buffer.Bytes())
 

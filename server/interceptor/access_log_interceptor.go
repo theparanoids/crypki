@@ -34,7 +34,7 @@ const (
 )
 
 type accessLogInterceptor struct {
-	timeNow       func() time.Time
+	timeNow func() time.Time
 }
 
 func (i *accessLogInterceptor) Func(
@@ -80,7 +80,7 @@ func getStatus(err error) uint32 {
 
 func AccessLogInterceptor() grpc.UnaryServerInterceptor {
 	interceptor := &accessLogInterceptor{
-		timeNow:       time.Now,
+		timeNow: time.Now,
 	}
 	return interceptor.Func
 }

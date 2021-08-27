@@ -35,8 +35,8 @@ type fakeTimer struct {
 	t time.Time
 }
 
-func (f *fakeTimer) reset() {
-	f.t = time.Unix(1234567890, 987654321)
+func newFakeTimer() *fakeTimer {
+	return &fakeTimer{time.Unix(1234567890, 987654321)}
 }
 
 func (f *fakeTimer) now() time.Time {
@@ -106,7 +106,7 @@ func genAndSignX509Cert(cname string, caCert *x509.Certificate, caKey *rsa.Priva
 		NotBefore: time.Now().Add(-10 * time.Second),
 		NotAfter:  time.Now().AddDate(10, 0, 0),
 		KeyUsage:  x509.KeyUsageCRLSign,
-		IsCA: false,
+		IsCA:      false,
 	}
 
 	_, certPem, err := signX509Cert(unsignedCert, caCert, &priv.PublicKey, caKey)
@@ -154,7 +154,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 					ClientCAs:    caCertPool,
 				}
 
-				timer := &fakeTimer{}
+				timer := newFakeTimer()
 				interceptor := &accessLogInterceptor{
 					timeNow: timer.now,
 				}
@@ -202,7 +202,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 				}), grpc.WithTransportCredentials(credentials.NewTLS(clientTLConfig)))
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},
-			wantLog: "m=grpcAccessLog,prin=client-example,sts=-6795364578.871346,mtd=Ping,st=0,dur=1234",
+			wantLog: "m=grpcAccessLog,prin=client-example,sts=1234567890.987654,mtd=Ping,st=0,dur=1234",
 		},
 		{
 			name: "unknown tls info, without time check",

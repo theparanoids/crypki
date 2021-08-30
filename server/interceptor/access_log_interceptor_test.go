@@ -291,7 +291,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 			if err != nil {
 				require.NoError(t, err, "no error should occur")
 			}
-			actualLog := string(buffer.Bytes())
+			actualLog := buffer.String()
 
 			if !strings.Contains(actualLog, tt.wantLog) {
 				t.Fatalf("got: %v but want: %v", actualLog, tt.wantLog)

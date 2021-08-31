@@ -224,7 +224,12 @@ func Main(keyP crypki.KeyIDProcessor) {
 
 // tlsConfiguration returns tls configuration.
 func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMode tls.ClientAuthType) (*tls.Config, error) {
-	cfg := &tls.Config{}
+	cfg := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		NextProtos:               []string{"h2", "http/1.1"}, // prefer HTTP/2 explicitly
+		PreferServerCipherSuites: true,
+		SessionTicketsDisabled:   true, // Don't allow session resumption
+	}
 	certPool := x509.NewCertPool()
 	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
@@ -262,19 +267,8 @@ func tlsConfiguration(caCertPath string, certPath, keyPath string, clientAuthMod
 		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	}
 
-	// Use TLS v1.2 and higher.
-	cfg.MinVersion = tls.VersionTLS12
-
-	// prefer HTTP/2 explicitly
-	cfg.NextProtos = []string{"h2", "http/1.1"}
-
-	cfg.PreferServerCipherSuites = true
-
-	// Don't allow session resumption.
-	cfg.SessionTicketsDisabled = true
 	return cfg, nil
 }
 

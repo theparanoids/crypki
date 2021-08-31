@@ -149,6 +149,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 				}
 
 				svrTLSConfig := &tls.Config{
+					MinVersion:   tls.VersionTLS13,
 					ClientAuth:   tls.RequireAndVerifyClientCert,
 					Certificates: []tls.Certificate{svrCertificate},
 					ClientCAs:    caCertPool,
@@ -192,6 +193,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 				}
 
 				clientTLConfig := &tls.Config{
+					MinVersion:   tls.VersionTLS13,
 					Certificates: []tls.Certificate{clientCertificate},
 					RootCAs:      caCertPool,
 					ServerName:   serverCName,
@@ -245,6 +247,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 				}
 
 				svrTLSConfig := &tls.Config{
+					MinVersion:   tls.VersionTLS13,
 					Certificates: []tls.Certificate{svrCertificate},
 					ClientCAs:    caCertPool,
 				}
@@ -267,7 +270,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 				return grpcServer, closer
 			},
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
-				clientTLConfig := &tls.Config{ServerName: serverCName, RootCAs: caCertPool}
+				clientTLConfig := &tls.Config{MinVersion: tls.VersionTLS13, ServerName: serverCName, RootCAs: caCertPool}
 				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 					return listener.Dial()
 				}), grpc.WithTransportCredentials(credentials.NewTLS(clientTLConfig)))

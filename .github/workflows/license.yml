@@ -30,9 +30,9 @@ jobs:
       with:
         go-version: 1.17.0
     - name: Install addlicense
-        run: go install github.com/google/addlicense@latest
+      run: go install github.com/google/addlicense@latest
     - name: Check license headers
-        run: |
+      run: |
           set -e
           addlicense -l apache -c 'Yahoo.' -v *
           git diff --exit-code

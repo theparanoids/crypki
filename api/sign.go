@@ -17,6 +17,7 @@ type SigningService struct {
 	crypki.KeyIDProcessor
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
+	RequestChan map[string]chan interface{}
 	proto.UnimplementedSigningServer
 }
 

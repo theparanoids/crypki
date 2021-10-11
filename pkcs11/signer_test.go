@@ -34,6 +34,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/proto"
 )
 
 const (
@@ -95,10 +96,10 @@ func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer,
 func initMockSigner(keyType crypki.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
-		sPool:       make(map[string]sPool),
+		sPool:       make(map[string]SPool),
 	}
 
-	sp := newMockSignerPool(isBad, keyType, priv)
+	sp := NewMockSignerPool(isBad, keyType, priv)
 	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
 	return s
@@ -283,6 +284,21 @@ func TestGetX509CACert(t *testing.T) {
 	}
 }
 
+func testCollector(t *testing.T, ctx context.Context, reqChan chan interface{}) {
+	for {
+		req := <-reqChan
+		switch r := req.(type) {
+		case Request:
+			signer, err := r.Pool.Get(ctx)
+			if err != nil {
+				r.RespChan <- nil
+			}
+			r.RespChan <- signer
+		default:
+		}
+	}
+}
+
 func TestSignX509RSACert(t *testing.T) {
 	t.Parallel()
 	subject := pkix.Name{
@@ -319,27 +335,32 @@ func TestSignX509RSACert(t *testing.T) {
 	cp.AddCert(caCert)
 
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	reqChan := make(chan interface{})
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
+		priority    proto.Priority
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-rsa-good-signer": {ctx, certRSA, defaultIdentifier, false, false},
-		"cert-bad-identifier":  {ctx, certRSA, badIdentifier, false, true},
-		"cert-bad-signer":      {ctx, certRSA, defaultIdentifier, true, true},
-		"cert-request-timeout": {timeoutCtx, certRSA, defaultIdentifier, false, true},
+		"cert-rsa-good-signer":   {ctx, certRSA, defaultIdentifier, proto.Priority_High, false, false},
+		"cert-bad-identifier":    {ctx, certRSA, badIdentifier, proto.Priority_Medium, false, true},
+		"cert-bad-signer":        {ctx, certRSA, defaultIdentifier, proto.Priority_Unspecified_priority, true, true},
+		"cert-request-cancelled": {cancelCtx, certRSA, defaultIdentifier, proto.Priority_High, false, true},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
 			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			go testCollector(t, ctx, reqChan)
+			if tt.ctx == cancelCtx {
+				cancel()
+			}
+			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier, tt.priority, reqChan)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}
@@ -403,22 +424,113 @@ func TestSignX509ECCert(t *testing.T) {
 
 	ctx := context.Background()
 
+	reqChan := make(chan interface{})
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
+		priority    proto.Priority
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-ec-good-signer": {ctx, certEC, defaultIdentifier, false, false},
-		"cert-ec-bad-signer":  {ctx, certEC, badIdentifier, false, true},
+		"cert-ec-good-signer": {ctx, certEC, defaultIdentifier, proto.Priority_High, false, false},
+		"cert-ec-bad-signer":  {ctx, certEC, badIdentifier, proto.Priority_Medium, false, true},
+	}
+	for label, tt := range testcases {
+		label, tt := label, tt
+		t.Run(label, func(t *testing.T) {
+			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
+			go testCollector(t, tt.ctx, reqChan)
+			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier, tt.priority, reqChan)
+			if err != nil != tt.expectError {
+				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
+			}
+			if err != nil {
+				return
+			}
+			cd, _ := pem.Decode(data)
+			cert, err := x509.ParseCertificate(cd.Bytes)
+			if err != nil {
+				t.Fatalf("unable to parse certificate: %v", err)
+			}
+			if _, err := cert.Verify(x509.VerifyOptions{
+				Roots:     cp,
+				KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+			}); err != nil {
+				t.Fatalf("failed to verify certificate: %v", err)
+			}
+			if !reflect.DeepEqual(cert.Issuer.String(), caCert.Issuer.String()) {
+				t.Fatalf("issuer mismatch: got %q, want: %q", cert.Issuer, caCert.Issuer.String())
+			}
+			if !reflect.DeepEqual(cert.Subject.String(), subject.String()) {
+				t.Fatalf("subject mismatch: got %q, want: %q", cert.Subject, subject)
+			}
+		})
+	}
+}
+
+func TestSignX509Cert_ContextCancel(t *testing.T) {
+	t.Parallel()
+	subject := pkix.Name{
+		Country:            []string{"US"},
+		Organization:       []string{"Foo"},
+		OrganizationalUnit: []string{"FooUnit"},
+		Locality:           []string{"Bar"},
+		Province:           []string{"Baz"},
+		CommonName:         "foo.bar.com",
+	}
+	eckey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("unable to generate EC key: %v", err)
+	}
+	certEC := &x509.Certificate{
+		Subject:               subject,
+		SerialNumber:          big.NewInt(0),
+		PublicKeyAlgorithm:    x509.ECDSA,
+		PublicKey:             &eckey.PublicKey,
+		SignatureAlgorithm:    x509.ECDSAWithSHA256,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour * 24),
+		DNSNames:              []string{subject.CommonName},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+	caPriv, caCert, err := createCAKeysAndCert(crypki.ECDSA)
+	if err != nil {
+		t.Fatalf("unable to create CA keys and certificate: %v", err)
+	}
+	cp := x509.NewCertPool()
+	cp.AddCert(caCert)
+
+	signerTimeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	cancelCtx, cncl := context.WithCancel(context.Background())
+	defer cncl()
+
+	reqChan := make(chan interface{})
+	testcases := map[string]struct {
+		ctx         context.Context
+		cert        *x509.Certificate
+		identifier  string
+		priority    proto.Priority
+		isBadSigner bool
+		expectError bool
+	}{
+		"context-already-expired": {cancelCtx, certEC, defaultIdentifier, proto.Priority_High, false, true},
+		"cert-ec-timeout-expired": {signerTimeoutCtx, certEC, defaultIdentifier, proto.Priority_High, false, true},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			go testCollector(t, tt.ctx, reqChan)
+			if tt.ctx == cancelCtx {
+				cncl()
+			}
+			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier, tt.priority, reqChan)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}

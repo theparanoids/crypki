@@ -8,6 +8,8 @@ import (
 	"crypto"
 	"crypto/x509"
 
+	"github.com/theparanoids/crypki/proto"
+
 	"golang.org/x/crypto/ssh"
 )
 
@@ -46,13 +48,12 @@ const (
 )
 
 const (
-	// Default values for CAconfig.
+	// Default values for CAConfig.
 	defaultCounty         = "ZZ" // Unknown or unspecified country
 	defaultCompany        = "CompanyName"
 	defaultOrganization   = "OrganizationUnitName"
 	defaultCommonName     = "www.example.com"
 	defaultValidityPeriod = uint64(730 * 24 * 3600) // 2 years
-
 )
 
 // CertSign interface contains methods related to signing certificates.
@@ -64,7 +65,7 @@ type CertSign interface {
 	// GetX509CACert returns the X509 CA cert of the specified key.
 	GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignX509Cert returns an x509 cert signed by the specified key.
-	SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error)
+	SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string, priority proto.Priority, reqChan chan interface{}) ([]byte, error)
 	// GetBlobSigningPublicKey returns the public signing key of the specified key that signs the user's data.
 	GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignBlob returns a signature signed by the specified key.

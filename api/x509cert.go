@@ -14,6 +14,7 @@ import (
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/x509cert"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -143,7 +144,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 	respCh := make(chan resp)
 	go func() {
-		cert, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier)
+		cert, err := s.SignX509Cert(reqCtx, req, request.KeyMeta.Identifier, request.Priority, s.RequestChan[config.X509CertEndpoint])
 		respCh <- resp{cert, err}
 	}()
 

@@ -33,9 +33,13 @@ import (
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/interceptor"
+	"github.com/theparanoids/crypki/server/priority"
 )
 
-const defaultLogFile = "/var/log/crypki/server.log"
+const (
+	defaultLogFile = "/var/log/crypki/server.log"
+	poolSize       = 10
+)
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. More: https://grpc.io/blog/coreos
@@ -129,13 +133,18 @@ func Main(keyP crypki.KeyIDProcessor) {
 
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
-
+	requestChan := make(map[string]chan interface{})
+	dispatcherChan := make(map[string]chan pkcs11.Request)
 	for _, usage := range cfg.KeyUsages {
 		keyUsages[usage.Endpoint] = make(map[string]bool)
 		for _, id := range usage.Identifiers {
 			keyUsages[usage.Endpoint][id] = true
 		}
 		maxValidity[usage.Endpoint] = usage.MaxValidity
+		requestChan[usage.Endpoint] = make(chan interface{})
+		dispatcherChan[usage.Endpoint] = make(chan pkcs11.Request, priority.QueueSize)
+		go priority.CollectRequest(ctx, requestChan[usage.Endpoint], dispatcherChan[usage.Endpoint], usage.Endpoint)
+		go priority.DispatchRequest(ctx, dispatcherChan[usage.Endpoint], poolSize, usage.PriorityBasedScheduling, usage.Endpoint)
 	}
 
 	hostname, err := os.Hostname()
@@ -202,7 +211,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
 
-	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP}
+	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP, RequestChan: requestChan}
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}

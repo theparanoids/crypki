@@ -87,7 +87,7 @@ func createWorkers(ctx context.Context, workerQueue chan Worker, nWorkers int) [
 
 // assignWork assigns the request to the worker based on the priority of the worker. If no request of the worker priority
 // exists, worker will start stealing work from the higher priority queue. If no work for higher priority Q exists, it will
-// sleep for 50 millisecond and retry.
+// sleep for waitTime (currently 50 milliseconds) and retry.
 func (w *Worker) assignWork(ctx context.Context, pmap map[proto.Priority]chan pkcs11.Request) {
 	for {
 		select {
@@ -117,6 +117,7 @@ func stealWork(pmap map[proto.Priority]chan pkcs11.Request) (pkcs11.Request, boo
 		return work, true
 	default:
 	}
+	// We are iterating over the entire map so we are re-checking for work of the worker's original priority level. That's intentional.
 	for pri := range pmap {
 		select {
 		case work := <-pmap[pri]:
@@ -124,6 +125,7 @@ func stealWork(pmap map[proto.Priority]chan pkcs11.Request) (pkcs11.Request, boo
 		default:
 		}
 	}
+	// no requests are enqueued
 	return pkcs11.Request{}, false
 }
 

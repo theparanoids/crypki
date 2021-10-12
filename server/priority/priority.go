@@ -95,14 +95,16 @@ func dumpStats(ctx context.Context, workers []*Worker, endpoint string, tickerTi
 		for {
 			select {
 			case <-ticker.C:
-				priorityCount := map[proto.Priority]int32{}
+				priorityCount := map[int32]int32{}
 				for _, worker := range workers {
-					priorityCount[worker.priority] += worker.totalProcessed[getPriorityToValMap(worker.priority)].Get()
-					worker.totalProcessed[getPriorityToValMap(worker.priority)].Reset()
+					for pri := range proto.Priority_name {
+						priorityCount[pri] += worker.totalProcessed[getPriorityToValMap(proto.Priority(pri))].Get()
+						worker.totalProcessed[getPriorityToValMap(proto.Priority(pri))].Reset()
+					}
 				}
 				msg := fmt.Sprintf("total requests processed for %q: ", endpoint)
 				for pri, val := range proto.Priority_name {
-					msg += fmt.Sprintf("%s=%d ", val, priorityCount[proto.Priority(pri)])
+					msg += fmt.Sprintf("%s=%d ", val, priorityCount[pri])
 				}
 				log.Println(msg)
 			case <-ctx.Done():

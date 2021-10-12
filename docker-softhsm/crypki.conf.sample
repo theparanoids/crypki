@@ -39,7 +39,6 @@
             "KeyLabel": "host_x509",
             "KeyType": 2,
             "SignatureAlgo": 3,
-            "Locality": "Example",
             "Organization": "Example! Inc.",
             "OrganizationalUnit": "Example",
             "SlotNumber": SLOTNUM_HOST_X509,

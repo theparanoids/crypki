@@ -299,7 +299,6 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	caConfig := &crypki.CAConfig{
 		Country:            key.Country,
 		State:              key.State,
-		Locality:           key.Locality,
 		Organization:       key.Organization,
 		OrganizationalUnit: key.OrganizationalUnit,
 		CommonName:         key.CommonName,

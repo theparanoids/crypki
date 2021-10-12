@@ -91,7 +91,6 @@ func main() {
 			CreateCACertIfNotExist: true,
 			Country:                cc.Country,
 			State:                  cc.State,
-			Locality:               cc.Locality,
 			Organization:           cc.Organization,
 			OrganizationalUnit:     cc.OrganizationalUnit,
 			CommonName:             cc.CommonName,

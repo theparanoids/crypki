@@ -69,7 +69,6 @@ func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer,
 		Subject: pkix.Name{
 			Country:      []string{"US"},
 			Organization: []string{"Oath Inc."},
-			Locality:     []string{"Sunnyvale"},
 			CommonName:   "testca.cameo.ouroath.com",
 		},
 		SerialNumber:          big.NewInt(1),
@@ -373,7 +372,6 @@ func TestSignX509ECCert(t *testing.T) {
 		Country:            []string{"US"},
 		Organization:       []string{"Foo"},
 		OrganizationalUnit: []string{"FooUnit"},
-		Locality:           []string{"Bar"},
 		Province:           []string{"Baz"},
 		CommonName:         "foo.bar.com",
 	}

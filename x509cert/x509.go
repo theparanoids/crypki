@@ -23,12 +23,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	start := uint64(time.Now().Unix())
 	end := start + config.ValidityPeriod
 	start -= 3600
-	var country, locality, province, org, orgUnit []string
+	var country, province, org, orgUnit []string
 	if config.Country != "" {
 		country = []string{config.Country}
-	}
-	if config.Locality != "" {
-		locality = []string{config.Locality}
 	}
 	if config.State != "" {
 		province = []string{config.State}
@@ -43,7 +40,6 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	subj := pkix.Name{
 		CommonName:         config.CommonName,
 		Country:            country,
-		Locality:           locality,
 		Province:           province,
 		Organization:       org,
 		OrganizationalUnit: orgUnit,

@@ -94,7 +94,6 @@ func TestGenCACert(t *testing.T) {
 		"all-fields": {
 			cfg: &crypki.CAConfig{
 				Country:            "US",
-				Locality:           "Sunnyvale",
 				State:              "CA",
 				Organization:       "Foo Org",
 				OrganizationalUnit: "Foo Org Unit",
@@ -107,7 +106,6 @@ func TestGenCACert(t *testing.T) {
 			wantSubj: pkix.Name{
 				CommonName:         "foo.example.com",
 				Country:            []string{"US"},
-				Locality:           []string{"Sunnyvale"},
 				Province:           []string{"CA"},
 				Organization:       []string{"Foo Org"},
 				OrganizationalUnit: []string{"Foo Org Unit"},
@@ -116,7 +114,6 @@ func TestGenCACert(t *testing.T) {
 		"no-ST": {
 			cfg: &crypki.CAConfig{
 				Country:            "US",
-				Locality:           "Sunnyvale",
 				Organization:       "Foo Org",
 				OrganizationalUnit: "Foo Org Unit",
 				CommonName:         "foo.example.com",
@@ -128,7 +125,6 @@ func TestGenCACert(t *testing.T) {
 			wantSubj: pkix.Name{
 				CommonName:         "foo.example.com",
 				Country:            []string{"US"},
-				Locality:           []string{"Sunnyvale"},
 				Organization:       []string{"Foo Org"},
 				OrganizationalUnit: []string{"Foo Org Unit"},
 			},
@@ -156,7 +152,6 @@ func TestGenCACert(t *testing.T) {
 		"no-Org": {
 			cfg: &crypki.CAConfig{
 				Country:            "US",
-				Locality:           "Sunnyvale",
 				State:              "CA",
 				OrganizationalUnit: "Foo Org Unit",
 				CommonName:         "foo.example.com",
@@ -168,7 +163,6 @@ func TestGenCACert(t *testing.T) {
 			wantSubj: pkix.Name{
 				CommonName:         "foo.example.com",
 				Country:            []string{"US"},
-				Locality:           []string{"Sunnyvale"},
 				Province:           []string{"CA"},
 				OrganizationalUnit: []string{"Foo Org Unit"},
 			},

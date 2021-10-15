@@ -78,12 +78,12 @@ func (s *p11Signer) Public() crypto.PublicKey {
 	}
 }
 
-// publicAlgorithm returns the public key algorithm of signer.
-func (s *p11Signer) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
+// PublicKeyAlgorithm returns the public key algorithm of signer.
+func (s *p11Signer) PublicKeyAlgorithm() crypki.PublicKeyAlgorithm {
 	return s.keyType
 }
 
-// signAlgorithm returns the signature algorithm of signer.
-func (s *p11Signer) signAlgorithm() crypki.SignatureAlgorithm {
+// SignAlgorithm returns the signature algorithm of signer.
+func (s *p11Signer) SignAlgorithm() crypki.SignatureAlgorithm {
 	return s.signatureAlgo
 }

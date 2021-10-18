@@ -31,11 +31,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theparanoids/crypki/proto"
-
 	"golang.org/x/crypto/ssh"
 
 	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/proto"
 )
 
 const (
@@ -97,10 +96,10 @@ func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer,
 func initMockSigner(keyType crypki.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
-		sPool:       make(map[string]SPool),
+		sPool:       make(map[string]sPool),
 	}
 
-	sp := NewMockSignerPool(isBad, keyType, priv)
+	sp := newMockSignerPool(isBad, keyType, priv)
 	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
 	return s

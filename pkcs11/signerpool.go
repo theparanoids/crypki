@@ -11,27 +11,27 @@ import (
 	"github.com/theparanoids/crypki"
 )
 
-// SPool is an abstract interface of pool of crypto.Signer
-type SPool interface {
-	Get(ctx context.Context) (SignerWithSignAlgorithm, error)
-	Put(s SignerWithSignAlgorithm)
+// sPool is an abstract interface of pool of crypto.Signer
+type sPool interface {
+	get(ctx context.Context) (signerWithSignAlgorithm, error)
+	put(s signerWithSignAlgorithm)
 }
 
-type SignerWithSignAlgorithm interface {
+type signerWithSignAlgorithm interface {
 	crypto.Signer
-	PublicKeyAlgorithm() crypki.PublicKeyAlgorithm
-	SignAlgorithm() crypki.SignatureAlgorithm
+	publicKeyAlgorithm() crypki.PublicKeyAlgorithm
+	signAlgorithm() crypki.SignatureAlgorithm
 }
 
 // SignerPool is a pool of PKCS11 signers
 // each key is corresponding with a SignerPool
 type SignerPool struct {
-	signers chan SignerWithSignAlgorithm
+	signers chan signerWithSignAlgorithm
 }
 
 // newSignerPool initializes a signer pool based on the configuration parameters
-func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, keyLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (SPool, error) {
-	signers := make(chan SignerWithSignAlgorithm, nSigners)
+func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, keyLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (sPool, error) {
+	signers := make(chan signerWithSignAlgorithm, nSigners)
 	for i := 0; i < nSigners; i++ {
 		signerInstance, err := makeSigner(context, slot, keyLabel, keyType, signatureAlgo)
 		if err != nil {
@@ -44,7 +44,7 @@ func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, keyLabel string, 
 	}, nil
 }
 
-func (c *SignerPool) Get(ctx context.Context) (SignerWithSignAlgorithm, error) {
+func (c *SignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
 	select {
 	case signer := <-c.signers:
 		return signer, nil
@@ -53,6 +53,6 @@ func (c *SignerPool) Get(ctx context.Context) (SignerWithSignAlgorithm, error) {
 	}
 }
 
-func (c *SignerPool) Put(instance SignerWithSignAlgorithm) {
+func (c *SignerPool) put(instance signerWithSignAlgorithm) {
 	c.signers <- instance
 }

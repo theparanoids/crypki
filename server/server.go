@@ -131,21 +131,35 @@ func Main(keyP crypki.KeyIDProcessor) {
 	log.SetOutput(file)
 	go logRotate(file)
 
+	type priorityDispatchInfo struct {
+		endpoint        string
+		priBasedEnabled bool
+		reqDispatched   bool
+	}
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
-	requestChan := make(map[string]chan interface{})
-	dispatcherChan := make(map[string]chan interface{})
+	requestChan := make(map[string]chan priority.Request)
+	dispatcherChan := make(map[string]chan priority.Request)
+	idEpMap := make(map[string]priorityDispatchInfo)
 
 	for _, usage := range cfg.KeyUsages {
 		keyUsages[usage.Endpoint] = make(map[string]bool)
 		for _, id := range usage.Identifiers {
+			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PriorityBasedScheduling, false}
 			keyUsages[usage.Endpoint][id] = true
 		}
 		maxValidity[usage.Endpoint] = usage.MaxValidity
-		requestChan[usage.Endpoint] = make(chan interface{})
-		dispatcherChan[usage.Endpoint] = make(chan interface{}, priority.QueueSize)
+		requestChan[usage.Endpoint] = make(chan priority.Request)
+		dispatcherChan[usage.Endpoint] = make(chan priority.Request, priority.QueueSize)
 		go priority.CollectRequest(ctx, requestChan[usage.Endpoint], dispatcherChan[usage.Endpoint], usage.Endpoint)
-		go priority.DispatchRequest(ctx, dispatcherChan[usage.Endpoint], poolSize, usage.PriorityBasedScheduling, usage.Endpoint)
+	}
+
+	for _, key := range cfg.Keys {
+		v := idEpMap[key.Identifier]
+		if !v.reqDispatched {
+			v.reqDispatched = true
+			go priority.DispatchRequest(ctx, dispatcherChan[v.endpoint], key.SessionPoolSize, v.priBasedEnabled, v.endpoint)
+		}
 	}
 
 	hostname, err := os.Hostname()

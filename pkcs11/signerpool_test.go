@@ -15,7 +15,10 @@
 package pkcs11
 
 import (
+	"context"
+	"crypto"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -23,6 +26,60 @@ import (
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/pkcs11/mock_pkcs11"
 )
+
+type badSigner struct{}
+
+func (b *badSigner) Public() crypto.PublicKey {
+	return []byte("bad byte")
+}
+
+func (b *badSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	return nil, errors.New("bad signer")
+}
+
+type MockSignerPool struct {
+	signer  crypto.Signer
+	keyType crypki.PublicKeyAlgorithm
+}
+
+func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
+	select {
+	case <-ctx.Done():
+		return nil, errors.New("client timeout")
+	default:
+		return c, nil
+	}
+}
+
+func (c MockSignerPool) put(instance signerWithSignAlgorithm) {
+
+}
+
+func (c MockSignerPool) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
+	return c.keyType
+}
+
+func (c MockSignerPool) signAlgorithm() crypki.SignatureAlgorithm {
+	if c.keyType == crypki.ECDSA {
+		return crypki.ECDSAWithSHA256
+	}
+	return crypki.SHA256WithRSA
+}
+
+func (c MockSignerPool) Public() crypto.PublicKey {
+	return c.signer.Public()
+}
+
+func (c MockSignerPool) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
+	return c.signer.Sign(rand, digest, opts)
+}
+
+func newMockSignerPool(isBad bool, keyType crypki.PublicKeyAlgorithm, priv crypto.Signer) sPool {
+	if isBad {
+		return MockSignerPool{&badSigner{}, keyType}
+	}
+	return MockSignerPool{priv, keyType}
+}
 
 func TestNewSignerPool(t *testing.T) {
 	t.Parallel()

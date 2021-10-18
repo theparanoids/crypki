@@ -19,7 +19,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 )
 
@@ -29,7 +28,7 @@ const (
 
 // CollectRequest is responsible for receiving work requests from the client & dispatches the request to dispatcher
 // & waits for another request.
-func CollectRequest(ctx context.Context, requestChan <-chan interface{}, dispatcherChan chan<- interface{}, endpoint string) {
+func CollectRequest(ctx context.Context, requestChan <-chan Request, dispatcherChan chan<- Request, endpoint string) {
 	log.Printf("start collecting requests for endpoint %q", endpoint)
 	for {
 		select {
@@ -47,40 +46,28 @@ func CollectRequest(ctx context.Context, requestChan <-chan interface{}, dispatc
 // correct priority queue. It also starts workers based on SessionPoolSize. Workers would notify the dispatcher if they are
 // idle & dispatcher assigns work based on priority. It also does work stealing. If the feature is turned off, we treat each
 // request as high priority and proceed acc.
-func DispatchRequest(ctx context.Context, dispatcherChan <-chan interface{}, nworkers int, priorityBasedScheduling bool, endpoint string) {
-	pmap := map[proto.Priority]chan interface{}{}
-	for pri := range proto.Priority_name {
-		pmap[proto.Priority(pri)] = make(chan interface{}, QueueSize)
-	}
-
+func DispatchRequest(ctx context.Context, dispatcherChan <-chan Request, nworkers int, priorityBasedScheduling bool, endpoint string) {
 	// create new workers
-	workerQueue := make(chan Worker, nworkers)
-	workers := createWorkers(ctx, workerQueue, nworkers)
+	workerQ := make(chan Worker, nworkers)
+	p := Pool{Name: endpoint, Size: nworkers, QueueSize: nworkers}
+	p.Initialize(workerQ)
+	p.Start(ctx)
 
 	// Get statistics every 5 minutes for total requests processed per priority for each endpoint.
-	go dumpStats(ctx, workers, endpoint, 5*time.Minute)
+	go dumpStats(ctx, p.Workers, endpoint, 5*time.Minute)
 
 	go func() {
 		for {
 			select {
-			case evt, ok := <-dispatcherChan:
-				if !ok {
-					dispatcherChan = nil
-					return
-				}
-				req, ok := evt.(pkcs11.Request)
-				if !ok {
-					log.Printf("invalid request type %T received, skip processing it", evt)
-					return
-				}
+			case req := <-dispatcherChan:
 				if !priorityBasedScheduling {
-					pmap[proto.Priority_High] <- req
+					p.PQueueMap[proto.Priority_High] <- req
 				} else {
-					pmap[req.Priority] <- req
+					p.PQueueMap[req.Priority] <- req
 				}
-			case w := <-workerQueue:
+			case w := <-workerQ:
 				// worker is idle, assign some work to the worker
-				go w.assignWork(ctx, pmap)
+				go w.Start(ctx, p.PQueueMap)
 			case <-ctx.Done():
 				log.Printf("server context is closed, close dispatcher. %v", ctx.Err())
 				return
@@ -97,8 +84,8 @@ func dumpStats(ctx context.Context, workers []*Worker, endpoint string, tickerTi
 			priorityCount := map[int32]int32{}
 			for _, worker := range workers {
 				for pri := range proto.Priority_name {
-					priorityCount[pri] += worker.totalProcessed[priorityToValMap[(proto.Priority(pri))]].Get()
-					worker.totalProcessed[priorityToValMap[(proto.Priority(pri))]].Reset()
+					priorityCount[pri] += worker.TotalProcessed[PriToValMap[(proto.Priority(pri))]].Get()
+					worker.TotalProcessed[PriToValMap[(proto.Priority(pri))]].Reset()
 				}
 			}
 			msg := fmt.Sprintf("total requests processed for %q: ", endpoint)

@@ -36,10 +36,7 @@ import (
 	"github.com/theparanoids/crypki/server/priority"
 )
 
-const (
-	defaultLogFile = "/var/log/crypki/server.log"
-	poolSize       = 10
-)
+const defaultLogFile = "/var/log/crypki/server.log"
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. More: https://grpc.io/blog/coreos

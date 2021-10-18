@@ -1,3 +1,16 @@
+// Copyright 2021 Yahoo.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package priority
 
 import (
@@ -7,6 +20,7 @@ import (
 	"github.com/theparanoids/crypki/proto"
 )
 
+// PriToValMap keeps a mapping between priority type & slice indices
 var PriToValMap = map[proto.Priority]int32{
 	proto.Priority_Unspecified_priority: 0,
 	proto.Priority_High:                 1,
@@ -14,27 +28,29 @@ var PriToValMap = map[proto.Priority]int32{
 	proto.Priority_Low:                  3,
 }
 
-// DoWorker ...
+// DoWorker is an interface for doing actual work
 type DoWorker interface {
 	DoWork(ctx context.Context, worker *Worker)
 }
 
-// Request ...
+// Request is a struct which has priority & a DoWorker interface.
 type Request struct {
 	Priority proto.Priority
 	DoWorker
 }
 
-// Worker ...
+// Worker struct stores worker information including worker id, priority & workerQ for indicating if the worker is idle or not.
 type Worker struct {
 	Id             int            // Id is a unique id for the worker
-	TotalProcessed []Counter      // TotalProcessed indicates the total request processed per priority by this worker.
 	Priority       proto.Priority // Priority indicates the priority of the request the worker is handling.
+	TotalProcessed []Counter      // TotalProcessed indicates the total request processed per priority by this worker.
 	WorkerQueue    chan Worker    // WorkerQueue is a channel to notify the dispatcher worker is idle.
 	QuitChan       chan bool      // QuitChan is a channel to cancel the worker
 }
 
-// Start method assigns the request to the worker to perform the job
+// Start method assigns the request to the worker to perform the job based on priority of the worker. If no request for workers'
+// priority exists, it will start stealing work from other priority queues.
+// If no work available it will sleep for waitTime (currently 50 milliseconds) and retry.
 func (w *Worker) Start(ctx context.Context, jobQueue map[proto.Priority]chan Request) {
 	w.QuitChan = make(chan bool)
 

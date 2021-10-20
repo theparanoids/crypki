@@ -78,7 +78,7 @@ func (s *p11Signer) Public() crypto.PublicKey {
 	}
 }
 
-// publicAlgorithm returns the public key algorithm of signer.
+// publicKeyAlgorithm returns the public key algorithm of signer.
 func (s *p11Signer) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
 	return s.keyType
 }

@@ -29,11 +29,24 @@ import (
 	"time"
 
 	p11 "github.com/miekg/pkcs11"
+	"golang.org/x/crypto/ssh"
+
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/x509cert"
-	"golang.org/x/crypto/ssh"
 )
+
+/* Request holds information needed by the collector to fetch the request & process it.
+   It also has a channel on which it waits for the response.
+*/
+type Request struct {
+	pool     sPool          // Pool is a signer pool per identifier from which to fetch the signer
+	priority proto.Priority // Priority of the incoming request
+	//insertTime    time.Time                    // InsertTime is the time when the request arrived
+	remainingTime time.Duration                // RemainingTime indicates the time remaining before either the client cancels or the request times out.
+	respChan      chan signerWithSignAlgorithm // RespChan is the channel where the worker sends the signer once it gets it from the pool
+}
 
 // signer implements crypki.CertSign interface.
 type signer struct {
@@ -90,7 +103,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 			return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
 		}
 		s.sPool[key.Identifier] = pool
-		// Initialize x509 CA cert if this key will be used for signing x509 certs.
+		// initialize x509 CA cert if this key will be used for signing x509 certs.
 		if requireX509CACert[key.Identifier] {
 			cert, err := getX509CACert(ctx, key, pool, hostname, ips)
 			if err != nil {

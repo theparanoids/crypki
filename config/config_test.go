@@ -24,10 +24,10 @@ func TestParse(t *testing.T) {
 			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 1, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
 		},
 		KeyUsages: []KeyUsage{
-			{"/sig/x509-cert", []string{"key1", "key3"}, 3600},
-			{"/sig/ssh-host-cert", []string{"key1", "key2"}, 36000},
-			{"/sig/ssh-user-cert", []string{"key3"}, 36000},
-			{"/sig/blob", []string{"key1"}, 36000},
+			{"/sig/x509-cert", []string{"key1", "key3"}, 3600, true},
+			{"/sig/ssh-host-cert", []string{"key1", "key2"}, 36000, false},
+			{"/sig/ssh-user-cert", []string{"key3"}, 36000, false},
+			{"/sig/blob", []string{"key1"}, 36000, false},
 		},
 		ShutdownOnInternalFailure: true,
 		ShutdownOnInternalFailureCriteria: struct {

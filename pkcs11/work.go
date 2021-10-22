@@ -27,7 +27,7 @@ type Work struct {
 }
 
 func (w *Work) DoWork(ctx context.Context, worker *priority.Worker) {
-	log.Printf("starting work for %d priority %d", worker.Id, worker.Priority)
+	log.Printf("starting work for %d priority %d request prio %d", worker.Id, worker.Priority, w.work.priority)
 	select {
 	case <-ctx.Done():
 		log.Printf("worker %d stopped", worker.Id)
@@ -41,7 +41,7 @@ func (w *Work) DoWork(ctx context.Context, worker *priority.Worker) {
 			cancel()
 			return
 		}
-		worker.TotalProcessed[priority.PriToValMap[w.work.priority]].Inc()
+		worker.TotalProcessed.Inc()
 		w.work.respChan <- signer
 		cancel()
 	}

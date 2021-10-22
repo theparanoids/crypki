@@ -24,26 +24,22 @@ func TestPool_Initialize(t *testing.T) {
 	tests := map[string]struct {
 		nworkers int
 		endpoint string
-		qSize    int
 	}{
 		"2 workers": {
 			nworkers: 2,
 			endpoint: "dummy",
-			qSize:    10,
 		},
 		"10 workers": {
 			nworkers: 10,
 			endpoint: "/v1/x509-cert",
-			qSize:    10,
 		},
 	}
 
 	for label, tt := range tests {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
-			workerQ := make(chan Worker, tt.nworkers)
-			p := &pool{name: tt.endpoint, size: tt.nworkers, queueSize: tt.qSize}
-			p.initialize(workerQ)
+			p := &Pool{Name: tt.endpoint, PoolSize: tt.nworkers}
+			p.initialize()
 			p.start(ctx)
 			p.stop(ctx)
 		})

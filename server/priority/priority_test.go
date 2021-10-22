@@ -15,214 +15,187 @@ package priority
 
 import (
 	"context"
+	"log"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/theparanoids/crypki/proto"
 )
 
-const timeout = 50 * time.Millisecond
+const jitter = 10 * time.Millisecond
+
+type TestWork struct {
+	insertTime time.Time
+	name       string
+	DoWorker
+}
+
+func (w *TestWork) DoWork(ctx context.Context, worker *Worker) {
+	worker.TotalProcessed.Inc()
+	log.Printf("overriding the work for worker %d(priority: %s), endpoint: %s insertTime %v",
+		worker.Id, proto.Priority_name[int32(worker.Priority)], w.name, w.insertTime)
+	// add a fixed sleep for simulating real work
+	time.Sleep(jitter)
+}
 
 func TestCollectRequest(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	p := initializePool(t, ctx, "dummy", 10, 1)
-	p.start(ctx)
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	originalStatsTimer := statsTimer
+	statsTimer = 100 * time.Millisecond
+	defer func() {
+		statsTimer = originalStatsTimer
+	}()
 	tests := map[string]struct {
-		ctx        context.Context
-		endpoint   string
-		workerPool func(endpoint string) *pool
-		priority   proto.Priority
-		wantResp   bool
+		ctx             context.Context
+		poolSize        int
+		priSchedFeature bool
+		endpoint        string
+		totalRequests   []int32
+		enqRequest      func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string)
 	}{
-		"happy path": {
-			ctx:      ctx,
-			endpoint: "dummy",
-			workerPool: func(endpoint string) *pool {
-				p := initializePool(t, ctx, endpoint, 10, 10)
-				p.start(ctx)
-				return p
+		"feature enabled poolsize 2": {
+			ctx:             ctx,
+			poolSize:        2,
+			priSchedFeature: true,
+			endpoint:        "/v1/FeatureEnabled",
+			totalRequests:   []int32{10, 7, 3},
+			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
+				for i := 1; i <= 20; i++ {
+					var priority proto.Priority
+					if i%6 == 0 {
+						priority = proto.Priority_Low
+					} else if i%3 == 0 || i%4 == 0 {
+						priority = proto.Priority_Medium
+					} else {
+						priority = proto.Priority_High
+					}
+
+					reqChan <- Request{
+						Priority: priority,
+						DoWorker: &TestWork{
+							insertTime: time.Now(),
+							name:       endpoint,
+						},
+					}
+				}
+				wg.Done()
 			},
-			priority: proto.Priority_High,
-			wantResp: true,
 		},
-		"client context deadline exceeded": {
-			ctx:      timeoutCtx,
-			endpoint: "/v1/endpoint",
-			workerPool: func(endpoint string) *pool {
-				p := initializePool(t, ctx, endpoint, 5, 10)
-				p.start(ctx)
-				return p
+		"feature disabled": {
+			ctx:             ctx,
+			poolSize:        2,
+			priSchedFeature: false,
+			endpoint:        "/v2/featureDisabled",
+			totalRequests:   []int32{10, 0, 0},
+			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
+				for i := 1; i <= 10; i++ {
+					var priority proto.Priority
+					if i%4 == 0 {
+						priority = proto.Priority_Low
+					} else if i%3 == 0 {
+						priority = proto.Priority_Medium
+					} else {
+						priority = proto.Priority_High
+					}
+
+					reqChan <- Request{
+						Priority: priority,
+						DoWorker: &TestWork{
+							insertTime: time.Now(),
+							name:       endpoint,
+						},
+					}
+				}
+				wg.Done()
 			},
-			priority: proto.Priority_Medium,
-			wantResp: false,
+		},
+		"context cancelled after enqueuing request": {
+			ctx:             cancelCtx,
+			poolSize:        2,
+			priSchedFeature: true,
+			endpoint:        "/v3/ctxCancel",
+			totalRequests:   []int32{0, 0, 1},
+			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
+				for i := 1; i <= 10; {
+					reqChan <- Request{
+						Priority: proto.Priority_Low,
+						DoWorker: &TestWork{
+							insertTime: time.Now(),
+							name:       endpoint,
+						},
+					}
+					cancel()
+					i++
+					break
+				}
+				wg.Done()
+			},
+		},
+		"feature enabled all low pri request": {
+			ctx:             ctx,
+			poolSize:        2,
+			priSchedFeature: true,
+			endpoint:        "/v4/lowPriReq",
+			totalRequests:   []int32{0, 0, 10},
+			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
+				for i := 1; i <= 10; i++ {
+					reqChan <- Request{
+						Priority: proto.Priority_Low,
+						DoWorker: &TestWork{
+							insertTime: time.Now(),
+							name:       endpoint,
+						},
+					}
+				}
+				wg.Done()
+			},
+		},
+		"empty request": {
+			ctx:             ctx,
+			poolSize:        2,
+			priSchedFeature: true,
+			endpoint:        "/v5/emptyRequest",
+			totalRequests:   []int32{0, 0, 0},
+			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
+				reqChan <- Request{}
+				wg.Done()
+			},
 		},
 	}
 
-	requestChan := make(chan Request)
-	for name, tt := range tests {
+	var wg sync.WaitGroup
+	for label, tt := range tests {
 		tt := tt
-		t.Run(name, func(t *testing.T) {
-			dispatcherChan := make(chan Request)
-			go CollectRequest(tt.ctx, requestChan, dispatcherChan, tt.endpoint)
-			p := tt.workerPool(tt.endpoint)
-			if tt.ctx == timeoutCtx {
-				cancel()
-			} else {
-				req := Request{
-					Priority: tt.priority,
-					DoWorker: &TestWork{},
-				}
-				requestChan <- req
-			}
-			select {
-			case _, ok := <-dispatcherChan:
-				if tt.wantResp && !ok || !tt.wantResp && ok {
-					t.Fatalf("%s: expected resp %v got %v", name, tt.wantResp, ok)
-				}
-			case <-tt.ctx.Done():
-			}
-			p.stop(ctx)
+		t.Run(label, func(t *testing.T) {
+			wg.Add(1)
+			reqChan := make(chan Request)
+			p := &Pool{Name: tt.endpoint, PoolSize: tt.poolSize, FeatureEnabled: tt.priSchedFeature}
+			go CollectRequest(tt.ctx, reqChan, p)
+			// enqueue request on this channel
+			go tt.enqRequest(&wg, reqChan, tt.endpoint)
+			time.Sleep(100 * time.Millisecond)
 		})
 	}
-	cancel()
+	wg.Wait()
 }
 
 /*
-func TestDispatchRequest(t *testing.T) {
-	t.Parallel()
-	requestChan := make(chan interface{})
-	dispatcherChan := make(chan interface{})
-	caPriv, err := createCAKey(crypki.ECDSA)
-	if err != nil {
-		t.Fatalf("error getting CA Priv key: %v", err)
+func matchReqCount(t *testing.T, p *Pool, endpoint string, expected []int32) {
+	type statsCount map[proto.Priority]int32
+	sc := make(statsCount)
+	for _, w := range p.workers {
+		if _, exist := sc[w.Priority]; !exist {
+			sc[w.Priority] = 0
+		}
+		sc[w.Priority] += w.TotalProcessed.Get()
 	}
-	go CollectRequest(context.Background(), requestChan, dispatcherChan, "dummy")
-	priorities := []proto.Priority{proto.Priority_Unspecified_priority, proto.Priority_High, proto.Priority_Medium, proto.Priority_Low}
 
-	tests := map[string]struct {
-		desc           string
-		nworkers       int
-		featureEnabled bool
-		requestFn      func()
-	}{
-		"2 workers multiple requests feature enabled": {
-			desc:           "ensure workers are not idle & they always have some work in the queue",
-			nworkers:       2,
-			featureEnabled: true,
-			requestFn: func() {
-				for i := 1; i <= 10; i++ {
-					priority := priorities[mrand.Intn(len(priorities))]
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      priority,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-		"multiple workers 5 requests feature enabled": {
-			desc:           "multiple workers will be idle as very few requests",
-			nworkers:       10,
-			featureEnabled: true,
-			requestFn: func() {
-				for i := 1; i <= 5; i++ {
-					priority := priorities[mrand.Intn(len(priorities))]
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      priority,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-		"multiple workers multiple request feature disabled": {
-			desc:           "feature disabled so all requests are treated as high priority",
-			nworkers:       10,
-			featureEnabled: false,
-			requestFn: func() {
-				for i := 1; i <= 30; i++ {
-					priority := priorities[mrand.Intn(len(priorities))]
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      priority,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-		"few workers with medium priority requests feature enabled": {
-			desc:           "all requests are medium priority so other workers do work stealing",
-			nworkers:       5,
-			featureEnabled: true,
-			requestFn: func() {
-				for i := 1; i <= 20; i++ {
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      proto.Priority_Medium,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-		"multiple workers with low priority requests feature enabled": {
-			desc:           "all requests are low priority so other workers do work stealing",
-			nworkers:       5,
-			featureEnabled: true,
-			requestFn: func() {
-				for i := 1; i <= 20; i++ {
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      proto.Priority_Low,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-		"multiple workers with unspecified priority requests feature disabled": {
-			desc:           "all requests are unspecified priority so other workers do work stealing",
-			nworkers:       5,
-			featureEnabled: false,
-			requestFn: func() {
-				for i := 1; i <= 20; i++ {
-					req := pkcs11.Request{
-						pool:          pkcs11.NewMockSignerPool(false, crypki.ECDSA, caPriv),
-						Priority:      proto.Priority_Unspecified_priority,
-						InsertTime:    time.Now(),
-						RemainingTime: 10 * time.Second,
-						RespChan:      make(chan pkcs11.SignerWithSignAlgorithm),
-					}
-					requestChan <- req
-				}
-			},
-		},
-	}
-	for name, tt := range tests {
-		tt := tt
-		ctx, cancel := context.WithCancel(context.Background())
-		t.Run(name, func(t *testing.T) {
-			go DispatchRequest(ctx, dispatcherChan, tt.nworkers, tt.featureEnabled, "dummy")
-			tt.requestFn()
-		})
-		cancel()
+	for pri := range sc {
+		log.Printf("endpoint %s got total processed %d, expected %d", endpoint, sc[pri], expected)
 	}
 }
-
 */

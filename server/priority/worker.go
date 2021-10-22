@@ -43,41 +43,34 @@ type Request struct {
 type Worker struct {
 	Id             int            // Id is a unique id for the worker
 	Priority       proto.Priority // Priority indicates the priority of the request the worker is handling.
-	TotalProcessed []Counter      // TotalProcessed indicates the total request processed per priority by this worker.
-	WorkChan       chan Request   // WorkChan is a channel holds the priority and DoWork method for doing the work
-	WorkerQueue    chan Worker    // WorkerQueue is a channel to notify the dispatcher worker is idle.
+	TotalProcessed Counter        // TotalProcessed indicates the total request processed per priority by this worker.
+	TotalTimeout   Counter        // TotalTimeout indicates the total requests that timedout before worker could process it.
 	QuitChan       chan bool      // QuitChan is a channel to cancel the worker
 }
 
 // newWorker creates & returns a new worker object. Its argument is the workerId, the worker priority & a channel
 // that the worker can add itself to when it is idle. It also creates a slice for storing totalProcessed requests.
-func newWorker(workerId int, workerPriority proto.Priority, workerQ chan Worker) *Worker {
-	totalProcessed := make([]Counter, len(proto.Priority_name))
+func newWorker(workerId int, workerPriority proto.Priority) *Worker {
 	return &Worker{
-		Id:             workerId,
-		Priority:       workerPriority,
-		WorkerQueue:    workerQ,
-		WorkChan:       make(chan Request),
-		TotalProcessed: totalProcessed,
-		QuitChan:       make(chan bool),
+		Id:       workerId,
+		Priority: workerPriority,
+		QuitChan: make(chan bool),
 	}
 }
 
 // start method assigns the request to the worker to perform the job based on priority of the worker. If no request for workers'
 // priority exists, it will start stealing work from other priority queues.
 // If no work available it will sleep for waitTime (currently 50 milliseconds) and retry.
-func (w *Worker) start(ctx context.Context) {
+func (w *Worker) start(ctx context.Context, requestQueue map[proto.Priority]chan Request) {
 	go func() {
 		for {
-			// Add ourself into worker queue
-			w.WorkerQueue <- *w
 			select {
-			case job := <-w.WorkChan:
-				if job == (Request{}) {
+			case work := <-requestQueue[w.Priority]:
+				if work == (Request{}) {
 					log.Printf("invalid work received. skip processing it")
 					continue
 				}
-				job.DoWorker.DoWork(ctx, w)
+				work.DoWorker.DoWork(ctx, w)
 			case <-ctx.Done():
 				log.Printf("worker %d stopped, request cancelled", w.Id)
 				return
@@ -95,33 +88,3 @@ func (w *Worker) stop() {
 	log.Printf("stop worker %d", w.Id)
 	w.QuitChan <- true
 }
-
-func (w *Worker) assignWork(ctx context.Context, jobQueue map[proto.Priority]chan Request) {
-	for {
-		select {
-		case request := <-jobQueue[w.Priority]:
-			w.WorkChan <- request
-			return
-		case <-ctx.Done():
-			log.Println("request cancelled, stop assigning work to worker", w.Id)
-			return
-			/*
-				 default:
-					if request, found := stealWork(pmap); found {
-						w.workChan <- request
-						return
-					}
-					// Did not find any work to steal, sleep for 50 milliseconds before retrying.
-					time.Sleep(waitTime)
-			*/
-		}
-	}
-}
-
-/*
-// stealWork will check through each priority Q & return the first request it
-// finds in any of the priority Q based on the priorities.
-func stealWork(jobQueue map[proto.Priority]chan Request) (*Request, bool) {
-	return &Request{}, false
-}
-*/

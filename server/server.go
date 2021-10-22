@@ -130,13 +130,12 @@ func Main(keyP crypki.KeyIDProcessor) {
 
 	type priorityDispatchInfo struct {
 		endpoint        string
-		priBasedEnabled bool
-		reqDispatched   bool
+		priSchedFeature bool
+		collectRequest  bool
 	}
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
 	requestChan := make(map[string]chan priority.Request)
-	dispatcherChan := make(map[string]chan priority.Request)
 	idEpMap := make(map[string]priorityDispatchInfo)
 
 	for _, usage := range cfg.KeyUsages {
@@ -146,16 +145,17 @@ func Main(keyP crypki.KeyIDProcessor) {
 			keyUsages[usage.Endpoint][id] = true
 		}
 		maxValidity[usage.Endpoint] = usage.MaxValidity
-		requestChan[usage.Endpoint] = make(chan priority.Request)
-		dispatcherChan[usage.Endpoint] = make(chan priority.Request, priority.QueueSize)
-		go priority.CollectRequest(ctx, requestChan[usage.Endpoint], dispatcherChan[usage.Endpoint], usage.Endpoint)
 	}
 
 	for _, key := range cfg.Keys {
+		// Since we could have multiple identifier for 1 endpoint, we need to ensure we start collecting request per endpoint
+		// and not per identifier.
 		v := idEpMap[key.Identifier]
-		if !v.reqDispatched {
-			v.reqDispatched = true
-			go priority.DispatchRequest(ctx, dispatcherChan[v.endpoint], key.SessionPoolSize, v.priBasedEnabled, v.endpoint)
+		if !v.collectRequest {
+			v.collectRequest = true
+			requestChan[v.endpoint] = make(chan priority.Request)
+			p := &priority.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
+			go priority.CollectRequest(ctx, requestChan[v.endpoint], p)
 		}
 	}
 

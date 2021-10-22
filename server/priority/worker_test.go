@@ -15,27 +15,12 @@ package priority
 
 import (
 	"context"
-	"log"
-	"math/rand"
 	"testing"
-	"time"
-
-	"github.com/theparanoids/crypki/proto"
 )
 
-type TestWork struct {
-	remTime time.Duration
-	DoWorker
-}
-
-func (w *TestWork) DoWork(ctx context.Context, worker *Worker) {
-	log.Printf("overriding the work for %d", worker.Id)
-}
-
-func initializePool(t *testing.T, ctx context.Context, endpoint string, nworkers int, queueSize int) *pool {
-	workerQ := make(chan Worker, 10)
-	p := &pool{name: endpoint, size: nworkers, queueSize: queueSize}
-	p.initialize(workerQ)
+func initializePool(t *testing.T, ctx context.Context, endpoint string, nworkers int) *Pool {
+	p := &Pool{Name: endpoint, PoolSize: nworkers}
+	p.initialize()
 	return p
 }
 
@@ -45,7 +30,6 @@ func TestWorker(t *testing.T) {
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	priorities := []proto.Priority{proto.Priority_Unspecified_priority, proto.Priority_High, proto.Priority_Medium, proto.Priority_Low}
 	tests := map[string]struct {
 		ctx     context.Context
 		workers func(ctx context.Context) []*Worker
@@ -53,62 +37,33 @@ func TestWorker(t *testing.T) {
 		"multiple workers multiple priorities": {
 			ctx: ctx,
 			workers: func(ctx context.Context) []*Worker {
-				var workers []*Worker
-				for i := 0; i < 10; i++ {
-					priority := priorities[rand.Intn(len(priorities))]
-					w := newWorker(i, priority, make(chan Worker, 10))
-					w.start(ctx)
-					workers = append(workers, w)
-				}
-				return workers
+				p := initializePool(t, ctx, "dummy", 2)
+				p.start(ctx)
+				return p.workers
 			},
 		},
 		"ctx cancelled": {
 			ctx: cancelCtx,
 			workers: func(ctx context.Context) []*Worker {
-				var workers []*Worker
-				for i := 0; i < 3; i++ {
-					priority := priorities[rand.Intn(len(priorities))]
-					w := newWorker(i, priority, make(chan Worker, 3))
-					w.start(ctx)
-					workers = append(workers, w)
-				}
-				return workers
+				p := initializePool(t, ctx, "dummy", 3)
+				p.start(ctx)
+				return p.workers
 			},
 		},
 		"worker stopped": {
 			ctx: ctx,
 			workers: func(ctx context.Context) []*Worker {
-				var workers []*Worker
-				for i := 0; i < 3; i++ {
-					priority := priorities[rand.Intn(len(priorities))]
-					w := newWorker(i, priority, make(chan Worker, 3))
-					w.start(ctx)
-					workers = append(workers, w)
-				}
-				return workers
+				p := initializePool(t, ctx, "dummy", 3)
+				p.start(ctx)
+				p.stop(ctx)
+				return p.workers
 			},
 		},
 	}
 	for label, tt := range tests {
 		tt := tt
 		t.Run(label, func(t *testing.T) {
-			workers := tt.workers(tt.ctx)
-			for _, w := range workers {
-				work := <-w.WorkerQueue
-				if tt.ctx == cancelCtx {
-					cancel()
-					continue
-				} else if label == "worker stopped" {
-					w.stop()
-					continue
-				}
-				work.WorkChan <- Request{
-					Priority: proto.Priority_High,
-					DoWorker: &TestWork{remTime: 1 * time.Minute},
-				}
-				w.stop()
-			}
+			_ = tt.workers(tt.ctx)
 		})
 	}
 }

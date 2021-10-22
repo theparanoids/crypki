@@ -120,7 +120,7 @@ func TestCollectRequest(t *testing.T) {
 			endpoint:        "/v3/ctxCancel",
 			totalRequests:   []int32{0, 0, 1},
 			enqRequest: func(wg *sync.WaitGroup, reqChan chan<- Request, endpoint string) {
-				for i := 1; i <= 10; {
+				for {
 					reqChan <- Request{
 						Priority: proto.Priority_Low,
 						DoWorker: &TestWork{
@@ -129,7 +129,6 @@ func TestCollectRequest(t *testing.T) {
 						},
 					}
 					cancel()
-					i++
 					break
 				}
 				wg.Done()

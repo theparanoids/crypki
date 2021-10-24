@@ -17,26 +17,26 @@ import (
 	"context"
 	"log"
 
-	"github.com/theparanoids/crypki/server/priority"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
 
 type Work struct {
-	priority.DoWorker
+	scheduler.DoWorker
 
 	work Request // workChan is a channel which has a request enqueue for the worker to work on.
 }
 
-func (w *Work) DoWork(ctx context.Context, worker *priority.Worker) {
-	log.Printf("starting work for %d priority %d request prio %d", worker.Id, worker.Priority, w.work.priority)
+func (w *Work) DoWork(ctx context.Context, worker *scheduler.Worker) {
+	log.Printf("%s: do work, request priority %d", worker.String(), w.work.priority)
 	select {
 	case <-ctx.Done():
-		log.Printf("worker %d stopped", worker.Id)
+		log.Printf("%s: worker stopped", worker.String())
 		return
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
 		signer, err := w.work.pool.get(ctx)
 		if err != nil {
-			log.Printf("error fetching signer %v", err)
+			log.Printf("%s: error fetching signer %v", worker.String(), err)
 			w.work.respChan <- nil
 			cancel()
 			return

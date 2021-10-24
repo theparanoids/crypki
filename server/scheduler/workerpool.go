@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package priority
+package scheduler
 
 import (
 	"context"
@@ -28,7 +28,7 @@ type Pool struct {
 	PoolSize       int
 	FeatureEnabled bool
 	workers        []*Worker
-	requestQueue   map[proto.Priority]chan Request
+	requestQueue   map[proto.Priority]chan *Request
 }
 
 // initialize initializes the worker Pool which has multiple workers & request queue map for queueing extra requests based on priority.
@@ -36,31 +36,22 @@ type Pool struct {
 // 1x low priority workers based on the signerPoolSize.
 func (p *Pool) initialize() {
 	p.workers = []*Worker{}
-	p.requestQueue = map[proto.Priority]chan Request{}
+	p.requestQueue = map[proto.Priority]chan *Request{}
 
-	// create 4x high priority workers
-	highPriPoolSize := 4 * p.PoolSize
-	var i int
-	for i = 0; i < 4*p.PoolSize; i++ {
-		worker := newWorker(i, proto.Priority_High)
-		p.workers = append(p.workers, worker)
+	mp := map[proto.Priority]int{
+		proto.Priority_High:   4 * p.PoolSize,
+		proto.Priority_Medium: 2 * p.PoolSize,
+		proto.Priority_Low:    p.PoolSize,
 	}
-	p.requestQueue[proto.Priority_High] = make(chan Request, highPriPoolSize)
-
-	// create 2x medium priority workers
-	medPriPoolSize := 2 * p.PoolSize
-	for ; i < highPriPoolSize+medPriPoolSize; i++ {
-		worker := newWorker(i, proto.Priority_Medium)
-		p.workers = append(p.workers, worker)
+	var i, j int
+	for pri, size := range mp {
+		for ; i < j+size; i++ {
+			worker := newWorker(i, pri)
+			p.workers = append(p.workers, worker)
+		}
+		j = size
+		p.requestQueue[pri] = make(chan *Request, size)
 	}
-	p.requestQueue[proto.Priority_Medium] = make(chan Request, medPriPoolSize)
-
-	// create x low priority workers
-	for ; i < highPriPoolSize+medPriPoolSize+p.PoolSize; i++ {
-		worker := newWorker(i, proto.Priority_Low)
-		p.workers = append(p.workers, worker)
-	}
-	p.requestQueue[proto.Priority_Low] = make(chan Request, p.PoolSize)
 }
 
 // start starts the workers which would make them self available.
@@ -80,8 +71,9 @@ func (p *Pool) stop(ctx context.Context) {
 }
 
 // enqueueRequest enqueues any new incoming request to appropriate request queue based on the priority.
-func (p *Pool) enqueueRequest(ctx context.Context, req Request, priorityBasedScheduling bool) {
-	if !priorityBasedScheduling {
+// This may be a blocking method if all the workers are occupied & the queue is full.
+func (p *Pool) enqueueRequest(ctx context.Context, req *Request, prioritySchedulingEnabled bool) {
+	if !prioritySchedulingEnabled {
 		p.requestQueue[proto.Priority_High] <- req
 	} else {
 		p.requestQueue[req.Priority] <- req
@@ -92,8 +84,8 @@ func (p *Pool) enqueueRequest(ctx context.Context, req Request, priorityBasedSch
 func (p *Pool) dumpStats(ctx context.Context, tickerTime time.Duration) {
 	ticker := time.NewTicker(tickerTime)
 	type count struct {
-		totalProcessed int32
-		totalTimeout   int32
+		totalProcessed uint32
+		totalTimeout   uint32
 	}
 	type statsCount map[proto.Priority]*count
 	for {
@@ -114,12 +106,12 @@ func (p *Pool) dumpStats(ctx context.Context, tickerTime time.Duration) {
 				msg += fmt.Sprintf("%s=%d ", pri, sc[pri].totalProcessed)
 			}
 			log.Println(msg)
-			msg = fmt.Sprintf("total requests timeout for %q: ", p.Name)
+			msg = fmt.Sprintf("total requests that timed out for %q: ", p.Name)
 			for pri := range sc {
 				msg += fmt.Sprintf("%s=%d ", pri, sc[pri].totalTimeout)
 			}
 			log.Println(msg)
-			msg = fmt.Sprintf("current requests enqueued for %q: ", p.Name)
+			msg = fmt.Sprintf("requests currently enqueued for %q: ", p.Name)
 			for key, val := range p.requestQueue {
 				msg += fmt.Sprintf("%s=%d ", key, len(val))
 			}

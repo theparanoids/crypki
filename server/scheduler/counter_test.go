@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package priority
+package scheduler
 
 import (
 	"fmt"
@@ -23,17 +23,17 @@ func TestCounter(t *testing.T) {
 	t.Parallel()
 	tests := map[string]struct {
 		count     Counter
-		operation func(count Counter) int32
-		want      int32
+		operation func(count Counter) uint32
+		want      uint32
 	}{
 		"get empty counter": {
-			operation: func(count Counter) int32 {
+			operation: func(count Counter) uint32 {
 				return count.Get()
 			},
 			want: 0,
 		},
 		"inc counter": {
-			operation: func(count Counter) int32 {
+			operation: func(count Counter) uint32 {
 				count.Inc()
 				count.Inc()
 				return count.Get()
@@ -41,7 +41,7 @@ func TestCounter(t *testing.T) {
 			want: 2,
 		},
 		"inc & reset counter": {
-			operation: func(count Counter) int32 {
+			operation: func(count Counter) uint32 {
 				count.Inc()
 				count.Inc()
 				count.Reset()

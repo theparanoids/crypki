@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package priority
+package scheduler
 
 import (
 	"context"
@@ -33,8 +33,8 @@ type TestWork struct {
 
 func (w *TestWork) DoWork(ctx context.Context, worker *Worker) {
 	worker.TotalProcessed.Inc()
-	log.Printf("overriding the work for worker %d(priority: %s), endpoint: %s insertTime %v",
-		worker.Id, proto.Priority_name[int32(worker.Priority)], w.name, w.insertTime)
+	log.Printf("%s: do dummy work in test, endpoint: %s insertTime %v",
+		worker.String(), w.name, w.insertTime)
 	// add a fixed sleep for simulating real work
 	time.Sleep(jitter)
 }

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package priority
+package scheduler
 
 import (
 	"context"
@@ -28,10 +28,6 @@ func TestPool_Initialize(t *testing.T) {
 		"2 workers": {
 			nworkers: 2,
 			endpoint: "dummy",
-		},
-		"10 workers": {
-			nworkers: 10,
-			endpoint: "/v1/x509-cert",
 		},
 	}
 

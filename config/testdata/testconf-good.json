@@ -7,10 +7,10 @@
     {"Identifier": "key3", "KeyLabel": "baz", "KeyType": 1, "SignatureAlgo": 1, "SlotNumber": 0, "TokenLabel": "foo", "UserPinPath" : "/path/3", "X509CACertLocation": "/path/baz", "OCSPServers": ["http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"], "CRLDistributionPoints": ["http://test1.crl.com:8889", "http://test2.crl.com:8889"]}
   ],
   "KeyUsages": [
-    {"Endpoint": "/sig/x509-cert", "Identifiers": ["key1", "key3"], "MaxValidity": 3600, "PriorityBasedScheduling": true},
-    {"Endpoint": "/sig/ssh-host-cert", "Identifiers": ["key1", "key2"], "MaxValidity": 36000, "PriorityBasedScheduling": false},
-    {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["key3"], "MaxValidity": 36000, "PriorityBasedScheduling": false},
-    {"Endpoint": "/sig/blob", "Identifiers": ["key1"], "MaxValidity": 36000, "PriorityBasedScheduling": false}
+    {"Endpoint": "/sig/x509-cert", "Identifiers": ["key1", "key3"], "MaxValidity": 3600, "PrioritySchedulingEnabled": true},
+    {"Endpoint": "/sig/ssh-host-cert", "Identifiers": ["key1", "key2"], "MaxValidity": 36000, "PrioritySchedulingEnabled": false},
+    {"Endpoint": "/sig/ssh-user-cert", "Identifiers": ["key3"], "MaxValidity": 36000, "PrioritySchedulingEnabled": false},
+    {"Endpoint": "/sig/blob", "Identifiers": ["key1"], "MaxValidity": 36000, "PrioritySchedulingEnabled": false}
   ],
   "ShutdownOnInternalFailure": true,
   "ShutdownOnInternalFailureCriteria": {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/proto"
-	"github.com/theparanoids/crypki/server/priority"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
 
 // SigningService implements proto.SigningServer interface.
@@ -18,7 +18,7 @@ type SigningService struct {
 	crypki.KeyIDProcessor
 	KeyUsages   map[string]map[string]bool
 	MaxValidity map[string]uint64
-	RequestChan map[string]chan priority.Request
+	RequestChan map[string]chan scheduler.Request
 	proto.UnimplementedSigningServer
 }
 

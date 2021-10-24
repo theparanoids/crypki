@@ -11,18 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package priority
+package scheduler
 
 import "sync/atomic"
 
-type Counter int32
+type Counter uint32
 
-func (c *Counter) Get() int32 {
-	return atomic.LoadInt32((*int32)(c))
+func (c *Counter) Get() uint32 {
+	return atomic.LoadUint32((*uint32)(c))
 }
-func (c *Counter) Inc() int32 {
-	return atomic.AddInt32((*int32)(c), 1)
+func (c *Counter) Inc() uint32 {
+	return atomic.AddUint32((*uint32)(c), 1)
 }
-func (c *Counter) Reset() int32 {
-	return atomic.SwapInt32((*int32)(c), 0)
+func (c *Counter) Reset() uint32 {
+	return atomic.SwapUint32((*uint32)(c), 0)
 }

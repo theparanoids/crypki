@@ -33,7 +33,7 @@ import (
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/interceptor"
-	"github.com/theparanoids/crypki/server/priority"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
 
 const defaultLogFile = "/var/log/crypki/server.log"
@@ -135,13 +135,13 @@ func Main(keyP crypki.KeyIDProcessor) {
 	}
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
-	requestChan := make(map[string]chan priority.Request)
+	requestChan := make(map[string]chan scheduler.Request)
 	idEpMap := make(map[string]priorityDispatchInfo)
 
 	for _, usage := range cfg.KeyUsages {
 		keyUsages[usage.Endpoint] = make(map[string]bool)
 		for _, id := range usage.Identifiers {
-			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PriorityBasedScheduling, false}
+			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PrioritySchedulingEnabled, false}
 			keyUsages[usage.Endpoint][id] = true
 		}
 		maxValidity[usage.Endpoint] = usage.MaxValidity
@@ -153,9 +153,9 @@ func Main(keyP crypki.KeyIDProcessor) {
 		v := idEpMap[key.Identifier]
 		if !v.collectRequest {
 			v.collectRequest = true
-			requestChan[v.endpoint] = make(chan priority.Request)
-			p := &priority.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
-			go priority.CollectRequest(ctx, requestChan[v.endpoint], p)
+			requestChan[v.endpoint] = make(chan scheduler.Request)
+			p := &scheduler.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
+			go scheduler.CollectRequest(ctx, requestChan[v.endpoint], p)
 		}
 	}
 

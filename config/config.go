@@ -63,6 +63,9 @@ type KeyUsage struct {
 	// Maximum allowed validity period in seconds for a certificate signed by
 	// this endpoint. If not specified default is infinity.
 	MaxValidity uint64
+	// PrioritySchedulingEnabled indicates whether to schedule requests based on the priority/urgency of the request
+	// being received. If disabled, all requests are treated with equal priority.
+	PrioritySchedulingEnabled bool
 }
 
 // KeyConfig contains information about a particular signing key inside HSM.

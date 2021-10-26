@@ -26,6 +26,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log"
 	"math/big"
 	"reflect"
 	"testing"
@@ -35,6 +36,7 @@ import (
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
 
 const (
@@ -103,6 +105,19 @@ func initMockSigner(keyType crypki.PublicKeyAlgorithm, priv crypto.Signer, cert 
 	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
 	return s
+}
+
+func dummyScheduler(ctx context.Context, reqChan chan scheduler.Request) {
+	log.Printf("starting dummy scheduler")
+	for {
+		req := <-reqChan
+		go func() {
+			log.Printf("req priority: %d", req.Priority)
+			// create worker with different priorities
+			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{})}
+			req.DoWorker.DoWork(ctx, worker)
+		}()
+	}
 }
 
 func TestGetSSHCertSigningKey(t *testing.T) {
@@ -323,18 +338,21 @@ func TestSignX509RSACert(t *testing.T) {
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
+		priority    proto.Priority
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-rsa-good-signer":   {ctx, certRSA, defaultIdentifier, false, false},
-		"cert-bad-identifier":    {ctx, certRSA, badIdentifier, false, true},
-		"cert-bad-signer":        {ctx, certRSA, defaultIdentifier, true, true},
-		"cert-request-cancelled": {cancelCtx, certRSA, defaultIdentifier, false, true},
+		"cert-rsa-good-signer":   {ctx, certRSA, defaultIdentifier, proto.Priority_High, false, false},
+		"cert-bad-identifier":    {ctx, certRSA, badIdentifier, proto.Priority_Medium, false, true},
+		"cert-bad-signer":        {ctx, certRSA, defaultIdentifier, proto.Priority_Low, true, true},
+		"cert-request-cancelled": {cancelCtx, certRSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, true},
 	}
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -342,7 +360,7 @@ func TestSignX509RSACert(t *testing.T) {
 			if tt.ctx == cancelCtx {
 				cancel()
 			}
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			data, err := signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}
@@ -405,23 +423,26 @@ func TestSignX509ECCert(t *testing.T) {
 	cp.AddCert(caCert)
 
 	ctx := context.Background()
-
+	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *x509.Certificate
 		identifier  string
+		priority    proto.Priority
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-ec-good-signer": {ctx, certEC, defaultIdentifier, false, false},
-		"cert-ec-bad-signer":  {ctx, certEC, badIdentifier, false, true},
+		"cert-ec-good-signer":    {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
+		"cert-ec-bad-identifier": {ctx, certEC, badIdentifier, proto.Priority_Medium, false, true},
+		"cert-ec-bad-signer":     {ctx, certEC, badIdentifier, proto.Priority_Medium, true, true},
 	}
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			data, err := signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}
@@ -489,6 +510,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 	cancelCtx, cncl := context.WithCancel(context.Background())
 	defer cncl()
 
+	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *x509.Certificate
@@ -500,6 +522,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 		"context-already-expired": {cancelCtx, certEC, defaultIdentifier, proto.Priority_High, false, true},
 		"cert-ec-timeout-expired": {signerTimeoutCtx, certEC, defaultIdentifier, proto.Priority_High, false, true},
 	}
+	go dummyScheduler(context.Background(), reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -508,7 +531,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 			if tt.ctx == cancelCtx {
 				cncl()
 			}
-			data, err := signer.SignX509Cert(tt.ctx, tt.cert, tt.identifier)
+			data, err := signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, proto.Priority_Unspecified_priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}

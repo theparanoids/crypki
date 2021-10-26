@@ -49,7 +49,7 @@ func (p *Pool) initialize() {
 			worker := newWorker(i, pri)
 			p.workers = append(p.workers, worker)
 		}
-		j = size
+		j += size
 		p.requestQueue[pri] = make(chan *Request, size)
 	}
 }
@@ -59,7 +59,7 @@ func (p *Pool) start(ctx context.Context) {
 	for _, worker := range p.workers {
 		worker.start(ctx, p.requestQueue)
 	}
-	log.Println("all workers started")
+	log.Printf("all workers started for %q", p.Name)
 }
 
 // stop stops all the workers from processing any new requests
@@ -67,7 +67,7 @@ func (p *Pool) stop(ctx context.Context) {
 	for _, worker := range p.workers {
 		worker.stop()
 	}
-	log.Println("all workers stopped")
+	log.Printf("all workers stopped for %q", p.Name)
 }
 
 // enqueueRequest enqueues any new incoming request to appropriate request queue based on the priority.

@@ -34,6 +34,7 @@ import (
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/server/scheduler"
 	"github.com/theparanoids/crypki/x509cert"
 )
 
@@ -41,11 +42,11 @@ import (
    It also has a channel on which it waits for the response.
 */
 type Request struct {
-	pool     sPool          // Pool is a signer pool per identifier from which to fetch the signer
-	priority proto.Priority // Priority of the incoming request
-	//insertTime    time.Time                    // InsertTime is the time when the request arrived
-	remainingTime time.Duration                // RemainingTime indicates the time remaining before either the client cancels or the request times out.
-	respChan      chan signerWithSignAlgorithm // RespChan is the channel where the worker sends the signer once it gets it from the pool
+	pool          sPool                        // pool is a signer pool per identifier from which to fetch the signer
+	identifier    string                       // identifier indicates the endpoint for which we are fetching the signer in order to sign it
+	requestTime   time.Time                    // requestTime is the time when the request arrived
+	remainingTime time.Duration                // remainingTime indicates the time remaining before either the client cancels or the request times out.
+	respChan      chan signerWithSignAlgorithm // respChan is the channel where the worker sends the signer once it gets it from the pool
 }
 
 // signer implements crypki.CertSign interface.
@@ -64,6 +65,18 @@ type signer struct {
 	// and the private tokens in the slots can be accessed via those sessions.
 	// Ref. http://docs.oasis-open.org/pkcs11/pkcs11-ug/v2.40/cn02/pkcs11-ug-v2.40-cn02.html#_Toc406759989
 	login map[uint]p11.SessionHandle
+}
+
+func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Duration, error) {
+	remTime := config.DefaultPKCS11Timeout
+	if deadline, ok := ctx.Deadline(); ok {
+		remTime = time.Until(deadline)
+		if remTime <= 0 {
+			// context expired, we should stop processing and return immediately
+			return 0, fmt.Errorf("context deadline expired for key identifier %q", keyIdentifier)
+		}
+	}
+	return remTime, nil
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
@@ -187,26 +200,55 @@ func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byt
 	return certBytes, nil
 }
 
-func (s *signer) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignX509Cert(ctx context.Context, requestChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignX509Cert"
 	start := time.Now()
-	var ht, st int64
+	var ht, pt int64
 	defer func() {
 		xt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, xt=%d st=%d", methodName, ht, xt, st)
+		log.Printf("m=%s: ht=%d, xt=%d pt=%d", methodName, ht, xt, pt)
 	}()
 
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	sStart := time.Now()
-	signer, err := pool.get(ctx)
+	pStart := time.Now()
+	remTime, err := getRemainingRequestTime(ctx, keyIdentifier)
 	if err != nil {
-		st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, errors.New("client request timed out, skip signing X509 cert")
+		return nil, err
 	}
-	st = time.Since(sStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+	respChan := make(chan signerWithSignAlgorithm)
+	req := &Request{
+		pool:          pool,
+		identifier:    keyIdentifier,
+		requestTime:   start,
+		remainingTime: remTime,
+		respChan:      respChan,
+	}
+	if priority == proto.Priority_Unspecified_priority {
+		// If priority is unspecified, treat the request as high priority.
+		priority = proto.Priority_High
+	}
+	select {
+	case requestChan <- scheduler.Request{Priority: priority, DoWorker: &Work{work: req}}:
+	case <-ctx.Done():
+		// channel closed
+		// this should ideally not happen but in order to avoid a blocking call we add this check in place
+		return nil, errors.New("request channel is closed, cannot fetch signer")
+	}
+	var signer signerWithSignAlgorithm
+	select {
+	case signer, ok = <-respChan:
+		if signer == nil || !ok {
+			pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+			return nil, errors.New("client request timed out, skip signing X509 cert")
+		}
+	case <-ctx.Done():
+		// In order to ensure we don't keep on blocking on the response, we add this check.
+		return nil, ctx.Err()
+	}
+	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
 	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
 	if val := isValidCertRequest(cert, signer.signAlgorithm()); !val {

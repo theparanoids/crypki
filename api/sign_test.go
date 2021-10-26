@@ -12,6 +12,8 @@ import (
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
+	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/server/scheduler"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -98,7 +100,7 @@ func (mbcs *mockBadCertSign) SignSSHCert(ctx context.Context, cert *ssh.Certific
 func (mbcs *mockBadCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
@@ -120,7 +122,7 @@ func (mgcs *mockGoodCertSign) SignSSHCert(ctx context.Context, cert *ssh.Certifi
 func (mgcs *mockGoodCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 ca cert"), nil
 }
-func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, cert *x509.Certificate, keyIdentifier string) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	return []byte("good x509 cert"), nil
 }
 func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {

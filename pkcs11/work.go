@@ -23,26 +23,26 @@ import (
 type Work struct {
 	scheduler.DoWorker
 
-	work Request // workChan is a channel which has a request enqueue for the worker to work on.
+	work *Request // workChan is a channel which has a request enqueue for the worker to work on.
 }
 
+//DoWork performs the work of fetching the signer from the pool and sending it back on the response channel
 func (w *Work) DoWork(ctx context.Context, worker *scheduler.Worker) {
-	log.Printf("%s: do work, request priority %d", worker.String(), w.work.priority)
+	log.Printf("%s: processing work for identifier %q", worker.String(), w.work.identifier)
 	select {
 	case <-ctx.Done():
 		log.Printf("%s: worker stopped", worker.String())
 		return
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
+		defer cancel()
 		signer, err := w.work.pool.get(ctx)
 		if err != nil {
 			log.Printf("%s: error fetching signer %v", worker.String(), err)
 			w.work.respChan <- nil
-			cancel()
 			return
 		}
 		worker.TotalProcessed.Inc()
 		w.work.respChan <- signer
-		cancel()
 	}
 }

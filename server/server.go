@@ -144,6 +144,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PrioritySchedulingEnabled, false}
 			keyUsages[usage.Endpoint][id] = true
 		}
+		requestChan[usage.Endpoint] = make(chan scheduler.Request)
 		maxValidity[usage.Endpoint] = usage.MaxValidity
 	}
 
@@ -153,7 +154,6 @@ func Main(keyP crypki.KeyIDProcessor) {
 		v := idEpMap[key.Identifier]
 		if !v.collectRequest {
 			v.collectRequest = true
-			requestChan[v.endpoint] = make(chan scheduler.Request)
 			p := &scheduler.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
 			go scheduler.CollectRequest(ctx, requestChan[v.endpoint], p)
 		}

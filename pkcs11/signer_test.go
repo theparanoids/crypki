@@ -220,23 +220,26 @@ func TestSignSSHCert(t *testing.T) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
 	testcases := map[string]struct {
 		ctx         context.Context
 		cert        *ssh.Certificate
 		keyType     crypki.PublicKeyAlgorithm
 		identifier  string
+		priority    proto.Priority
 		isBadSigner bool
 		expectError bool
 	}{
-		"host-cert-rsa":             {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, false, false},
-		"host-cert-ec":              {ctx, hostCertEC, crypki.ECDSA, defaultIdentifier, false, false},
-		"host-cert-bad-identifier":  {ctx, hostCertRSA, crypki.RSA, badIdentifier, false, true},
-		"host-cert-bad-signer":      {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, true, true},
-		"user-cert-rsa":             {ctx, userCertRSA, crypki.RSA, defaultIdentifier, false, false},
-		"user-cert-ec":              {ctx, userCertEC, crypki.ECDSA, defaultIdentifier, false, false},
-		"user-cert-bad-identifier":  {ctx, userCertRSA, crypki.RSA, badIdentifier, false, true},
-		"user-cert-bad-signer":      {ctx, userCertRSA, crypki.RSA, defaultIdentifier, true, true},
-		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, false, true},
+		"host-cert-rsa":             {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, false},
+		"host-cert-ec":              {ctx, hostCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false},
+		"host-cert-bad-identifier":  {ctx, hostCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true},
+		"host-cert-bad-signer":      {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true},
+		"user-cert-rsa":             {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
+		"user-cert-ec":              {ctx, userCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false},
+		"user-cert-bad-identifier":  {ctx, userCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true},
+		"user-cert-bad-signer":      {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true},
+		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, true},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
@@ -247,7 +250,7 @@ func TestSignSSHCert(t *testing.T) {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
 			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner)
-			data, err := signer.SignSSHCert(tt.ctx, tt.cert, tt.identifier)
+			data, err := signer.SignSSHCert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -612,6 +615,9 @@ func TestSignBlob(t *testing.T) {
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
+
 	testcases := map[string]struct {
 		ctx         context.Context
 		digest      []byte
@@ -635,7 +641,7 @@ func TestSignBlob(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
-			signature, err := signer.SignBlob(tt.ctx, tt.digest, tt.opts, tt.identifier)
+			signature, err := signer.SignBlob(tt.ctx, reqChan, tt.digest, tt.opts, tt.identifier, proto.Priority_High)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}

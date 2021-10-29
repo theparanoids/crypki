@@ -149,7 +149,7 @@ func (s *signer) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string)
 	return ssh.MarshalAuthorizedKey(sshSigner.PublicKey()), nil
 }
 
-func (s *signer) SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignSSHCert"
 	start := time.Now()
 	var ht, st int64
@@ -290,7 +290,7 @@ func (s *signer) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier stri
 	return pem.EncodeToMemory(b), nil
 }
 
-func (s *signer) SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error) {
+func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignBlob"
 	start := time.Now()
 	var ht int64

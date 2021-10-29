@@ -63,7 +63,7 @@ type CertSign interface {
 	// GetSSHCertSigningKey returns the SSH signing key of the specified key.
 	GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignSSHCert returns an SSH cert signed by the specified key.
-	SignSSHCert(ctx context.Context, cert *ssh.Certificate, keyIdentifier string) ([]byte, error)
+	SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error)
 	// GetX509CACert returns the X509 CA cert of the specified key.
 	GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignX509Cert returns an x509 cert signed by the specified key.
@@ -71,7 +71,7 @@ type CertSign interface {
 	// GetBlobSigningPublicKey returns the public signing key of the specified key that signs the user's data.
 	GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error)
 	// SignBlob returns a signature signed by the specified key.
-	SignBlob(ctx context.Context, digest []byte, opts crypto.SignerOpts, keyIdentifier string) ([]byte, error)
+	SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error)
 }
 
 // CAConfig represents the configuration params for generating the CA certificate.

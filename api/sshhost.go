@@ -150,7 +150,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 	}
 	respCh := make(chan resp)
 	go func() {
-		data, err := s.SignSSHCert(ctx, cert, request.KeyMeta.Identifier)
+		data, err := s.SignSSHCert(ctx, s.RequestChan[config.SSHHostCertEndpoint], cert, request.KeyMeta.Identifier, request.Priority)
 		respCh <- resp{data, err}
 	}()
 

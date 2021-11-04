@@ -131,17 +131,17 @@ func Main(keyP crypki.KeyIDProcessor) {
 	type priorityDispatchInfo struct {
 		endpoint        string
 		priSchedFeature bool
-		collectRequest  bool
 	}
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
 	requestChan := make(map[string]chan scheduler.Request)
 	idEpMap := make(map[string]priorityDispatchInfo)
+	endpointMap := make(map[string]bool)
 
 	for _, usage := range cfg.KeyUsages {
 		keyUsages[usage.Endpoint] = make(map[string]bool)
 		for _, id := range usage.Identifiers {
-			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PrioritySchedulingEnabled, false}
+			idEpMap[id] = priorityDispatchInfo{usage.Endpoint, usage.PrioritySchedulingEnabled}
 			keyUsages[usage.Endpoint][id] = true
 		}
 		requestChan[usage.Endpoint] = make(chan scheduler.Request)
@@ -152,8 +152,8 @@ func Main(keyP crypki.KeyIDProcessor) {
 		// Since we could have multiple identifier for 1 endpoint, we need to ensure we start collecting request per endpoint
 		// and not per identifier.
 		v := idEpMap[key.Identifier]
-		if !v.collectRequest {
-			v.collectRequest = true
+		if !endpointMap[v.endpoint] {
+			endpointMap[v.endpoint] = true
 			p := &scheduler.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
 			go scheduler.CollectRequest(ctx, requestChan[v.endpoint], p)
 		}

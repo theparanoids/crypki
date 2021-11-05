@@ -47,6 +47,12 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 			want:      "",
 			wantError: true,
 		},
+		"rsa pub no signing algo": {
+			pubAlgo:   crypki.RSA,
+			signAlgo:  crypki.UnknownSignatureAlgorithm,
+			want:      ssh.SigAlgoRSASHA2256,
+			wantError: false,
+		},
 		"ec pub ec sign": {
 			pubAlgo:   crypki.ECDSA,
 			signAlgo:  crypki.ECDSAWithSHA384,
@@ -56,6 +62,12 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 		"ec pub rsa sign": {
 			pubAlgo:   crypki.ECDSA,
 			signAlgo:  crypki.SHA512WithRSA,
+			want:      "",
+			wantError: true,
+		},
+		"default pub key algo": {
+			pubAlgo:   crypki.UnknownPublicKeyAlgorithm,
+			signAlgo:  crypki.UnknownSignatureAlgorithm,
 			want:      "",
 			wantError: true,
 		},

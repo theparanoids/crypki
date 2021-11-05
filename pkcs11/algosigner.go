@@ -64,6 +64,7 @@ func getSignatureAlgorithm(publicAlgo crypki.PublicKeyAlgorithm, signAlgo crypki
 			case crypki.SHAWithRSA, crypki.SHA256WithRSA, crypki.SHA512WithRSA:
 				err = errors.New("public key algo & signature algo mismatch, unable to get AlgorithmSigner")
 			default:
+				return
 			}
 		}
 	default:

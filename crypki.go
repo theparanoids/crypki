@@ -46,6 +46,8 @@ const (
 	SHA256WithRSA
 	ECDSAWithSHA256
 	ECDSAWithSHA384
+	SHA512WithRSA
+	SHAWithRSA // for backward compatibility
 )
 
 const (

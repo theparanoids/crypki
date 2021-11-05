@@ -209,7 +209,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
 
-	sshSigner, err := ssh.NewSignerFromSigner(signer)
+	sshSigner, err := newAlgorithmSignerFromSigner(signer, signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("failed to new ssh signer from signer, error :%v", err)
 	}

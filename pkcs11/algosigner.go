@@ -54,19 +54,10 @@ func getSignatureAlgorithm(publicAlgo crypki.PublicKeyAlgorithm, signAlgo crypki
 			}
 		}
 	case crypki.ECDSA:
-		{
-			// For ECDSA public algorithm, signature algo does not exist. We pass in
-			// empty algorithm & the upstream code will ensure the right algorithm is chosen
-			// for signing the cert.
-			switch signAlgo {
-			case crypki.ECDSAWithSHA256, crypki.ECDSAWithSHA384:
-				return
-			case crypki.SHAWithRSA, crypki.SHA256WithRSA, crypki.SHA512WithRSA:
-				err = errors.New("public key algo & signature algo mismatch, unable to get AlgorithmSigner")
-			default:
-				return
-			}
-		}
+		// For ECDSA public algorithm, signature algo does not exist. We pass in
+		// empty algorithm & the crypto library will ensure the right algorithm is chosen
+		// for signing the cert.
+		return
 	default:
 		err = errors.New("public key algorithm not supported")
 	}

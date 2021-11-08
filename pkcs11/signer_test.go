@@ -223,23 +223,23 @@ func TestSignSSHCert(t *testing.T) {
 	reqChan := make(chan scheduler.Request)
 	go dummyScheduler(ctx, reqChan)
 	testcases := map[string]struct {
-		ctx         context.Context
-		cert        *ssh.Certificate
-		keyType     crypki.PublicKeyAlgorithm
-		identifier  string
-		priority    proto.Priority
-		isBadSigner bool
-		expectError bool
+		ctx                   context.Context
+		cert                  *ssh.Certificate
+		keyType               crypki.PublicKeyAlgorithm
+		identifier            string
+		priority              proto.Priority
+		isBadSigner           bool
+		expectError           bool
+		expectedSignatureAlgo string
 	}{
-		"host-cert-rsa":             {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, false},
-		"host-cert-ec":              {ctx, hostCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false},
-		"host-cert-bad-identifier":  {ctx, hostCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true},
-		"host-cert-bad-signer":      {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true},
-		"user-cert-rsa":             {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
-		"user-cert-ec":              {ctx, userCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false},
-		"user-cert-bad-identifier":  {ctx, userCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true},
-		"user-cert-bad-signer":      {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true},
-		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, true},
+		"host-cert-rsa":             {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.SigAlgoRSASHA2256},
+		"host-cert-ec":              {ctx, hostCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
+		"host-cert-bad-signer":      {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
+		"user-cert-rsa":             {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.SigAlgoRSASHA2256},
+		"user-cert-ec":              {ctx, userCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
+		"user-cert-bad-identifier":  {ctx, userCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true, ""},
+		"user-cert-bad-signer":      {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
+		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, true, ""},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
@@ -268,6 +268,9 @@ func TestSignSSHCert(t *testing.T) {
 			}
 			if err := cc.CheckCert("alice", cert); err != nil {
 				t.Fatalf("check cert failed: %v", err)
+			}
+			if tt.expectedSignatureAlgo != cert.Signature.Format {
+				t.Fatalf("mismatch signature algorithm, got %s want %s", cert.Signature.Format, tt.expectedSignatureAlgo)
 			}
 		})
 	}

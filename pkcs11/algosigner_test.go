@@ -41,6 +41,12 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 			want:      ssh.SigAlgoRSASHA2512,
 			wantError: false,
 		},
+		"rsa pub sha1 signing": {
+			pubAlgo:   crypki.RSA,
+			signAlgo:  crypki.SHAWithRSA,
+			want:      ssh.SigAlgoRSA,
+			wantError: false,
+		},
 		"rsa pub ec signing": {
 			pubAlgo:   crypki.RSA,
 			signAlgo:  crypki.ECDSAWithSHA384,

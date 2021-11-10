@@ -17,66 +17,10 @@ import (
 	"github.com/theparanoids/crypki"
 )
 
-func TestGetSignatureAlgorithm(t *testing.T) {
-	t.Parallel()
-	tests := map[string]struct {
-		sa   crypki.SignatureAlgorithm
-		want x509.SignatureAlgorithm
-	}{
-		"rsa key & signature": {
-			sa:   crypki.SHA256WithRSA,
-			want: x509.SHA256WithRSA,
-		},
-		"ec key & 384 signature": {
-			sa:   crypki.ECDSAWithSHA384,
-			want: x509.ECDSAWithSHA384,
-		},
-		"ec key & 256 signature": {
-			sa:   crypki.ECDSAWithSHA256,
-			want: x509.ECDSAWithSHA256,
-		},
-		"no signature algo": {
-			sa:   crypki.UnknownSignatureAlgorithm,
-			want: x509.SHA256WithRSA,
-		},
-	}
-	for name, tt := range tests {
-		name, tt := name, tt
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			got := GetSignatureAlgorithm(tt.sa)
-			if got != tt.want {
-				t.Errorf("%s: got %d want %d", name, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetPublicKeyAlgorithm(t *testing.T) {
-	t.Parallel()
-	tests := map[string]struct {
-		pka  crypki.PublicKeyAlgorithm
-		want x509.PublicKeyAlgorithm
-	}{
-		"rsa":         {pka: crypki.RSA, want: x509.RSA},
-		"ec key":      {pka: crypki.ECDSA, want: x509.ECDSA},
-		"unknown key": {pka: crypki.UnknownPublicKeyAlgorithm, want: x509.RSA},
-	}
-	for name, tt := range tests {
-		name, tt := name, tt
-		t.Run(name, func(t *testing.T) {
-			got := GetPublicKeyAlgorithm(tt.pka)
-			if got != tt.want {
-				t.Fatalf("%s: got %d want %d", name, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGenCACert(t *testing.T) {
 	t.Parallel()
-	pka := crypki.ECDSA
-	sa := crypki.ECDSAWithSHA384
+	pka := x509.ECDSA
+	sa := x509.ECDSAWithSHA384
 	eckey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -86,8 +30,8 @@ func TestGenCACert(t *testing.T) {
 		signer      crypto.Signer
 		hostname    string
 		ips         []net.IP
-		pka         crypki.PublicKeyAlgorithm
-		sa          crypki.SignatureAlgorithm
+		pka         x509.PublicKeyAlgorithm
+		sa          x509.SignatureAlgorithm
 		wantSubj    pkix.Name
 		expectError bool
 	}{

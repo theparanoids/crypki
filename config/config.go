@@ -5,13 +5,12 @@ package config
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/theparanoids/crypki"
 )
 
 const (
@@ -22,8 +21,8 @@ const (
 	defaultTLSHost           = ""
 	defaultTLSPort           = "4443"
 	defaultPoolSize          = 2
-	defaultKeyType           = crypki.RSA
-	defaultSignatureAlgo     = crypki.SHA256WithRSA
+	defaultKeyType           = x509.RSA
+	defaultSignatureAlgo     = x509.SHA256WithRSA
 
 	defaultShutdownOnSigningFailureConsecutiveCount    = 4
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
@@ -83,9 +82,9 @@ type KeyConfig struct {
 	// SessionPoolSize specifies the number of sessions that are opened for this key.
 	SessionPoolSize int
 	// KeyType specifies the type of key, such as RSA or ECDSA.
-	KeyType crypki.PublicKeyAlgorithm
+	KeyType x509.PublicKeyAlgorithm
 	// SignatureAlgo specifies the type of signature hash function such as SHA256WithRSA or ECDSAWithSHA384.
-	SignatureAlgo crypki.SignatureAlgorithm
+	SignatureAlgo x509.SignatureAlgorithm
 
 	// Below are configs of x509 extensions for this key. Useful when this key will be used
 	// for signing x509 certificates.
@@ -183,11 +182,11 @@ func (c *Config) validate() error {
 			return fmt.Errorf("key %q: CA cert is supposed to be created if it doesn't exist but X509CACertLocation is not specified", key.Identifier)
 		}
 
-		if key.KeyType < crypki.RSA || key.KeyType > crypki.ECDSA {
+		if key.KeyType < x509.RSA || key.KeyType > x509.Ed25519 {
 			return fmt.Errorf("key %q: invalid Key type specified", key.Identifier)
 		}
 
-		if key.SignatureAlgo < crypki.SHA256WithRSA || key.SignatureAlgo > crypki.ECDSAWithSHA384 {
+		if key.SignatureAlgo < x509.SHA256WithRSA || key.SignatureAlgo > x509.PureEd25519 {
 			return fmt.Errorf("key %q: invalid signature hash algo specified", key.Identifier)
 		}
 	}

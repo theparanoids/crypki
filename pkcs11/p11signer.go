@@ -5,13 +5,12 @@ package pkcs11
 
 import (
 	"crypto"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 
 	p11 "github.com/miekg/pkcs11"
-
-	"github.com/theparanoids/crypki"
 )
 
 type p11Signer struct {
@@ -19,11 +18,11 @@ type p11Signer struct {
 	session       p11.SessionHandle
 	privateKey    p11.ObjectHandle
 	publicKey     p11.ObjectHandle
-	keyType       crypki.PublicKeyAlgorithm
-	signatureAlgo crypki.SignatureAlgorithm
+	keyType       x509.PublicKeyAlgorithm
+	signatureAlgo x509.SignatureAlgorithm
 }
 
-func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (*p11Signer, error) {
+func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType x509.PublicKeyAlgorithm, signatureAlgo x509.SignatureAlgorithm) (*p11Signer, error) {
 	session, err := context.OpenSession(slot, p11.CKF_SERIAL_SESSION)
 	if err != nil {
 		return nil, errors.New("makeSigner: error in OpenSession: " + err.Error())
@@ -56,9 +55,9 @@ func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType crypki.
 // Sign signs the data using PKCS11 library. It is part of the crypto.Signer interface.
 func (s *p11Signer) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) ([]byte, error) {
 	switch s.keyType {
-	case crypki.RSA:
+	case x509.RSA:
 		return signDataRSA(s.context, s.session, s.privateKey, msg, opts)
-	case crypki.ECDSA:
+	case x509.ECDSA:
 		return signDataECDSA(s.context, s.session, s.privateKey, msg, opts)
 	default: // RSA is the default
 		return signDataRSA(s.context, s.session, s.privateKey, msg, opts)
@@ -69,9 +68,9 @@ func (s *p11Signer) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) ([]
 // Public returns crypto public key.
 func (s *p11Signer) Public() crypto.PublicKey {
 	switch s.keyType {
-	case crypki.RSA:
+	case x509.RSA:
 		return publicRSA(s)
-	case crypki.ECDSA:
+	case x509.ECDSA:
 		return publicECDSA(s)
 	default: // RSA is the default
 		return publicRSA(s)
@@ -79,11 +78,11 @@ func (s *p11Signer) Public() crypto.PublicKey {
 }
 
 // publicKeyAlgorithm returns the public key algorithm of signer.
-func (s *p11Signer) publicKeyAlgorithm() crypki.PublicKeyAlgorithm {
+func (s *p11Signer) publicKeyAlgorithm() x509.PublicKeyAlgorithm {
 	return s.keyType
 }
 
 // signAlgorithm returns the signature algorithm of signer.
-func (s *p11Signer) signAlgorithm() crypki.SignatureAlgorithm {
+func (s *p11Signer) signAlgorithm() x509.SignatureAlgorithm {
 	return s.signatureAlgo
 }

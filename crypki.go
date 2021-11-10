@@ -26,30 +26,6 @@ const (
 	UserSSHKey
 )
 
-// PublicKeyAlgorithm is used to specify public key algorithm.
-type PublicKeyAlgorithm int
-
-// SignatureAlgorithm is used to specify signature key algorithm.
-type SignatureAlgorithm int
-
-// List of supported public key algorithms.
-const (
-	UnknownPublicKeyAlgorithm PublicKeyAlgorithm = iota
-	RSA
-	ECDSA
-)
-
-// List of supported signature hash algorithms.
-// The naming convention adheres to x509.SignatureAlgorithm.
-const (
-	UnknownSignatureAlgorithm SignatureAlgorithm = iota
-	SHA256WithRSA
-	ECDSAWithSHA256
-	ECDSAWithSHA384
-	SHA512WithRSA
-	SHAWithRSA // for backward compatibility
-)
-
 const (
 	// Default values for CAconfig.
 	defaultCounty         = "ZZ" // Unknown or unspecified country

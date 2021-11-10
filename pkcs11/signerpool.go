@@ -6,9 +6,8 @@ package pkcs11
 import (
 	"context"
 	"crypto"
+	"crypto/x509"
 	"fmt"
-
-	"github.com/theparanoids/crypki"
 )
 
 // sPool is an abstract interface of pool of crypto.Signer
@@ -19,8 +18,8 @@ type sPool interface {
 
 type signerWithSignAlgorithm interface {
 	crypto.Signer
-	publicKeyAlgorithm() crypki.PublicKeyAlgorithm
-	signAlgorithm() crypki.SignatureAlgorithm
+	publicKeyAlgorithm() x509.PublicKeyAlgorithm
+	signAlgorithm() x509.SignatureAlgorithm
 }
 
 // SignerPool is a pool of PKCS11 signers
@@ -30,7 +29,7 @@ type SignerPool struct {
 }
 
 // newSignerPool initializes a signer pool based on the configuration parameters
-func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, keyLabel string, keyType crypki.PublicKeyAlgorithm, signatureAlgo crypki.SignatureAlgorithm) (sPool, error) {
+func newSignerPool(context PKCS11Ctx, nSigners int, slot uint, keyLabel string, keyType x509.PublicKeyAlgorithm, signatureAlgo x509.SignatureAlgorithm) (sPool, error) {
 	signers := make(chan signerWithSignAlgorithm, nSigners)
 	for i := 0; i < nSigners; i++ {
 		signerInstance, err := makeSigner(context, slot, keyLabel, keyType, signatureAlgo)

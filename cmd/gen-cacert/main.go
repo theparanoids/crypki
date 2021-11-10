@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -84,8 +85,8 @@ func main() {
 			SlotNumber:             uint(cc.SlotNumber),
 			UserPinPath:            cc.UserPinPath,
 			KeyLabel:               cc.KeyLabel,
-			KeyType:                crypki.PublicKeyAlgorithm(cc.KeyType),
-			SignatureAlgo:          crypki.SignatureAlgorithm(cc.SignatureAlgo),
+			KeyType:                x509.PublicKeyAlgorithm(cc.KeyType),
+			SignatureAlgo:          x509.SignatureAlgorithm(cc.SignatureAlgo),
 			SessionPoolSize:        2,
 			X509CACertLocation:     "/tmp/509_ca.crt",
 			CreateCACertIfNotExist: true,

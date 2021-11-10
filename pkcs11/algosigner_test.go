@@ -14,60 +14,59 @@
 package pkcs11
 
 import (
+	"crypto/x509"
 	"testing"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/theparanoids/crypki"
 )
 
 func TestGetSignatureAlgorithm(t *testing.T) {
 	t.Parallel()
 	tests := map[string]struct {
-		pubAlgo   crypki.PublicKeyAlgorithm
-		signAlgo  crypki.SignatureAlgorithm
+		pubAlgo   x509.PublicKeyAlgorithm
+		signAlgo  x509.SignatureAlgorithm
 		want      string
 		wantError bool
 	}{
 		"rsa pub rsa 256 signing": {
-			pubAlgo:   crypki.RSA,
-			signAlgo:  crypki.SHA256WithRSA,
+			pubAlgo:   x509.RSA,
+			signAlgo:  x509.SHA256WithRSA,
 			want:      ssh.SigAlgoRSASHA2256,
 			wantError: false,
 		},
 		"rsa pub rsa 512 signing": {
-			pubAlgo:   crypki.RSA,
-			signAlgo:  crypki.SHA512WithRSA,
+			pubAlgo:   x509.RSA,
+			signAlgo:  x509.SHA512WithRSA,
 			want:      ssh.SigAlgoRSASHA2512,
 			wantError: false,
 		},
 		"rsa pub sha1 signing": {
-			pubAlgo:   crypki.RSA,
-			signAlgo:  crypki.SHAWithRSA,
+			pubAlgo:   x509.RSA,
+			signAlgo:  x509.SHA1WithRSA,
 			want:      ssh.SigAlgoRSA,
 			wantError: false,
 		},
 		"rsa pub ec signing": {
-			pubAlgo:   crypki.RSA,
-			signAlgo:  crypki.ECDSAWithSHA384,
+			pubAlgo:   x509.RSA,
+			signAlgo:  x509.ECDSAWithSHA384,
 			want:      "",
 			wantError: true,
 		},
 		"rsa pub no signing algo": {
-			pubAlgo:   crypki.RSA,
-			signAlgo:  crypki.UnknownSignatureAlgorithm,
+			pubAlgo:   x509.RSA,
+			signAlgo:  x509.UnknownSignatureAlgorithm,
 			want:      ssh.SigAlgoRSASHA2256,
 			wantError: false,
 		},
 		"ec pub ec sign": {
-			pubAlgo:   crypki.ECDSA,
-			signAlgo:  crypki.ECDSAWithSHA384,
+			pubAlgo:   x509.ECDSA,
+			signAlgo:  x509.ECDSAWithSHA384,
 			want:      "",
 			wantError: false,
 		},
 		"default pub key algo": {
-			pubAlgo:   crypki.UnknownPublicKeyAlgorithm,
-			signAlgo:  crypki.UnknownSignatureAlgorithm,
+			pubAlgo:   x509.UnknownPublicKeyAlgorithm,
+			signAlgo:  x509.UnknownSignatureAlgorithm,
 			want:      "",
 			wantError: true,
 		},

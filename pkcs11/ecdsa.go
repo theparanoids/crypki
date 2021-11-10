@@ -100,7 +100,7 @@ func publicECDSA(s *p11Signer) crypto.PublicKey {
 func signDataECDSA(ctx PKCS11Ctx, session p11.SessionHandle, hsmPrivateObject p11.ObjectHandle, data []byte, opts crypto.SignerOpts) ([]byte, error) {
 	const MAXBYTES = 262042
 	if len(data) > MAXBYTES {
-		return nil, errors.New("Cannot sign such a large blob of data")
+		return nil, errors.New("cannot sign such a large blob of data")
 	}
 
 	privateKeyHandle := hsmPrivateObject
@@ -112,7 +112,7 @@ func signDataECDSA(ctx PKCS11Ctx, session p11.SessionHandle, hsmPrivateObject p1
 	case crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		mech[0] = p11.NewMechanism(p11.CKM_ECDSA, nil)
 	default:
-		return nil, errors.New("Unsupported hash algorithm")
+		return nil, errors.New("unsupported hash algorithm")
 	}
 
 	err := ctx.SignInit(session, mech, privateKeyHandle)

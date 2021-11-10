@@ -262,7 +262,7 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		log.Printf("signX509cert: cn=%q unsupported-sa=%q supported-sa=%d",
 			s.x509CACerts[keyIdentifier].Subject.CommonName, cert.SignatureAlgorithm.String(), signer.signAlgorithm())
 		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
-		cert.SignatureAlgorithm = x509cert.GetSignatureAlgorithm(signer.signAlgorithm())
+		cert.SignatureAlgorithm = signer.signAlgorithm()
 	}
 
 	cert.OCSPServer = s.ocspServers[keyIdentifier]
@@ -387,6 +387,6 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	return cert, nil
 }
 
-func isValidCertRequest(cert *x509.Certificate, sa crypki.SignatureAlgorithm) bool {
-	return cert.SignatureAlgorithm == x509cert.GetSignatureAlgorithm(sa)
+func isValidCertRequest(cert *x509.Certificate, sa x509.SignatureAlgorithm) bool {
+	return cert.SignatureAlgorithm == sa
 }

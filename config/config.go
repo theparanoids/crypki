@@ -254,7 +254,6 @@ func (c *Config) loadDefaults() {
 	if c.ShutdownOnInternalFailureCriteria.TimerCountLimit == 0 {
 		c.ShutdownOnInternalFailureCriteria.TimerCountLimit = defaultShutdownOnSigningFailureTimerCount
 	}
-
 	if c.IdleTimeout == 0 {
 		c.IdleTimeout = defaultIdleTimeout
 	}

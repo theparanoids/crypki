@@ -2,7 +2,7 @@
   "TLSClientAuthMode": 4,
   "X509CACertLocation":"testdata/cacert.pem",
   "Keys": [
-    {"Identifier": "key1", "KeyLabel": "foo", "KeyType":1, "SignatureAlgo": 2, "SlotNumber": 1, "UserPinPath" : "/path/1", "X509CACertLocation": "/path/foo", "CreateCACertIfNotExist": true, "CommonName": "My CA"},
+    {"Identifier": "key1", "KeyLabel": "foo", "KeyType":1, "SignatureAlgo": 4, "SlotNumber": 1, "UserPinPath" : "/path/1", "X509CACertLocation": "/path/foo", "CreateCACertIfNotExist": true, "CommonName": "My CA"},
     {"Identifier": "key2", "KeyLabel": "bar", "SlotNumber": 2, "UserPinPath" : "/path/2"},
     {"Identifier": "key3", "KeyLabel": "baz", "SlotNumber": 3, "UserPinPath" : "/path/3", "X509CACertLocation": "/path/baz"}
   ],

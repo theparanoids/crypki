@@ -15,12 +15,11 @@ package pkcs11
 
 import (
 	"crypto"
+	"crypto/x509"
 	"errors"
 	"io"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/theparanoids/crypki"
 )
 
 type sshAlgorithmSigner struct {
@@ -36,24 +35,24 @@ func (s *sshAlgorithmSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, 
 	return s.signer.SignWithAlgorithm(rand, data, s.algorithm)
 }
 
-func getSignatureAlgorithm(publicAlgo crypki.PublicKeyAlgorithm, signAlgo crypki.SignatureAlgorithm) (algorithm string, err error) {
+func getSignatureAlgorithm(publicAlgo x509.PublicKeyAlgorithm, signAlgo x509.SignatureAlgorithm) (algorithm string, err error) {
 	switch publicAlgo {
-	case crypki.RSA:
+	case x509.RSA:
 		{
 			switch signAlgo {
-			case crypki.ECDSAWithSHA256, crypki.ECDSAWithSHA384:
+			case x509.ECDSAWithSHA256, x509.ECDSAWithSHA384:
 				err = errors.New("public key algo & signature algo mismatch, unable to get AlgorithmSigner")
-			case crypki.SHAWithRSA:
+			case x509.SHA1WithRSA:
 				algorithm = ssh.SigAlgoRSA
-			case crypki.SHA512WithRSA:
+			case x509.SHA512WithRSA:
 				algorithm = ssh.SigAlgoRSASHA2512
-			case crypki.SHA256WithRSA:
+			case x509.SHA256WithRSA:
 				algorithm = ssh.SigAlgoRSASHA2256
 			default:
 				algorithm = ssh.SigAlgoRSASHA2256
 			}
 		}
-	case crypki.ECDSA:
+	case x509.ECDSA:
 		// For ECDSA public algorithm, signature algo does not exist. We pass in
 		// empty algorithm & the crypto library will ensure the right algorithm is chosen
 		// for signing the cert.
@@ -64,7 +63,7 @@ func getSignatureAlgorithm(publicAlgo crypki.PublicKeyAlgorithm, signAlgo crypki
 	return
 }
 
-func newAlgorithmSignerFromSigner(signer crypto.Signer, publicAlgo crypki.PublicKeyAlgorithm, signAlgo crypki.SignatureAlgorithm) (ssh.Signer, error) {
+func newAlgorithmSignerFromSigner(signer crypto.Signer, publicAlgo x509.PublicKeyAlgorithm, signAlgo x509.SignatureAlgorithm) (ssh.Signer, error) {
 	sshSigner, err := ssh.NewSignerFromSigner(signer)
 	if err != nil {
 		return nil, err

@@ -19,9 +19,9 @@ func TestParse(t *testing.T) {
 		TLSPort:           "4443",
 		SignersPerPool:    2,
 		Keys: []KeyConfig{
-			{"key1", 1, "", "/path/1", "foo", 2, 2, 3, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0},
-			{"key2", 2, "", "/path/2", "bar", 2, 1, 1, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0},
-			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 1, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
+			{"key1", 1, "", "/path/1", "foo", 2, 3, 10, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0},
+			{"key2", 2, "", "/path/2", "bar", 2, 1, 4, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0},
+			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 4, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
 		},
 		KeyUsages: []KeyUsage{
 			{"/sig/x509-cert", []string{"key1", "key3"}, 3600, true},

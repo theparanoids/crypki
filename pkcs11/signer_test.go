@@ -49,15 +49,15 @@ const (
 var _ crypki.CertSign = (*signer)(nil)
 
 // createCAKeysAndCert generates key pairs and the corresponding x509 certificate for unit tests CA based on key type.
-func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer, cert *x509.Certificate, err error) {
+func createCAKeysAndCert(keyType x509.PublicKeyAlgorithm) (priv crypto.Signer, cert *x509.Certificate, err error) {
 	var pkAlgo x509.PublicKeyAlgorithm
 	var sigAlgo x509.SignatureAlgorithm
 	switch keyType {
-	case crypki.ECDSA:
+	case x509.ECDSA:
 		pkAlgo = x509.ECDSA
 		sigAlgo = x509.ECDSAWithSHA256
 		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case crypki.RSA:
+	case x509.RSA:
 		fallthrough
 	default:
 		pkAlgo = x509.RSA
@@ -95,7 +95,7 @@ func createCAKeysAndCert(keyType crypki.PublicKeyAlgorithm) (priv crypto.Signer,
 }
 
 // initMockSigner initializes a mock signer.
-func initMockSigner(keyType crypki.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
+func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
@@ -140,11 +140,11 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetSSHCertSigningKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -225,21 +225,21 @@ func TestSignSSHCert(t *testing.T) {
 	testcases := map[string]struct {
 		ctx                   context.Context
 		cert                  *ssh.Certificate
-		keyType               crypki.PublicKeyAlgorithm
+		keyType               x509.PublicKeyAlgorithm
 		identifier            string
 		priority              proto.Priority
 		isBadSigner           bool
 		expectError           bool
 		expectedSignatureAlgo string
 	}{
-		"host-cert-rsa":             {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.SigAlgoRSASHA2256},
-		"host-cert-ec":              {ctx, hostCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
-		"host-cert-bad-signer":      {ctx, hostCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
-		"user-cert-rsa":             {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.SigAlgoRSASHA2256},
-		"user-cert-ec":              {ctx, userCertEC, crypki.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
-		"user-cert-bad-identifier":  {ctx, userCertRSA, crypki.RSA, badIdentifier, proto.Priority_High, false, true, ""},
-		"user-cert-bad-signer":      {ctx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
-		"user-cert-request-timeout": {timeoutCtx, userCertRSA, crypki.RSA, defaultIdentifier, proto.Priority_Low, false, true, ""},
+		"host-cert-rsa":             {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.SigAlgoRSASHA2256},
+		"host-cert-ec":              {ctx, hostCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
+		"host-cert-bad-signer":      {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
+		"user-cert-rsa":             {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.SigAlgoRSASHA2256},
+		"user-cert-ec":              {ctx, userCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
+		"user-cert-bad-identifier":  {ctx, userCertRSA, x509.RSA, badIdentifier, proto.Priority_High, false, true, ""},
+		"user-cert-bad-signer":      {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
+		"user-cert-request-timeout": {timeoutCtx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, true, ""},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
@@ -292,11 +292,11 @@ func TestGetX509CACert(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetX509CACert(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -333,7 +333,7 @@ func TestSignX509RSACert(t *testing.T) {
 		BasicConstraintsValid: true,
 	}
 
-	caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+	caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 	if err != nil {
 		t.Fatalf("unable to create CA keys and certificate: %v", err)
 	}
@@ -362,7 +362,7 @@ func TestSignX509RSACert(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
 			if tt.ctx == cancelCtx {
 				cancel()
 			}
@@ -421,7 +421,7 @@ func TestSignX509ECCert(t *testing.T) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-	caPriv, caCert, err := createCAKeysAndCert(crypki.ECDSA)
+	caPriv, caCert, err := createCAKeysAndCert(x509.ECDSA)
 	if err != nil {
 		t.Fatalf("unable to create CA keys and certificate: %v", err)
 	}
@@ -447,7 +447,7 @@ func TestSignX509ECCert(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner)
 			data, err := signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
@@ -503,7 +503,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-	caPriv, caCert, err := createCAKeysAndCert(crypki.ECDSA)
+	caPriv, caCert, err := createCAKeysAndCert(x509.ECDSA)
 	if err != nil {
 		t.Fatalf("unable to create CA keys and certificate: %v", err)
 	}
@@ -533,7 +533,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer := initMockSigner(crypki.ECDSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner)
 			if tt.ctx == cancelCtx {
 				cncl()
 			}
@@ -585,11 +585,11 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
 			_, err = signer.GetBlobSigningPublicKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -606,7 +606,7 @@ func TestSignBlob(t *testing.T) {
 	goodDigestSHA384 := sha512.Sum384(blob)
 	goodDigestSHA512 := sha512.Sum512(blob)
 
-	caPriv, caCert, err := createCAKeysAndCert(crypki.RSA)
+	caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 	if err != nil {
 		t.Fatalf("unable to create CA keys and certificate: %v", err)
 	}
@@ -643,7 +643,7 @@ func TestSignBlob(t *testing.T) {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
-			signer := initMockSigner(crypki.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
 			signature, err := signer.SignBlob(tt.ctx, reqChan, tt.digest, tt.opts, tt.identifier, proto.Priority_High)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -688,12 +688,12 @@ func TestIsValidCertRequest(t *testing.T) {
 		BasicConstraintsValid: true,
 	}
 	tests := map[string]struct {
-		sa   crypki.SignatureAlgorithm
+		sa   x509.SignatureAlgorithm
 		want bool
 	}{
-		"happy path":               {sa: crypki.ECDSAWithSHA256, want: true},
-		"rsa-public-key-algo":      {sa: crypki.SHA256WithRSA, want: false},
-		"incorrect-signature-algo": {sa: crypki.ECDSAWithSHA384, want: false},
+		"happy path":               {sa: x509.ECDSAWithSHA256, want: true},
+		"rsa-public-key-algo":      {sa: x509.SHA256WithRSA, want: false},
+		"incorrect-signature-algo": {sa: x509.ECDSAWithSHA384, want: false},
 	}
 	for name, tt := range tests {
 		name, tt := name, tt

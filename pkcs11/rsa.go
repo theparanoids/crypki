@@ -61,7 +61,7 @@ func publicRSA(s *p11Signer) crypto.PublicKey {
 func signDataRSA(ctx PKCS11Ctx, session p11.SessionHandle, hsmPrivateObject p11.ObjectHandle, data []byte, opts crypto.SignerOpts) ([]byte, error) {
 	const MAXBYTES = 262042
 	if len(data) > MAXBYTES {
-		return nil, errors.New("Cannot sign such a large blob of data")
+		return nil, errors.New("cannot sign such a large blob of data")
 	}
 
 	privateKeyHandle := hsmPrivateObject
@@ -78,7 +78,7 @@ func signDataRSA(ctx PKCS11Ctx, session p11.SessionHandle, hsmPrivateObject p11.
 		buf = append(hashPrefixes[hash], data...)
 		mech[0] = p11.NewMechanism(p11.CKM_RSA_PKCS, nil)
 	default:
-		return nil, errors.New("Unsupported hash algorithm")
+		return nil, errors.New("unsupported hash algorithm")
 	}
 
 	err := ctx.SignInit(session, mech, privateKeyHandle)

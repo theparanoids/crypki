@@ -4,6 +4,7 @@
 package pkcs11
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 
@@ -116,5 +117,5 @@ type KeyInfo struct {
 	// SignersPerPool is the number of signers we assign on a specific key
 	SignersPerPool int
 	// KeyType specifies the type of key, such as RSA or ECDSA.
-	KeyType crypki.PublicKeyAlgorithm
+	KeyType x509.PublicKeyAlgorithm
 }

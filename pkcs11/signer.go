@@ -79,6 +79,13 @@ func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Du
 }
 
 func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority) (signer signerWithSignAlgorithm, err error) {
+	// Need to handle case when we directly invoke SignSSHCert or SignX509Cert for
+	// either generating the host certs or X509 CA certs. In that case we don't need the server
+	// running nor do we need to worry about priority scheduling. In that case, we immediately
+	// fetch the signer from the pool.
+	if requestChan == nil {
+		return pool.get(ctx)
+	}
 	remTime, err := getRemainingRequestTime(ctx, keyIdentifier)
 	if err != nil {
 		return nil, err

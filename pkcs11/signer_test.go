@@ -438,9 +438,10 @@ func TestSignX509ECCert(t *testing.T) {
 		isBadSigner bool
 		expectError bool
 	}{
-		"cert-ec-good-signer":    {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
-		"cert-ec-bad-identifier": {ctx, certEC, badIdentifier, proto.Priority_Medium, false, true},
-		"cert-ec-bad-signer":     {ctx, certEC, badIdentifier, proto.Priority_Medium, true, true},
+		"cert-ec-good-signer":       {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
+		"cert-ec-bad-identifier":    {ctx, certEC, badIdentifier, proto.Priority_Medium, false, true},
+		"cert-ec-bad-signer":        {ctx, certEC, badIdentifier, proto.Priority_Medium, true, true},
+		"x509-ec-ca-cert-no-server": {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
 	}
 	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
@@ -448,8 +449,13 @@ func TestSignX509ECCert(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner)
-			data, err := signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
-			if err != nil != tt.expectError {
+			var data []byte
+			if label == "x509-ec-ca-cert-no-server" {
+				data, err = signer.SignX509Cert(tt.ctx, nil, tt.cert, tt.identifier, tt.priority)
+			} else {
+				data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
+			}
+			if (err != nil) != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}
 			if err != nil {

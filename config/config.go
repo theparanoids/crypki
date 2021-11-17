@@ -186,7 +186,7 @@ func (c *Config) validate() error {
 			return fmt.Errorf("key %q: invalid Key type specified", key.Identifier)
 		}
 
-		if key.SignatureAlgo < x509.SHA256WithRSA || key.SignatureAlgo > x509.PureEd25519 {
+		if key.SignatureAlgo < x509.SHA1WithRSA || key.SignatureAlgo > x509.PureEd25519 {
 			return fmt.Errorf("key %q: invalid signature hash algo specified", key.Identifier)
 		}
 	}

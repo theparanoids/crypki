@@ -27,7 +27,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
-	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/api"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/pkcs11"
@@ -101,7 +100,7 @@ func getIPs() (ips []net.IP, err error) {
 }
 
 // Main represents the main function which starts crypki server.
-func Main(keyP crypki.KeyIDProcessor) {
+func Main() {
 	cfgVal := ""
 	logFile := ""
 	ctx, cancel := context.WithCancel(context.Background())
@@ -223,7 +222,7 @@ func Main(keyP crypki.KeyIDProcessor) {
 		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
 
-	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, KeyIDProcessor: keyP, RequestChan: requestChan}
+	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, RequestChan: requestChan}
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}

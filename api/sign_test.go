@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/scheduler"
@@ -134,7 +133,7 @@ func (mgcs *mockGoodCertSign) SignBlob(ctx context.Context, reqChan chan schedul
 
 // InitMockSigningService initializes a mock signing service which implements mock functions
 func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
-	ss := &SigningService{KeyIDProcessor: &crypki.KeyID{}}
+	ss := &SigningService{}
 	ss.KeyUsages = mssp.KeyUsages
 	ss.MaxValidity = mssp.MaxValidity
 	if mssp.sendError {

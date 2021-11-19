@@ -28,7 +28,6 @@ type Work struct {
 
 //DoWork performs the work of fetching the signer from the pool and sending it back on the response channel
 func (w *Work) DoWork(ctx context.Context, worker *scheduler.Worker) {
-	log.Printf("%s: processing work for identifier %q", worker.String(), w.work.identifier)
 	select {
 	case <-ctx.Done():
 		log.Printf("%s: worker stopped", worker.String())

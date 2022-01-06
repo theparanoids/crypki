@@ -228,7 +228,7 @@ func Main() {
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
-	hs := &healthcheck.HealthCheckService{SigningService: ss, KeyID: cfg.HealthCheck.KeyID}
+	hs := &healthcheck.Service{SigningService: ss, KeyID: cfg.HealthCheck.KeyID}
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
@@ -274,7 +274,7 @@ func Main() {
 }
 
 type hcHandler struct {
-	hcService *healthcheck.HealthCheckService
+	hcService *healthcheck.Service
 }
 
 func (h *hcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -293,8 +293,8 @@ func (h *hcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not in rotation", http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte("imok\n"))
-	return
+	_, err = w.Write([]byte("imok\n"))
+	log.Print(err)
 }
 
 // tlsConfiguration returns tls configuration.

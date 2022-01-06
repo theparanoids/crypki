@@ -36,6 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -242,7 +243,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
 				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 					return listener.Dial()
-				}), grpc.WithInsecure())
+				}), grpc.WithTransportCredentials(insecure.NewCredentials()))
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},
 			wantLog: "m=grpcAccessLog,prin=unknownTLSInfo",

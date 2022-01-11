@@ -17,10 +17,14 @@ package v3;
 
 option go_package = "github.com/theparanoids/crypki/proto";
 
+// HealthCheckRequest represents the request. An empty service name can be used
+// if client wants to get server's overall health status.
 message HealthCheckRequest {
   string service = 1;
 }
 
+// HealthCheckResponse represents the response. Server sets the status based on whether
+// the server or a particular service is up and ready to serve traffic.
 message HealthCheckResponse {
   enum ServingStatus {
     UNKNOWN = 0;

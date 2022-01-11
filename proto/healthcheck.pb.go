@@ -86,6 +86,8 @@ func (HealthCheckResponse_ServingStatus) EnumDescriptor() ([]byte, []int) {
 	return file_healthcheck_proto_rawDescGZIP(), []int{1, 0}
 }
 
+// HealthCheckRequest represents the request. An empty service name can be used
+// if client wants to get server's overall health status.
 type HealthCheckRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -133,6 +135,8 @@ func (x *HealthCheckRequest) GetService() string {
 	return ""
 }
 
+// HealthCheckResponse represents the response. Server sets the status based on whether
+// the server or a particular service is up and ready to serve traffic.
 type HealthCheckResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

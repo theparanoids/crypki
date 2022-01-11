@@ -15,7 +15,7 @@
 // Package oor implements an opinionated standalone listener which can be used by load balancer
 // to take the server instance out of rotation or bring it back in rotation.
 // The instance will go out of rotation on receiving SIGUSR1 and can be brought back
-// in rotation by sending SIGUSR1.
+// in rotation by sending SIGUSR2.
 package oor
 
 import (
@@ -27,8 +27,8 @@ import (
 
 // Handler represents OOR handler.
 type Handler struct {
-	inRotation   bool
-	inRotationMu sync.Mutex
+	inRotation bool
+	sync.Mutex
 }
 
 // NewHandler returns an OOR Handler.
@@ -43,8 +43,8 @@ func NewHandler(inRotation bool) *Handler {
 
 // InRotation returns true if the server instance is ready to serve traffic.
 func (h *Handler) InRotation() bool {
-	h.inRotationMu.Lock()
-	defer h.inRotationMu.Unlock()
+	h.Lock()
+	defer h.Unlock()
 	return h.inRotation
 }
 
@@ -52,9 +52,9 @@ func (h *Handler) takeOutOfRotation() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGUSR1)
 	for range ch {
-		h.inRotationMu.Lock()
+		h.Lock()
 		h.inRotation = false
-		h.inRotationMu.Unlock()
+		h.Unlock()
 	}
 }
 
@@ -62,8 +62,8 @@ func (h *Handler) takeInRotation() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGUSR2)
 	for range ch {
-		h.inRotationMu.Lock()
+		h.Lock()
 		h.inRotation = true
-		h.inRotationMu.Unlock()
+		h.Unlock()
 	}
 }

@@ -237,9 +237,8 @@ func Main() {
 	proto.RegisterHealthServer(grpcServer, hs)
 
 	go func() {
-		if !cfg.HealthCheck.Disabled {
+		if cfg.HealthCheck.Enabled {
 			// only enable oor handler if we want to enable health check listener
-			// TODO: need a separate config to enable/disable this?
 			oorh := oor.NewHandler(true) // TODO: do we want to start with inRotation true?
 			hs.InRotation = oorh.InRotation
 			// healthcheck http listener tls config

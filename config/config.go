@@ -54,8 +54,8 @@ var endpoints = map[string]bool{
 
 // HealthCheck specifies configs related to healthcheck listener.
 type HealthCheck struct {
-	// Disabled specifies whether healthcheck listener should be disabled.
-	Disabled bool
+	// Enabled specifies whether healthcheck listener should be enabled.
+	Enabled bool
 	// Address specifies the address for the http listener.
 	Address string
 	// KeyID specifies the identifier of the key to be used by

@@ -24,11 +24,8 @@ var statsTimer = 5 * time.Minute
 // CollectRequest is responsible for receiving work requests from the client & enqueues the request to the requestQueue as part of a go routine
 func CollectRequest(ctx context.Context, requestChan <-chan Request, p *Pool) {
 	// create new worker pool for the given endpoint
-	log.Printf("create worker pool for %q with size %d", p.Name, p.PoolSize)
 	p.initialize()
 	p.start(ctx)
-
-	log.Printf("start collecting requests for endpoint %q", p.Name)
 
 	go p.dumpStats(ctx, statsTimer)
 

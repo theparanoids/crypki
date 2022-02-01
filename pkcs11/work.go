@@ -27,21 +27,29 @@ type Work struct {
 }
 
 //DoWork performs the work of fetching the signer from the pool and sending it back on the response channel
-func (w *Work) DoWork(ctx context.Context, worker *scheduler.Worker) {
+func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	select {
-	case <-ctx.Done():
+	case <-workerCtx.Done():
 		log.Printf("%s: worker stopped", worker.String())
 		return
 	default:
-		ctx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
+		reqCtx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
 		defer cancel()
-		signer, err := w.work.pool.get(ctx)
+		signer, err := w.work.pool.get(reqCtx)
 		if err != nil {
+			worker.TotalTimeout.Inc()
 			log.Printf("%s: error fetching signer %v", worker.String(), err)
 			w.work.respChan <- nil
 			return
 		}
-		worker.TotalProcessed.Inc()
-		w.work.respChan <- signer
+		select {
+		case <-reqCtx.Done():
+			// request timed out, increment timeout context & return nil.
+			worker.TotalTimeout.Inc()
+			w.work.respChan <- nil
+		default:
+			worker.TotalProcessed.Inc()
+			w.work.respChan <- signer
+		}
 	}
 }

@@ -31,7 +31,7 @@ type Pool struct {
 	requestQueue   map[proto.Priority]chan *Request
 }
 
-// initialize initializes the worker Pool which has multiple workers & request queue map for queueing extra requests based on priority.
+// initialize initializes the worker pool which has multiple workers & request queue map for queueing extra requests based on priority.
 // This method creates different workers with different priorities. We currently create 4x high priority workers, 2x medium priority &
 // 1x low priority workers based on the signerPoolSize.
 func (p *Pool) initialize() {

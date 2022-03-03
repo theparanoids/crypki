@@ -38,8 +38,9 @@ openssl \
 	-subj "/C=US/CN=localhost" \
   -out server.csr
 
-# sign server.csr by root CA 
-openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 36500 -sha256
+# sign server.csr by root CA
+# add SAN `crypki` for docker network access.
+openssl x509 -req -extfile <(printf "subjectAltName=DNS:crypki") -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 36500 -sha256
 
 
 # for mutual TLS

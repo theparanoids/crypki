@@ -66,8 +66,8 @@ type signer struct {
 	login map[uint]p11.SessionHandle
 }
 
-func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Duration, error) {
-	remTime := config.DefaultPKCS11Timeout
+func getRemainingRequestTime(ctx context.Context, keyIdentifier string, requestTimeout uint) (time.Duration, error) {
+	remTime := time.Duration(requestTimeout) * time.Second
 	if deadline, ok := ctx.Deadline(); ok {
 		remTime = time.Until(deadline)
 		if remTime <= 0 {
@@ -78,7 +78,7 @@ func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Du
 	return remTime, nil
 }
 
-func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority) (signer signerWithSignAlgorithm, err error) {
+func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority, requestTimeout uint) (signer signerWithSignAlgorithm, err error) {
 	// Need to handle case when we directly invoke SignSSHCert or SignX509Cert for
 	// either generating the host certs or X509 CA certs. In that case we don't need the server
 	// running nor do we need to worry about priority scheduling. In that case, we immediately
@@ -86,7 +86,7 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 	if requestChan == nil {
 		return pool.get(ctx)
 	}
-	remTime, err := getRemainingRequestTime(ctx, keyIdentifier)
+	remTime, err := getRemainingRequestTime(ctx, keyIdentifier, requestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func (s *signer) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string)
 	return ssh.MarshalAuthorizedKey(sshSigner.PublicKey()), nil
 }
 
-func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	const methodName = "SignSSHCert"
 	start := time.Now()
 	var ht, pt int64
@@ -208,7 +208,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -242,7 +242,7 @@ func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byt
 	return certBytes, nil
 }
 
-func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	const methodName = "SignX509Cert"
 	start := time.Now()
 	var ht, pt int64
@@ -256,7 +256,7 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -304,7 +304,7 @@ func (s *signer) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier stri
 	return pem.EncodeToMemory(b), nil
 }
 
-func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	const methodName = "SignBlob"
 	start := time.Now()
 	var ht, pt int64
@@ -321,7 +321,7 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err

@@ -81,10 +81,11 @@ var (
 )
 
 type mockSigningServiceParam struct {
-	KeyUsages   map[string]map[string]bool
-	MaxValidity map[string]uint64
-	sendError   bool
-	timeout     time.Duration
+	KeyUsages        map[string]map[string]bool
+	MaxValidity      map[string]uint64
+	RequestTimeout   map[string]uint
+	sendError        bool
+	randSleepTimeout time.Duration
 }
 
 type mockBadCertSign struct {
@@ -93,19 +94,19 @@ type mockBadCertSign struct {
 func (mbcs *mockBadCertSign) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 func (mbcs *mockBadCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 func (mbcs *mockBadCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
-func (mbcs *mockBadCertSign) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mbcs *mockBadCertSign) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return nil, errors.New("bad message")
 }
 
@@ -115,19 +116,19 @@ type mockGoodCertSign struct {
 func (mgcs *mockGoodCertSign) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good ssh signing key"), nil
 }
-func (mgcs *mockGoodCertSign) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return []byte("good ssh cert"), nil
 }
 func (mgcs *mockGoodCertSign) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good x509 ca cert"), nil
 }
-func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return []byte("good x509 cert"), nil
 }
 func (mgcs *mockGoodCertSign) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
 	return []byte("good blob signing key"), nil
 }
-func (mgcs *mockGoodCertSign) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
+func (mgcs *mockGoodCertSign) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority, requestTimeout uint) ([]byte, error) {
 	return []byte("good blob signature"), nil
 }
 
@@ -136,12 +137,13 @@ func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
 	ss := &SigningService{}
 	ss.KeyUsages = mssp.KeyUsages
 	ss.MaxValidity = mssp.MaxValidity
+	ss.RequestTimeout = mssp.RequestTimeout
 	if mssp.sendError {
 		ss.CertSign = &mockBadCertSign{}
 	} else {
 		ss.CertSign = &mockGoodCertSign{}
 	}
-	time.Sleep(mssp.timeout)
+	time.Sleep(mssp.randSleepTimeout)
 	return ss
 }
 

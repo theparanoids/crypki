@@ -83,13 +83,15 @@ func TestGetX509CACertificate(t *testing.T) {
 	defer cancel()
 	timeoutCtx, timeCancel := context.WithTimeout(ctx, timeout)
 	defer timeCancel()
+	defaultRequestTimeout := map[string]uint{config.X509CertEndpoint: 10}
 	testcases := map[string]struct {
 		ctx       context.Context
 		KeyUsages map[string]map[string]bool
 		KeyMeta   *proto.KeyMeta
 		// if expectedCert set to nil, we are expecting an error while testing
-		expectedCert *proto.X509Certificate
-		timeout      time.Duration
+		expectedCert   *proto.X509Certificate
+		timeout        time.Duration
+		requestTimeout map[string]uint
 	}{
 		"emptyKeyUsages": {
 			KeyMeta:      &proto.KeyMeta{Identifier: "randomid"},
@@ -131,11 +133,12 @@ func TestGetX509CACertificate(t *testing.T) {
 			timeout:      timeout,
 		},
 		"requestCancelled": {
-			ctx:          cancelCtx,
-			KeyUsages:    x509keyUsage,
-			KeyMeta:      &proto.KeyMeta{Identifier: "x509id"},
-			expectedCert: nil,
-			timeout:      timeout,
+			ctx:            cancelCtx,
+			KeyUsages:      x509keyUsage,
+			KeyMeta:        &proto.KeyMeta{Identifier: "x509id"},
+			expectedCert:   nil,
+			timeout:        timeout,
+			requestTimeout: map[string]uint{config.X509CertEndpoint: 1},
 		},
 	}
 	for label, tt := range testcases {
@@ -146,15 +149,18 @@ func TestGetX509CACertificate(t *testing.T) {
 		}
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
+			if tt.requestTimeout == nil {
+				tt.requestTimeout = defaultRequestTimeout
+			}
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, timeout: tt.timeout}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: tt.requestTimeout}
 			ssBad := initMockSigningService(msspBad)
 			_, err := ssBad.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, timeout: tt.timeout}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
 			ssGood := initMockSigningService(msspGood)
 			cert, err := ssGood.GetX509CACertificate(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedCert != nil {
@@ -176,6 +182,7 @@ func TestGetX509CACertificate(t *testing.T) {
 func TestPostX509Certificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.X509CertEndpoint: 0}
+	defaultRequestTimeout := map[string]uint{config.X509CertEndpoint: 10}
 	ctx := context.Background()
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -323,7 +330,7 @@ func TestPostX509Certificate(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, timeout: tt.timeout}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
 			if _, err := ssBad.PostX509Certificate(tt.ctx, requestBad); err == nil {
@@ -331,7 +338,7 @@ func TestPostX509Certificate(t *testing.T) {
 			}
 
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, timeout: tt.timeout}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.X509CertificateSigningRequest{KeyMeta: tt.KeyMeta, Csr: tt.CSR, Validity: tt.validity}
 			cert, err := ssGood.PostX509Certificate(tt.ctx, requestGood)

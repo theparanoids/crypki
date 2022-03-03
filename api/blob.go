@@ -108,7 +108,7 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 	}
 
 	signerOpts := getSignerOpts(request.HashAlgorithm.String())
-	signature, err := s.SignBlob(ctx, s.RequestChan[config.BlobEndpoint], digest, signerOpts, request.KeyMeta.Identifier, request.Priority)
+	signature, err := s.SignBlob(ctx, s.RequestChan[config.BlobEndpoint], digest, signerOpts, request.KeyMeta.Identifier, request.Priority, s.RequestTimeout[config.BlobEndpoint])
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")

@@ -31,7 +31,7 @@ const (
 	defaultIdleTimeout   = 30
 	defaultReadTimeout   = 10
 	defaultWriteTimeout  = 10
-	defaultPKCS11Timeout = 10
+	DefaultPKCS11Timeout = 10
 
 	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
 	X509CertEndpoint = "/sig/x509-cert"
@@ -75,9 +75,6 @@ type KeyUsage struct {
 	// PrioritySchedulingEnabled indicates whether to schedule requests based on the priority/urgency of the request
 	// being received. If disabled, all requests are treated with equal priority.
 	PrioritySchedulingEnabled bool
-	// PKCS11RequestTimeout indicates the max time an HSM can take to process a signing request for a
-	// certificate in seconds.
-	PKCS11RequestTimeout uint `json:"requestTimeout"`
 }
 
 // KeyConfig contains information about a particular signing key inside HSM.
@@ -147,6 +144,10 @@ type Config struct {
 	IdleTimeout  uint
 	ReadTimeout  uint
 	WriteTimeout uint
+
+	// PKCS11RequestTimeout indicates the max time an HSM can take to process a signing request for a
+	// certificate in seconds.
+	PKCS11RequestTimeout uint `json:"requestTimeout"`
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.
@@ -262,12 +263,6 @@ func (c *Config) loadDefaults() {
 		}
 	}
 
-	for i := range c.KeyUsages {
-		if c.KeyUsages[i].PKCS11RequestTimeout == 0 {
-			c.KeyUsages[i].PKCS11RequestTimeout = defaultPKCS11Timeout
-		}
-	}
-
 	if c.ShutdownOnInternalFailureCriteria.ConsecutiveCountLimit == 0 {
 		c.ShutdownOnInternalFailureCriteria.ConsecutiveCountLimit = defaultShutdownOnSigningFailureConsecutiveCount
 	}
@@ -285,5 +280,8 @@ func (c *Config) loadDefaults() {
 	}
 	if c.WriteTimeout == 0 {
 		c.WriteTimeout = defaultWriteTimeout
+	}
+	if c.PKCS11RequestTimeout == 0 {
+		c.PKCS11RequestTimeout = DefaultPKCS11Timeout
 	}
 }

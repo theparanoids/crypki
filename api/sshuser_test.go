@@ -77,7 +77,6 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 	ctx := context.Background()
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	defaultRequestTimeout := map[string]uint{config.SSHUserCertEndpoint: 10}
 	testcases := map[string]struct {
 		ctx       context.Context
 		KeyUsages map[string]map[string]bool
@@ -135,14 +134,14 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: config.DefaultPKCS11Timeout}
 			ssBad := initMockSigningService(msspBad)
 			_, err := ssBad.GetUserSSHCertificateSigningKey(tt.ctx, tt.KeyMeta)
 			if err == nil {
 				t.Fatalf("in test %v: bad signing service should return error but got nil", label)
 			}
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: config.DefaultPKCS11Timeout}
 			ssGood := initMockSigningService(msspGood)
 			key, err := ssGood.GetUserSSHCertificateSigningKey(tt.ctx, tt.KeyMeta)
 			if err != nil && tt.expectedSSHKey != nil {
@@ -169,7 +168,6 @@ func TestGetUserSSHCertificateSigningKey(t *testing.T) {
 func TestPostUserSSHCertificate(t *testing.T) {
 	t.Parallel()
 	defaultMaxValidity := map[string]uint64{config.SSHUserCertEndpoint: 0}
-	defaultRequestTimeout := map[string]uint{config.SSHUserCertEndpoint: 10}
 	ctx := context.Background()
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -349,7 +347,7 @@ func TestPostUserSSHCertificate(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			t.Parallel()
 			// bad certsign should return error anyways
-			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
+			msspBad := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: true, randSleepTimeout: tt.timeout, RequestTimeout: config.DefaultPKCS11Timeout}
 			ssBad := initMockSigningService(msspBad)
 			requestBad := &proto.SSHCertificateSigningRequest{KeyMeta: tt.KeyMeta, PublicKey: tt.PubKey, Validity: tt.validity, KeyId: tt.KeyID}
 			_, err := ssBad.PostUserSSHCertificate(tt.ctx, requestBad)
@@ -358,7 +356,7 @@ func TestPostUserSSHCertificate(t *testing.T) {
 			}
 
 			// good certsign
-			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: defaultRequestTimeout}
+			msspGood := mockSigningServiceParam{KeyUsages: tt.KeyUsages, MaxValidity: tt.maxValidity, sendError: false, randSleepTimeout: tt.timeout, RequestTimeout: config.DefaultPKCS11Timeout}
 			ssGood := initMockSigningService(msspGood)
 			requestGood := &proto.SSHCertificateSigningRequest{KeyMeta: tt.KeyMeta, PublicKey: tt.PubKey, Validity: tt.validity, KeyId: tt.KeyID}
 			cert, err := ssGood.PostUserSSHCertificate(tt.ctx, requestGood)

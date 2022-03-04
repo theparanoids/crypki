@@ -57,7 +57,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 	}
 
 	// Create a context with server side timeout.
-	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout[config.X509CertEndpoint])*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as GetX509CACertificate returns.
 
 	if !s.KeyUsages[config.X509CertEndpoint][keyMeta.Identifier] {
@@ -115,7 +115,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 
 	// Create a context with server side timeout.
-	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout[config.X509CertEndpoint])*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
@@ -143,7 +143,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 	respCh := make(chan resp)
 	go func() {
-		cert, err := s.SignX509Cert(reqCtx, s.RequestChan[config.X509CertEndpoint], req, request.KeyMeta.Identifier, request.Priority, s.RequestTimeout[config.X509CertEndpoint])
+		cert, err := s.SignX509Cert(reqCtx, s.RequestChan[config.X509CertEndpoint], req, request.KeyMeta.Identifier, request.Priority)
 		respCh <- resp{cert, err}
 	}()
 

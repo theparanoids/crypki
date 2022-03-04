@@ -135,7 +135,6 @@ func Main() {
 	}
 	keyUsages := make(map[string]map[string]bool)
 	maxValidity := make(map[string]uint64)
-	requestTimeout := make(map[string]uint)
 	requestChan := make(map[string]chan scheduler.Request)
 	idEpMap := make(map[string]priorityDispatchInfo)
 	endpointMap := make(map[string]bool)
@@ -148,7 +147,6 @@ func Main() {
 		}
 		requestChan[usage.Endpoint] = make(chan scheduler.Request)
 		maxValidity[usage.Endpoint] = usage.MaxValidity
-		requestTimeout[usage.Endpoint] = usage.PKCS11RequestTimeout
 	}
 
 	for _, key := range cfg.Keys {
@@ -172,7 +170,7 @@ func Main() {
 		log.Fatal(err)
 	}
 
-	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips)
+	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips, cfg.PKCS11RequestTimeout)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}
@@ -226,7 +224,7 @@ func Main() {
 		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
 
-	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, RequestChan: requestChan, RequestTimeout: requestTimeout}
+	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, RequestChan: requestChan, RequestTimeout: cfg.PKCS11RequestTimeout}
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}

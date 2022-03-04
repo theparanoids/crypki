@@ -18,7 +18,7 @@ type SigningService struct {
 	KeyUsages      map[string]map[string]bool
 	MaxValidity    map[string]uint64
 	RequestChan    map[string]chan scheduler.Request
-	RequestTimeout map[string]uint
+	RequestTimeout uint
 	proto.UnimplementedSigningServer
 }
 

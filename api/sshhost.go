@@ -58,7 +58,7 @@ func (s *SigningService) GetHostSSHCertificateSigningKey(ctx context.Context, ke
 	}
 
 	// create a context with server side timeout
-	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout[config.SSHHostCertEndpoint])*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as GetHostSSHCertificateSigningKey returns
 
 	if !s.KeyUsages[config.SSHHostCertEndpoint][keyMeta.Identifier] {
@@ -123,7 +123,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 	}
 
 	// create a context with server side timeout
-	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout[config.SSHHostCertEndpoint])*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as PostHostSSHCertificate returns
 
 	maxValidity := s.MaxValidity[config.SSHHostCertEndpoint]
@@ -150,7 +150,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 	}
 	respCh := make(chan resp)
 	go func() {
-		data, err := s.SignSSHCert(ctx, s.RequestChan[config.SSHHostCertEndpoint], cert, request.KeyMeta.Identifier, request.Priority, s.RequestTimeout[config.SSHHostCertEndpoint])
+		data, err := s.SignSSHCert(ctx, s.RequestChan[config.SSHHostCertEndpoint], cert, request.KeyMeta.Identifier, request.Priority)
 		respCh <- resp{data, err}
 	}()
 

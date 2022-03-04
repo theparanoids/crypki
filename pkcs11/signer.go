@@ -109,15 +109,9 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 		// This should ideally not happen but in order to avoid a blocking call we add this check in place.
 		return nil, errors.New("request channel is closed, cannot fetch signer")
 	}
-	var ok bool
-	select {
-	case signer, ok = <-respChan:
-		if signer == nil || !ok {
-			return nil, errors.New("client request timed out, skip signing cert request")
-		}
-	case <-ctx.Done():
-		// In order to ensure we don't keep on blocking on the response, we add this check.
-		return nil, ctx.Err()
+	signer, ok := <-respChan
+	if signer == nil || !ok {
+		return nil, errors.New("client request timed out, skip signing cert request")
 	}
 	return signer, nil
 }

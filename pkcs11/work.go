@@ -36,7 +36,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 		reqCtx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
 		defer cancel()
 		signer, err := w.work.pool.get(reqCtx)
-		if err != nil {
+		if signer == nil || err != nil {
 			worker.TotalTimeout.Inc()
 			log.Printf("%s: error fetching signer %v", worker.String(), err)
 			w.work.respChan <- nil

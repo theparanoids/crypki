@@ -81,10 +81,11 @@ var (
 )
 
 type mockSigningServiceParam struct {
-	KeyUsages   map[string]map[string]bool
-	MaxValidity map[string]uint64
-	sendError   bool
-	timeout     time.Duration
+	KeyUsages        map[string]map[string]bool
+	MaxValidity      map[string]uint64
+	RequestTimeout   uint
+	sendError        bool
+	randSleepTimeout time.Duration
 }
 
 type mockBadCertSign struct {
@@ -136,12 +137,13 @@ func initMockSigningService(mssp mockSigningServiceParam) *SigningService {
 	ss := &SigningService{}
 	ss.KeyUsages = mssp.KeyUsages
 	ss.MaxValidity = mssp.MaxValidity
+	ss.RequestTimeout = mssp.RequestTimeout
 	if mssp.sendError {
 		ss.CertSign = &mockBadCertSign{}
 	} else {
 		ss.CertSign = &mockGoodCertSign{}
 	}
-	time.Sleep(mssp.timeout)
+	time.Sleep(mssp.randSleepTimeout)
 	return ss
 }
 

@@ -170,7 +170,7 @@ func Main() {
 		log.Fatal(err)
 	}
 
-	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips)
+	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips, cfg.PKCS11RequestTimeout)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}
@@ -224,7 +224,7 @@ func Main() {
 		grpc.ChainUnaryInterceptor(interceptors...),
 	}...)
 
-	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, RequestChan: requestChan}
+	ss := &api.SigningService{CertSign: signer, KeyUsages: keyUsages, MaxValidity: maxValidity, RequestChan: requestChan, RequestTimeout: cfg.PKCS11RequestTimeout}
 	if err := proto.RegisterSigningHandlerServer(ctx, gwmux, ss); err != nil {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}

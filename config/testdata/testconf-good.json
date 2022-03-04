@@ -21,5 +21,6 @@
   },
   "IdleTimeout": 30,
   "ReadTimeout": 10,
-  "WriteTimeout": 10
+  "WriteTimeout": 10,
+  "RequestTimeout": 15
 }

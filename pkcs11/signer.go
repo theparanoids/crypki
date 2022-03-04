@@ -63,11 +63,12 @@ type signer struct {
 	// the sessions would be in `User Functions` state instead of `Public Session` state,
 	// and the private tokens in the slots can be accessed via those sessions.
 	// Ref. http://docs.oasis-open.org/pkcs11/pkcs11-ug/v2.40/cn02/pkcs11-ug-v2.40-cn02.html#_Toc406759989
-	login map[uint]p11.SessionHandle
+	login          map[uint]p11.SessionHandle
+	requestTimeout uint
 }
 
-func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Duration, error) {
-	remTime := config.DefaultPKCS11Timeout
+func getRemainingRequestTime(ctx context.Context, keyIdentifier string, requestTimeout uint) (time.Duration, error) {
+	remTime := time.Duration(requestTimeout) * time.Second
 	if deadline, ok := ctx.Deadline(); ok {
 		remTime = time.Until(deadline)
 		if remTime <= 0 {
@@ -78,7 +79,7 @@ func getRemainingRequestTime(ctx context.Context, keyIdentifier string) (time.Du
 	return remTime, nil
 }
 
-func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority) (signer signerWithSignAlgorithm, err error) {
+func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority, requestTimeout uint) (signer signerWithSignAlgorithm, err error) {
 	// Need to handle case when we directly invoke SignSSHCert or SignX509Cert for
 	// either generating the host certs or X509 CA certs. In that case we don't need the server
 	// running nor do we need to worry about priority scheduling. In that case, we immediately
@@ -86,7 +87,7 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 	if requestChan == nil {
 		return pool.get(ctx)
 	}
-	remTime, err := getRemainingRequestTime(ctx, keyIdentifier)
+	remTime, err := getRemainingRequestTime(ctx, keyIdentifier, requestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
-func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP) (crypki.CertSign, error) {
+func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, requestTimeout uint) (crypki.CertSign, error) {
 	p11ctx, err := initPKCS11Context(pkcs11ModulePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
@@ -151,6 +152,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 		crlDistributionPoints: make(map[string][]string),
 		sPool:                 make(map[string]sPool),
 		login:                 login,
+		requestTimeout:        requestTimeout,
 	}
 	for _, key := range keys {
 		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType, key.SignatureAlgo)
@@ -208,7 +210,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -256,7 +258,7 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -321,7 +323,7 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err

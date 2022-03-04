@@ -57,7 +57,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 	}
 
 	// Create a context with server side timeout.
-	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as GetX509CACertificate returns.
 
 	if !s.KeyUsages[config.X509CertEndpoint][keyMeta.Identifier] {
@@ -115,7 +115,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 
 	// Create a context with server side timeout.
-	reqCtx, cancel := context.WithTimeout(ctx, config.DefaultPKCS11Timeout)
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]

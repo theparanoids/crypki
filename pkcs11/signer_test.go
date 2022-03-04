@@ -26,7 +26,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"log"
 	"math/big"
 	"reflect"
 	"testing"
@@ -42,7 +41,7 @@ import (
 const (
 	defaultIdentifier = "dummy"
 	badIdentifier     = "unknown"
-	timeout           = 1 * time.Second
+	timeout           = 100 * time.Millisecond
 )
 
 // enforce signer implements CertSign interface.
@@ -95,7 +94,7 @@ func createCAKeysAndCert(keyType x509.PublicKeyAlgorithm) (priv crypto.Signer, c
 }
 
 // initMockSigner initializes a mock signer.
-func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool) *signer {
+func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool, sleepTime time.Duration, requestTimeout uint) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
@@ -104,15 +103,15 @@ func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x
 	sp := newMockSignerPool(isBad, keyType, priv)
 	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
+	s.requestTimeout = requestTimeout
+	time.Sleep(sleepTime)
 	return s
 }
 
 func dummyScheduler(ctx context.Context, reqChan chan scheduler.Request) {
-	log.Printf("starting dummy scheduler")
 	for {
 		req := <-reqChan
 		go func() {
-			log.Printf("req priority: %d", req.Priority)
 			// create worker with different priorities
 			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{})}
 			req.DoWorker.DoWork(ctx, worker)
@@ -139,12 +138,11 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
 			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			_, err = signer.GetSSHCertSigningKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -244,12 +242,11 @@ func TestSignSSHCert(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
 			caPriv, caCert, err := createCAKeysAndCert(tt.keyType)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			data, err := signer.SignSSHCert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -291,12 +288,11 @@ func TestGetX509CACert(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
 			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			_, err = signer.GetX509CACert(ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -362,7 +358,7 @@ func TestSignX509RSACert(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			if tt.ctx == cancelCtx {
 				cancel()
 			}
@@ -447,8 +443,7 @@ func TestSignX509ECCert(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
-			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			var data []byte
 			if label == "x509-ec-ca-cert-no-server" {
 				data, err = signer.SignX509Cert(tt.ctx, nil, tt.cert, tt.identifier, tt.priority)
@@ -538,8 +533,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
-			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			if tt.ctx == cancelCtx {
 				cncl()
 			}
@@ -590,12 +584,11 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
 			caPriv, caCert, err := createCAKeysAndCert(x509.RSA)
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			_, err = signer.GetBlobSigningPublicKey(tt.ctx, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -622,7 +615,7 @@ func TestSignBlob(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Millisecond)
 	defer cancel()
 	reqChan := make(chan scheduler.Request)
 	go dummyScheduler(ctx, reqChan)
@@ -648,8 +641,7 @@ func TestSignBlob(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			t.Parallel()
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			signature, err := signer.SignBlob(tt.ctx, reqChan, tt.digest, tt.opts, tt.identifier, proto.Priority_High)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)

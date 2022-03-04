@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -29,9 +28,10 @@ const (
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
 	defaultShutdownOnSigningFailureTimerCount          = 10
 
-	defaultIdleTimeout  = 30
-	defaultReadTimeout  = 10
-	defaultWriteTimeout = 10
+	defaultIdleTimeout   = 30
+	defaultReadTimeout   = 10
+	defaultWriteTimeout  = 10
+	DefaultPKCS11Timeout = 10
 
 	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
 	X509CertEndpoint = "/sig/x509-cert"
@@ -41,8 +41,6 @@ const (
 	SSHHostCertEndpoint = "/sig/ssh-host-cert"
 	// BlobEndpoint specifies the endpoint for raw signing.
 	BlobEndpoint = "/sig/blob"
-	// DefaultPKCS11Timeout specifies the max time required by HSM to sign a cert.
-	DefaultPKCS11Timeout = 10 * time.Second
 )
 
 var endpoints = map[string]bool{
@@ -146,6 +144,10 @@ type Config struct {
 	IdleTimeout  uint
 	ReadTimeout  uint
 	WriteTimeout uint
+
+	// PKCS11RequestTimeout indicates the max time an HSM can take to process a signing request for a
+	// certificate in seconds.
+	PKCS11RequestTimeout uint `json:"requestTimeout"`
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.
@@ -278,5 +280,8 @@ func (c *Config) loadDefaults() {
 	}
 	if c.WriteTimeout == 0 {
 		c.WriteTimeout = defaultWriteTimeout
+	}
+	if c.PKCS11RequestTimeout == 0 {
+		c.PKCS11RequestTimeout = DefaultPKCS11Timeout
 	}
 }

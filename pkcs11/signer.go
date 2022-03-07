@@ -212,6 +212,12 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
 
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	sshSigner, err := newAlgorithmSignerFromSigner(signer, signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("failed to new ssh signer from signer, error :%v", err)
@@ -259,6 +265,12 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 	}
 	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
 	if val := isValidCertRequest(cert, signer.signAlgorithm()); !val {
@@ -324,6 +336,12 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 	}
 	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	defer pool.put(signer)
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	// measure time taken by hsm
 	hStart := time.Now()

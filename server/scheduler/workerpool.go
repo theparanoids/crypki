@@ -27,6 +27,7 @@ type Pool struct {
 	Name           string
 	PoolSize       int
 	FeatureEnabled bool
+	PKCS11Timeout  time.Duration
 	workers        []*Worker
 	requestQueue   map[proto.Priority]chan *Request
 }
@@ -46,7 +47,7 @@ func (p *Pool) initialize() {
 	var i, j int
 	for pri, size := range mp {
 		for ; i < j+size; i++ {
-			worker := newWorker(i, pri)
+			worker := newWorker(i, pri, p.PKCS11Timeout)
 			p.workers = append(p.workers, worker)
 		}
 		j += size

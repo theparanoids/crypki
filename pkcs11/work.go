@@ -26,30 +26,62 @@ type Work struct {
 	work *Request // workChan is a channel which has a request enqueue for the worker to work on.
 }
 
-//DoWork performs the work of fetching the signer from the pool and sending it back on the response channel
+// DoWork performs the work of fetching the signer from the pool and sending it back on the response channel.
+// If the client cancels the request or times out, the worker should not wait indefinitely for getting the signer from the
+// pool. Also, we have a max HSM timeout which enforces the worker to wait for max duration to fetch the signer from pool
+// & return if it exceeds that.
 func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
-	select {
-	case <-workerCtx.Done():
-		log.Printf("%s: worker stopped", worker.String())
-		return
-	default:
-		reqCtx, cancel := context.WithTimeout(context.Background(), w.work.remainingTime)
-		defer cancel()
+	reqCtx, cancel := context.WithTimeout(context.Background(), worker.HSMTimeout)
+	type resp struct {
+		signer signerWithSignAlgorithm
+		err    error
+	}
+
+	signerRespCh := make(chan resp)
+	go func() {
 		signer, err := w.work.pool.get(reqCtx)
-		if signer == nil || err != nil {
-			worker.TotalTimeout.Inc()
-			log.Printf("%s: error fetching signer %v", worker.String(), err)
-			w.work.respChan <- nil
-			return
-		}
+		signerRespCh <- resp{signer, err}
+	}()
+
+	for {
 		select {
-		case <-reqCtx.Done():
-			// request timed out, increment timeout context & return nil.
-			worker.TotalTimeout.Inc()
-			w.work.respChan <- nil
-		default:
+		case <-workerCtx.Done():
+			// Case 1: worker stopped either due to context cancelled or time out.
+			log.Printf("%s: worker stopped", worker.String())
+			cancel()
+			w.sendResponse(nil)
+			return
+		case resp := <-signerRespCh:
+			// Case 2: Received response. It could either be a time out or a signer.
+			if resp.signer == nil || resp.err != nil {
+				worker.TotalTimeout.Inc()
+				log.Printf("%s: error fetching signer %v", worker.String(), resp.err)
+				w.work.respChan <- nil
+				cancel()
+				return
+			}
 			worker.TotalProcessed.Inc()
-			w.work.respChan <- signer
+			w.sendResponse(resp.signer)
+			cancel()
+			return
+		case _, ok := <-w.work.respChan:
+			// Case 3: Check for current state of respChan. If the client request is cancelled, the client
+			// will close the respChan. In that case, we should cancel reqCtx & return to avoid extra processing.
+			if !ok {
+				log.Printf("%s: worker request timed out, client cancelled request", worker.String())
+				cancel()
+				worker.TotalTimeout.Inc()
+				return
+			}
 		}
+	}
+}
+
+// sendResponse sends the response on the respChan if the channel is not yet closed by the client.
+func (w *Work) sendResponse(resp signerWithSignAlgorithm) {
+	select {
+	case <-w.work.respChan:
+	default:
+		w.work.respChan <- resp
 	}
 }

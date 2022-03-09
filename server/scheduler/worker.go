@@ -17,7 +17,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 )
 
@@ -36,6 +38,7 @@ type Request struct {
 type Worker struct {
 	ID             int            // ID is a unique id for the worker
 	Priority       proto.Priority // Priority indicates the priority of the request the worker is handling.
+	HSMTimeout     time.Duration  // HSMTimeout is the max time a worker can wait to get signer from pool.
 	TotalProcessed Counter        // TotalProcessed indicates the total requests processed per priority by this worker.
 	TotalTimeout   Counter        // TotalTimeout indicates the total requests that timed out before worker could process it.
 	Quit           chan struct{}  // Quit is a channel to cancel the worker
@@ -56,9 +59,10 @@ func (w *Worker) String() string {
 // that the worker can add itself to when it is idle. It also creates a slice for storing totalProcessed requests.
 func newWorker(workerId int, workerPriority proto.Priority) *Worker {
 	return &Worker{
-		ID:       workerId,
-		Priority: workerPriority,
-		Quit:     make(chan struct{}),
+		ID:         workerId,
+		Priority:   workerPriority,
+		HSMTimeout: config.DefaultHSMTimeout * time.Second,
+		Quit:       make(chan struct{}),
 	}
 }
 

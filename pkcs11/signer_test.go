@@ -113,7 +113,7 @@ func dummyScheduler(ctx context.Context, reqChan chan scheduler.Request) {
 		req := <-reqChan
 		go func() {
 			// create worker with different priorities
-			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{})}
+			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{}), HSMTimeout: 1 * time.Second}
 			req.DoWorker.DoWork(ctx, worker)
 		}()
 	}
@@ -336,7 +336,8 @@ func TestSignX509RSACert(t *testing.T) {
 	cp := x509.NewCertPool()
 	cp.AddCert(caCert)
 
-	ctx := context.Background()
+	ctx, cnc := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cnc()
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -424,7 +425,8 @@ func TestSignX509ECCert(t *testing.T) {
 	cp := x509.NewCertPool()
 	cp.AddCert(caCert)
 
-	ctx := context.Background()
+	ctx, cnc := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cnc()
 	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
 		ctx         context.Context

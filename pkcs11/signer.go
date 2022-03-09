@@ -42,10 +42,9 @@ import (
    It also has a channel on which it waits for the response.
 */
 type Request struct {
-	pool          sPool                        // pool is a signer pool per identifier from which to fetch the signer
-	identifier    string                       // identifier indicates the endpoint for which we are fetching the signer in order to sign it
-	remainingTime time.Duration                // remainingTime indicates the time remaining before either the client cancels or the request times out.
-	respChan      chan signerWithSignAlgorithm // respChan is the channel where the worker sends the signer once it gets it from the pool
+	pool       sPool                        // pool is a signer pool per identifier from which to fetch the signer
+	identifier string                       // identifier indicates the endpoint for which we are fetching the signer in order to sign it
+	respChan   chan signerWithSignAlgorithm // respChan is the channel where the worker sends the signer once it gets it from the pool
 }
 
 // signer implements crypki.CertSign interface.
@@ -67,19 +66,7 @@ type signer struct {
 	requestTimeout uint
 }
 
-func getRemainingRequestTime(ctx context.Context, keyIdentifier string, requestTimeout uint) (time.Duration, error) {
-	remTime := time.Duration(requestTimeout) * time.Second
-	if deadline, ok := ctx.Deadline(); ok {
-		remTime = time.Until(deadline)
-		if remTime <= 0 {
-			// context expired, we should stop processing and return immediately
-			return 0, fmt.Errorf("context deadline expired for key identifier %q", keyIdentifier)
-		}
-	}
-	return remTime, nil
-}
-
-func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority, requestTimeout uint) (signer signerWithSignAlgorithm, err error) {
+func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority) (signer signerWithSignAlgorithm, err error) {
 	// Need to handle case when we directly invoke SignSSHCert or SignX509Cert for
 	// either generating the host certs or X509 CA certs. In that case we don't need the server
 	// running nor do we need to worry about priority scheduling. In that case, we immediately
@@ -87,16 +74,11 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 	if requestChan == nil {
 		return pool.get(ctx)
 	}
-	remTime, err := getRemainingRequestTime(ctx, keyIdentifier, requestTimeout)
-	if err != nil {
-		return nil, err
-	}
 	respChan := make(chan signerWithSignAlgorithm)
 	req := &Request{
-		pool:          pool,
-		identifier:    keyIdentifier,
-		remainingTime: remTime,
-		respChan:      respChan,
+		pool:       pool,
+		identifier: keyIdentifier,
+		respChan:   respChan,
 	}
 	if priority == proto.Priority_Unspecified_priority {
 		// If priority is unspecified, treat the request as high priority.
@@ -116,7 +98,8 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 			return nil, errors.New("client request timed out, skip signing cert request")
 		}
 	case <-ctx.Done():
-		// In order to ensure we don't keep on blocking on the response, we add this check.
+		// In order to ensure we don't keep on blocking on the response, we close the response channel for this request & return.
+		close(respChan)
 		return nil, ctx.Err()
 	}
 	return signer, nil
@@ -210,7 +193,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -258,7 +241,7 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err
@@ -323,7 +306,7 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority, s.requestTimeout)
+	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
 	if err != nil {
 		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 		return nil, err

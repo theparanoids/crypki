@@ -114,9 +114,16 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	// Create a context with server side timeout.
+	// Check if ctx passed as part of the client request has a deadline. If it does & it does not exceed the request
+	// timeout use that else use RequestTimeout.
 	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
-	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
+	if deadline, ok := ctx.Deadline(); ok {
+		remTime := time.Until(deadline)
+		if remTime < time.Duration(s.RequestTimeout) {
+			reqCtx, cancel = context.WithTimeout(ctx, remTime*time.Second)
+		}
+	}
+	defer cancel() // cancel ctx as soon as PostX509Certificate returns
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
 	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {

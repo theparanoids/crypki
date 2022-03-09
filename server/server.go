@@ -155,7 +155,7 @@ func Main() {
 		v := idEpMap[key.Identifier]
 		if !endpointMap[v.endpoint] {
 			endpointMap[v.endpoint] = true
-			p := &scheduler.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature}
+			p := &scheduler.Pool{Name: v.endpoint, PoolSize: key.SessionPoolSize, FeatureEnabled: v.priSchedFeature, PKCS11Timeout: config.DefaultPKCS11Timeout * time.Second}
 			go scheduler.CollectRequest(ctx, requestChan[v.endpoint], p)
 		}
 	}

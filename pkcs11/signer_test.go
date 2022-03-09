@@ -113,7 +113,7 @@ func dummyScheduler(ctx context.Context, reqChan chan scheduler.Request) {
 		req := <-reqChan
 		go func() {
 			// create worker with different priorities
-			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{}), HSMTimeout: 1 * time.Second}
+			worker := &scheduler.Worker{ID: 1, Priority: req.Priority, Quit: make(chan struct{}), PKCS11Timeout: 1 * time.Second}
 			req.DoWorker.DoWork(ctx, worker)
 		}()
 	}

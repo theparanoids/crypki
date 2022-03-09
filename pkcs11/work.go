@@ -28,10 +28,10 @@ type Work struct {
 
 // DoWork performs the work of fetching the signer from the pool and sending it back on the response channel.
 // If the client cancels the request or times out, the worker should not wait indefinitely for getting the signer
-// from the pool.We also have a PKCS11 timeout which is the maximum duration for which worker waits to fetch the
+// from the pool. We also have a PKCS11 timeout which is the maximum duration for which worker waits to fetch the
 // signer from pool & cancel the client request if it exceeds that.
 func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
-	reqCtx, cancel := context.WithTimeout(context.Background(), worker.HSMTimeout)
+	reqCtx, cancel := context.WithTimeout(context.Background(), worker.PKCS11Timeout)
 	type resp struct {
 		signer signerWithSignAlgorithm
 		err    error

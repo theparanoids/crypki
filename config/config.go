@@ -32,7 +32,6 @@ const (
 	defaultReadTimeout   = 10
 	defaultWriteTimeout  = 10
 	DefaultPKCS11Timeout = 10 // in seconds
-	DefaultHSMTimeout    = 10 // in seconds
 
 	// X509CertEndpoint specifies the endpoint for signing X509 certificate.
 	X509CertEndpoint = "/sig/x509-cert"

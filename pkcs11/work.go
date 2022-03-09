@@ -27,9 +27,9 @@ type Work struct {
 }
 
 // DoWork performs the work of fetching the signer from the pool and sending it back on the response channel.
-// If the client cancels the request or times out, the worker should not wait indefinitely for getting the signer from the
-// pool. Also, we have a max HSM timeout which enforces the worker to wait for max duration to fetch the signer from pool
-// & return if it exceeds that.
+// If the client cancels the request or times out, the worker should not wait indefinitely for getting the signer
+// from the pool.We also have a PKCS11 timeout which is the maximum duration for which worker waits to fetch the
+// signer from pool & cancel the client request if it exceeds that.
 func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	reqCtx, cancel := context.WithTimeout(context.Background(), worker.HSMTimeout)
 	type resp struct {
@@ -46,13 +46,15 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	for {
 		select {
 		case <-workerCtx.Done():
-			// Case 1: worker stopped either due to context cancelled or time out.
+			// Case 1: Worker stopped either due to context cancelled or worker timed out.
+			// This case is to avoid worker being stuck in a blocking call or a deadlock scenario.
 			log.Printf("%s: worker stopped", worker.String())
 			cancel()
 			w.sendResponse(nil)
 			return
 		case resp := <-signerRespCh:
-			// Case 2: Received response. It could either be a time out or a signer.
+			// Case 2: Received response. It could either be a pkcs11 timeout or thr worker was able to get a signer
+			// from the signer pool.
 			if resp.signer == nil || resp.err != nil {
 				worker.TotalTimeout.Inc()
 				log.Printf("%s: error fetching signer %v", worker.String(), resp.err)

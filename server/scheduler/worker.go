@@ -61,7 +61,7 @@ func newWorker(workerId int, workerPriority proto.Priority) *Worker {
 	return &Worker{
 		ID:         workerId,
 		Priority:   workerPriority,
-		HSMTimeout: config.DefaultHSMTimeout * time.Second,
+		HSMTimeout: config.DefaultPKCS11Timeout * time.Second,
 		Quit:       make(chan struct{}),
 	}
 }

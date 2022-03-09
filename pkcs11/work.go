@@ -38,10 +38,14 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	}
 
 	signerRespCh := make(chan resp)
-	go func() {
+	go func(ctx context.Context) {
 		signer, err := w.work.pool.get(reqCtx)
-		signerRespCh <- resp{signer, err}
-	}()
+		select {
+		case signerRespCh <- resp{signer, err}:
+		case <-ctx.Done():
+			return
+		}
+	}(workerCtx)
 
 	for {
 		select {

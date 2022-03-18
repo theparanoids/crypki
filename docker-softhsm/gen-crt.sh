@@ -25,7 +25,7 @@ openssl \
   -newkey rsa:4096 -nodes \
   -keyout ca.key \
   -x509 -days 36500 -out ca.crt \
-  -subj "/C=US/ST=NRW/L=Earth/O=CompanyName/OU=IT/CN=www.example.com/emailAddress=email@example.com"
+  -subj "/C=US/ST=NRW/L=Earth/O=CompanyName/OU=IT/CN=www.example.com"
 
 # generate server private key
 openssl genrsa -out server.key 4096
@@ -40,7 +40,7 @@ openssl \
 
 # sign server.csr by root CA
 # add SAN `crypki` for docker network access.
-openssl x509 -req -extfile <(printf "subjectAltName=DNS:crypki") -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 36500 -sha256
+openssl x509 -req -extfile <(printf "subjectAltName=DNS:localhost, DNS:crypki") -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 36500 -sha256
 
 
 # for mutual TLS

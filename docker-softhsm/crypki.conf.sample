@@ -29,6 +29,8 @@
         {
             "Identifier": "ssh-user-key",
             "KeyLabel": "user_ssh",
+            "KeyType": 3,
+            "SignatureAlgo": 11,
             "SlotNumber": SLOTNUM_USER_SSH,
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         },

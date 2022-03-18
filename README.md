@@ -67,6 +67,7 @@ $ go mod vendor
 
 
 ## Configuration
+
 Take a look at the [sample configuration file](https://github.com/theparanoids/crypki/blob/main/config/testdata/testconf-good.json) to see how to configure crypki
 
 ## API
@@ -80,7 +81,7 @@ Get all available SSH signing keys
   curl -X GET https://localhost:4443/v3/sig/ssh-user-cert/keys --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt
    ```
 
-Get SSH user public signing key
+Get SSH user public signing key (CA public key for ssh-user-cert) 
   ```sh
   curl -X GET https://localhost:4443/v3/sig/ssh-user-cert/keys/ssh-user-key --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt
    ```
@@ -114,6 +115,24 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
   ```sh
   curl -X POST -H "Content-Type: application/json" https://localhost:4443/v3/sig/blob/keys/sign-blob-key --data @sign_blob.json --cert tls-crt/client.crt --key tls-crt/client.key --cacert tls-crt/ca.crt
   ```
+
+## CA credentials 
+
+### Extract SSH CA public key for key identifier 
+
+  > Note: [init_hsm.sh](./docker-softhsm/init_hsm.sh) extracts the public keys of each key slot from the SoftHSM, and stores inside the container.  
+  
+  Following script exports the public key (in PEM format) of slot `user_ssh_pub` from the container, and converts it into SSH format.    
+
+  ```sh
+   docker cp crypki:/opt/crypki/slot_pubkeys/user_ssh_pub.pem ~/tmp/user_ssh_pub.pem 
+   ssh-keygen -f ~/tmp/user_ssh_pub.pem -i -mPKCS8
+  ```
+
+<!---
+### Generate X509 CA certificate for key identifier `host_x509`
+TODO: Provide an example of binary `gen-cacert` usage
+-->
 
 ## Contribute
 

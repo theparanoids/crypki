@@ -118,7 +118,7 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
 
 ## CA credentials 
 
-### Extract SSH CA public key for key identifier 
+### Extract SSH CA public key for a key identifier 
 
   > Note: [init_hsm.sh](./docker-softhsm/init_hsm.sh) extracts the public keys of each key slot from the SoftHSM, and stores inside the container.  
   
@@ -129,10 +129,32 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
    ssh-keygen -f ~/tmp/user_ssh_pub.pem -i -mPKCS8
   ```
 
-<!---
-### Generate X509 CA certificate for key identifier `host_x509`
-TODO: Provide an example of binary `gen-cacert` usage
--->
+### Generate a self-signed X509 CA cert for a key identifier
+
+  Generate a self-signed X509 CA cert for key identifier `x509-key` by `gen-cacert` binary.  
+
+  ```sh
+  # Get into the shell of crypki container. 
+  docker exec -ti crypki /bin/bash
+  # Refer to `/opt/crypki/crypki-softhsm.json` and `init_hsm.sh` to find out the attributes $SLOT_NUMBER, $KEY_LABEL, and $USER_PIN.
+  # In the example, our keyLabel is host_x509, keyType is 3 and signatureAlgorithm is 11 for `x509-key`.  
+  
+  echo $USER_PIN > /tmp/user_pin
+  cat > /tmp/ca_crt_config.json <<EOF
+{
+  "Identifier": "x509-key",
+  "CommonName": "www.example.com",
+  "KeyLabel": "host_x509",
+  "KeyType": 3,
+  "SignatureAlgo": 11,
+  "PKCS11ModulePath": "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",
+  "SlotNumber": $SLOT_NUMBER,
+  "UserPinPath": "/tmp/user_pin"
+}
+EOF
+  /usr/bin/gen-cacert -config=/tmp/ca_crt_config.json -out=/tmp/x509-ca.cert
+  # You will see a newly signed x509 CA certificate printed and written to the `-out` path.  
+  ```
 
 ## Contribute
 

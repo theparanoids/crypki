@@ -1,4 +1,4 @@
-[![Build Status][build-badge]][build-url] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card] [![Go Coverage][codecov-card-badge]][codecov-card][![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5720/badge)](https://bestpractices.coreinfrastructure.org/projects/5720)
+[![Build Status][build-badge]][build-url] [![GoDoc][godoc-badge]][godoc] [![Go Report Card][goreport-card-badge]][goreport-card] [![Go Coverage][codecov-card-badge]][codecov-card] [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5720/badge)](https://bestpractices.coreinfrastructure.org/projects/5720)
 
 
 # crypki

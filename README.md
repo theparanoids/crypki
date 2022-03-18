@@ -136,7 +136,7 @@ Sign blob (input is base64 encoded value of raw hash of a blob. [example code](h
   ```sh
   # Get into the shell of crypki container. 
   docker exec -ti crypki /bin/bash
-  # Refer to `/opt/crypki/crypki-softhsm.json` and `init_hsm.sh` to find out attributes $SLOT_NUMBER, $KEY_LABEL, and $USER_PIN.
+  # Refer to `/opt/crypki/crypki-softhsm.json` and `init_hsm.sh` to find out the attributes $SLOT_NUMBER, $KEY_LABEL, and $USER_PIN.
   # In the example, our keyLabel is host_x509, keyType is 3 and signatureAlgorithm is 11 for `x509-key`.  
   
   echo $USER_PIN > /tmp/user_pin
@@ -155,11 +155,6 @@ EOF
   /usr/bin/gen-cacert -config=/tmp/ca_crt_config.json -out=/tmp/x509-ca.cert
   # You will see a newly signed x509 CA certificate printed and written to the `-out` path.  
   ```
-
-<!---
-### Generate X509 CA certificate for key identifier `host_x509`
-TODO: Provide an example of binary `gen-cacert` usage
--->
 
 ## Contribute
 

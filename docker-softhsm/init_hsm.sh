@@ -35,10 +35,10 @@ user_ssh_keytype="EC:prime384v1"
 host_x509_keytype="EC:prime384v1"
 host_ssh_keytype="rsa:4096"
 sign_blob_keytype="rsa:4096"
-user_ssh_cypher_cmd="ec"
-host_x509_cypher_cmd="ec"
-host_ssh_cypher_cmd="rsa"
-sign_blob_cypher_cmd="rsa"
+user_ssh_cipher_cmd="ec"
+host_x509_cipher_cmd="ec"
+host_ssh_cipher_cmd="rsa"
+sign_blob_cipher_cmd="rsa"
 
 #
 # check for required binaries and libraries
@@ -86,10 +86,10 @@ ${p11tool} --module ${modulepath} -r --type pubkey --slot ${user_ssh_slot} --lab
 ${p11tool} --module ${modulepath} -r --type pubkey --slot ${host_x509_slot} --label ${host_x509_label} -l --output-file ${slot_pubkeys_path}/${host_x509_label}_pub.der --pin=${USERPIN}
 ${p11tool} --module ${modulepath} -r --type pubkey --slot ${host_ssh_slot} --label ${host_ssh_label} -l --output-file ${slot_pubkeys_path}/${host_ssh_label}_pub.der --pin=${USERPIN}
 ${p11tool} --module ${modulepath} -r --type pubkey --slot ${sign_blob_slot} --label ${sign_blob_label} -l --output-file ${slot_pubkeys_path}/${sign_blob_label}_pub.der --pin=${USERPIN}
-openssl ${user_ssh_cypher_cmd} -inform DER -in ${slot_pubkeys_path}/${user_ssh_label}_pub.der -pubin -out ${slot_pubkeys_path}/${user_ssh_label}_pub.pem
-openssl ${host_x509_cypher_cmd} -inform DER -in ${slot_pubkeys_path}/${host_x509_label}_pub.der -pubin -out ${slot_pubkeys_path}/${host_x509_label}_pub.pem
-openssl ${host_ssh_cypher_cmd} -inform DER -in ${slot_pubkeys_path}/${host_ssh_label}_pub.der -pubin -out ${slot_pubkeys_path}/${host_ssh_label}_pub.pem
-openssl ${sign_blob_cypher_cmd} -inform DER -in ${slot_pubkeys_path}/${sign_blob_label}_pub.der -pubin -out ${slot_pubkeys_path}/${sign_blob_label}_pub.pem
+openssl ${user_ssh_cipher_cmd} -inform DER -in ${slot_pubkeys_path}/${user_ssh_label}_pub.der -pubin -out ${slot_pubkeys_path}/${user_ssh_label}_pub.pem
+openssl ${host_x509_cipher_cmd} -inform DER -in ${slot_pubkeys_path}/${host_x509_label}_pub.der -pubin -out ${slot_pubkeys_path}/${host_x509_label}_pub.pem
+openssl ${host_ssh_cipher_cmd} -inform DER -in ${slot_pubkeys_path}/${host_ssh_label}_pub.der -pubin -out ${slot_pubkeys_path}/${host_ssh_label}_pub.pem
+openssl ${sign_blob_cipher_cmd} -inform DER -in ${slot_pubkeys_path}/${sign_blob_label}_pub.der -pubin -out ${slot_pubkeys_path}/${sign_blob_label}_pub.pem
 
 CRYPKI_CONFIG=`sed -e "s/SLOTNUM_USER_SSH/${user_ssh_slot}/g; s/SLOTNUM_HOST_X509/${host_x509_slot}/g; s/SLOTNUM_HOST_SSH/${host_ssh_slot}/g; s/SLOTNUM_SIGN_BLOB/${sign_blob_slot}/g" crypki.conf.sample`
 

@@ -16,3 +16,11 @@ ignore:
   - "**/*.pb.go"     # ignore generated protos
   - "**/*.pb.gw.go"  # ignore generated protos
 
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # for flaky test coverage calculation
+        # https://docs.codecov.com/docs/common-recipe-list#ease-target-coverage
+        threshold: 2%

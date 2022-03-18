@@ -78,7 +78,7 @@ func Test_openLoginSession(t *testing.T) {
 				AnyTimes()
 
 			mockCtx.EXPECT().
-				Login(tt.session, p11.CKU_USER, gomock.Any()).
+				Login(tt.session, uint(p11.CKU_USER), gomock.Any()).
 				Return(tt.errMsg["Login"]).
 				AnyTimes()
 
@@ -283,7 +283,7 @@ func Test_getLoginSessions(t *testing.T) {
 				AnyTimes()
 
 			args.p11ctx.EXPECT().
-				Login(gomock.Any(), p11.CKU_USER, gomock.Any()).
+				Login(gomock.Any(), uint(p11.CKU_USER), gomock.Any()).
 				Return(tt.errMsg["Login"]).
 				AnyTimes()
 

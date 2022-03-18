@@ -514,6 +514,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 	cp.AddCert(caCert)
 
 	signerTimeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	defer cancel()
 
 	cancelCtx, cncl := context.WithCancel(context.Background())

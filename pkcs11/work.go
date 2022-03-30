@@ -14,8 +14,17 @@
 package pkcs11
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
 	"log"
+	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/theparanoids/crypki/server/scheduler"
 )
@@ -31,63 +40,155 @@ type Work struct {
 // from the pool. We also have a PKCS11 timeout which is the maximum duration for which worker waits to fetch the
 // signer from pool & cancel the client request if it exceeds that.
 func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
-	reqCtx, cancel := context.WithTimeout(context.Background(), worker.PKCS11Timeout)
-	type resp struct {
+	type signerResponse struct {
 		signer signerWithSignAlgorithm
 		err    error
 	}
 
-	signerRespCh := make(chan resp)
+	signerRespCh := make(chan signerResponse)
+	reqCtx, cancel := context.WithTimeout(context.Background(), worker.PKCS11Timeout)
+	var pt int64
+	pStart := time.Now()
 	go func(ctx context.Context) {
-		signer, err := w.work.pool.get(reqCtx)
+		signer, err := w.work.pool.get(ctx)
 		select {
-		case signerRespCh <- resp{signer, err}:
 		case <-ctx.Done():
+			// case when HSM request has timed out, we clean up signer if we were able to get it.
+			w.work.pool.put(signer)
 			return
+		case signerRespCh <- signerResponse{signer, err}:
+			// case when we fetched signer from the pool.
+			close(signerRespCh)
 		}
-	}(workerCtx)
+	}(reqCtx)
 
-	for {
-		select {
-		case <-workerCtx.Done():
-			// Case 1: Worker stopped either due to context cancelled or worker timed out.
-			// This case is to avoid worker being stuck in a blocking call or a deadlock scenario.
-			log.Printf("%s: worker stopped", worker.String())
-			cancel()
-			w.sendResponse(nil)
-			return
-		case resp := <-signerRespCh:
-			// Case 2: Received response. It could either be a pkcs11 timeout or thr worker was able to get a signer
-			// from the signer pool.
-			if resp.signer == nil || resp.err != nil {
-				worker.TotalTimeout.Inc()
-				log.Printf("%s: error fetching signer %v", worker.String(), resp.err)
-				w.work.respChan <- nil
-				cancel()
-				return
-			}
-			worker.TotalProcessed.Inc()
-			w.sendResponse(resp.signer)
-			cancel()
-			return
-		case _, ok := <-w.work.respChan:
-			// Case 3: Check for current state of respChan. If the client request is cancelled, the client
-			// will close the respChan. In that case, we should cancel reqCtx & return to avoid extra processing.
-			if !ok {
-				log.Printf("%s: worker request timed out, client cancelled request", worker.String())
-				cancel()
-				worker.TotalTimeout.Inc()
-				return
-			}
+	select {
+	case <-workerCtx.Done():
+		// Case 1: Worker stopped or cancelled request.
+		// The client is still waiting for a response, so return timeout.
+		worker.TotalTimeout.Inc()
+		signedData := signerWorkResponse{
+			err: errors.New("worker cancelled request"),
 		}
+		cancel()
+		w.sendResponse(signedData)
+		return
+	case <-reqCtx.Done():
+		// Case 2: HSM request timed out.
+		// The client is still waiting for a response in this case.
+		worker.TotalTimeout.Inc()
+		signedData := signerWorkResponse{
+			err: errors.New("hsm request timed out"),
+		}
+		w.sendResponse(signedData)
+		return
+	case <-w.work.clientCtxChan:
+		// Case 3: Client cancelled the request, either due to client time out or some other reason.
+		// In this case we no longer need to process the signing request & we should clean up signer if assigned & return.
+		worker.TotalTimeout.Inc()
+		cancel()
+		return
+	case resp := <-signerRespCh:
+		// Case 4: Received signer from signer pool. We need to sign the request & send the response. Before we send the
+		// response, we should ensure client is still waiting for the response.
+		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+		if resp.err != nil {
+			worker.TotalTimeout.Inc()
+			signedData := signerWorkResponse{
+				data:     nil,
+				poolTime: pt,
+				hsmTime:  0,
+				err:      errors.New("client request timed out, skip signing request"),
+			}
+			w.sendResponse(signedData)
+			return
+		}
+		worker.TotalProcessed.Inc()
+		data, ht, err := w.work.signerData.signData(reqCtx, resp.signer)
+		w.work.pool.put(resp.signer)
+		signedData := signerWorkResponse{
+			data:     data,
+			poolTime: pt,
+			hsmTime:  ht,
+			err:      err,
+		}
+		w.sendResponse(signedData)
+		return
 	}
 }
 
 // sendResponse sends the response on the respChan if the channel is not yet closed by the client.
-func (w *Work) sendResponse(resp signerWithSignAlgorithm) {
+func (w *Work) sendResponse(resp signerWorkResponse) {
 	select {
-	case <-w.work.respChan:
-	default:
-		w.work.respChan <- resp
+	case <-w.work.clientCtxChan:
+		// case when client has already closed channel & cancelled request.
+	case w.work.respChan <- resp:
+		// case when client is waiting for a response from worker.
+		close(w.work.respChan)
 	}
+}
+
+// signData signs X509 certificate by using the signer fetched from the pool.
+func (s *signerX509) signData(ctx context.Context, signer signerWithSignAlgorithm) ([]byte, int64, error) {
+	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
+	if val := isValidCertRequest(s.cert, signer.signAlgorithm()); !val {
+		log.Printf("signX509cert: cn=%q unsupported-sa=%q supported-sa=%d",
+			s.x509CACert.Subject.CommonName, s.cert.SignatureAlgorithm.String(), signer.signAlgorithm())
+		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
+		s.cert.SignatureAlgorithm = signer.signAlgorithm()
+	}
+
+	s.cert.OCSPServer = s.ocspServer
+	s.cert.CRLDistributionPoints = s.crlDistribPoints
+
+	// measure time taken by hsm
+	var ht int64
+	hStart := time.Now()
+	signedCert, err := x509.CreateCertificate(rand.Reader, s.cert, s.x509CACert, s.cert.PublicKey, signer)
+	if err != nil {
+		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+		return nil, ht, err
+	}
+	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: signedCert}), ht, nil
+}
+
+// signData signs SSH certificate by using the signer fetched from the pool.
+func (s *signerSSH) signData(ctx context.Context, signer signerWithSignAlgorithm) ([]byte, int64, error) {
+	var ht int64
+	if s.cert == nil {
+		return nil, ht, errors.New("signSSHCert: cannot sign empty cert")
+	}
+
+	sshSigner, err := newAlgorithmSignerFromSigner(signer, signer.publicKeyAlgorithm(), signer.signAlgorithm())
+	if err != nil {
+		return nil, ht, fmt.Errorf("failed to new ssh signer from signer, error :%v", err)
+	}
+	// measure time taken by hsm
+	hStart := time.Now()
+	if err := s.cert.SignCert(rand.Reader, sshSigner); err != nil {
+		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+		return nil, ht, err
+	}
+	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+	return bytes.TrimSpace(ssh.MarshalAuthorizedKey(s.cert)), ht, nil
+}
+
+// signData signs blob data by using the signer fetched from the pool.
+func (s *signerBlob) signData(ctx context.Context, signer signerWithSignAlgorithm) ([]byte, int64, error) {
+	const methodName = "SignBlob"
+	var ht int64
+	if s.digest == nil {
+		return nil, ht, fmt.Errorf("%s: cannot sign empty digest", methodName)
+	}
+
+	// measure time taken by hsm
+	hStart := time.Now()
+	signature, err := signer.Sign(rand.Reader, s.digest, s.opts)
+	if err != nil {
+		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+		return nil, ht, err
+	}
+	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
+	return signature, ht, nil
 }

@@ -53,5 +53,7 @@ func (c *SignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error) {
 }
 
 func (c *SignerPool) put(instance signerWithSignAlgorithm) {
-	c.signers <- instance
+	if instance != nil {
+		c.signers <- instance
+	}
 }

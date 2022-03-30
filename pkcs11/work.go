@@ -47,6 +47,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 
 	signerRespCh := make(chan signerResponse)
 	reqCtx, cancel := context.WithTimeout(context.Background(), worker.PKCS11Timeout)
+	defer cancel()
 	var pt int64
 	pStart := time.Now()
 	go func(ctx context.Context) {
@@ -86,7 +87,6 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 		// Case 3: Client cancelled the request, either due to client time out or some other reason.
 		// In this case we no longer need to process the signing request & we should clean up signer if assigned & return.
 		worker.TotalTimeout.Inc()
-		cancel()
 		return
 	case resp := <-signerRespCh:
 		// Case 4: Received signer from signer pool. We need to sign the request & send the response. Before we send the

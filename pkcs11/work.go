@@ -75,7 +75,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 		w.sendResponse(signedData)
 		return
 	case <-reqCtx.Done():
-		// Case 2: HSM request timed out.
+		// Case 2: HSM/PKCS11 request timed out.
 		// The client is still waiting for a response in this case.
 		worker.TotalTimeout.Inc()
 		signedData := signerWorkResponse{
@@ -83,8 +83,8 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 		}
 		w.sendResponse(signedData)
 		return
-	case <-w.work.clientCtxChan:
-		// Case 3: Client cancelled the request, either due to client time out or some other reason.
+	case <-w.work.stop:
+		// Case 3: Client cancelled the request.
 		// In this case we no longer need to process the signing request & we should clean up signer if assigned & return.
 		worker.TotalTimeout.Inc()
 		return
@@ -120,7 +120,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 // sendResponse sends the response on the respChan if the channel is not yet closed by the client.
 func (w *Work) sendResponse(resp signerWorkResponse) {
 	select {
-	case <-w.work.clientCtxChan:
+	case <-w.work.stop:
 		// case when client has already closed channel & cancelled request.
 	case w.work.respChan <- resp:
 		// case when client is waiting for a response from worker.

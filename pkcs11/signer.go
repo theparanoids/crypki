@@ -40,10 +40,10 @@ import (
    It also has a channel on which it waits for the response.
 */
 type Request struct {
-	pool          sPool                   // pool is a signer pool per identifier from which to fetch the signer
-	respChan      chan signerWorkResponse // respChan is the channel where the worker sends the signer once it gets it from the pool
-	clientCtxChan chan bool               // clientCtxChan is the channel which is closed when the consumer/client times out or cancels request
-	signerData    signerMetadata          // signerMetadata is an interface which each request can override & use to sign data
+	pool       sPool                   // pool is a signer pool per identifier from which to fetch the signer
+	respChan   chan signerWorkResponse // respChan is the channel where the worker sends the signer once it gets it from the pool
+	stop       chan bool               // stop is the channel which is closed when the consumer/client times out or cancels request
+	signerData signerMetadata          // signerMetadata is an interface which each request can override & use to sign data
 }
 
 // signerWorkResponse is used to get metadata from the worker. It contains the signed data along with the total time
@@ -97,12 +97,12 @@ type signer struct {
 
 func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool sPool, priority proto.Priority, signRequest signerMetadata) signerWorkResponse {
 	respChan := make(chan signerWorkResponse)
-	clientCtxChan := make(chan bool)
+	stop := make(chan bool)
 	req := &Request{
-		pool:          pool,
-		respChan:      respChan,
-		signerData:    signRequest,
-		clientCtxChan: clientCtxChan,
+		pool:       pool,
+		respChan:   respChan,
+		signerData: signRequest,
+		stop:       stop,
 	}
 	if priority == proto.Priority_Unspecified_priority {
 		// If priority is unspecified, treat the request as high priority.
@@ -124,7 +124,7 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 		}
 		return resp
 	case <-ctx.Done():
-		close(clientCtxChan)
+		close(stop)
 		return signerWorkResponse{
 			err: ctx.Err(),
 		}

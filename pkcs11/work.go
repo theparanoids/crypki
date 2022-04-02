@@ -95,7 +95,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 			worker.TotalTimeout.Inc()
 			cancel()
 			return
-		case sResp, _ := <-signerResp:
+		case sResp := <-signerResp:
 			// Case 4: Received signer from signer pool. We need to sign the request & send the response. Before we send the
 			// response, we should ensure client is still waiting for the response.
 			poolTime = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
@@ -151,10 +151,8 @@ func (s *signerX509) signData(ctx context.Context, signer signerWithSignAlgorith
 	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	select {
 	case <-ctx.Done():
-		return
 	case signedDataCh <- Response{data: pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: signedCert}), hsmTime: ht}:
 	}
-	return
 }
 
 // signData signs SSH certificate by using the signer fetched from the pool.
@@ -181,10 +179,8 @@ func (s *signerSSH) signData(ctx context.Context, signer signerWithSignAlgorithm
 	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	select {
 	case <-ctx.Done():
-		return
 	case signedDataCh <- Response{data: bytes.TrimSpace(ssh.MarshalAuthorizedKey(s.cert)), hsmTime: ht}:
 	}
-	return
 }
 
 // signData signs blob data by using the signer fetched from the pool.
@@ -207,8 +203,6 @@ func (s *signerBlob) signData(ctx context.Context, signer signerWithSignAlgorith
 	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
 	select {
 	case <-ctx.Done():
-		return
 	case signedDataCh <- Response{data: signature, hsmTime: ht}:
 	}
-	return
 }

@@ -72,7 +72,7 @@ func (s *SigningService) GetX509CACertificate(ctx context.Context, keyMeta *prot
 	}
 	respCh := make(chan resp)
 	go func() {
-		cert, err := s.GetX509CACert(ctx, keyMeta.Identifier)
+		cert, err := s.GetX509CACert(ctx, s.RequestChan[config.X509CertEndpoint], keyMeta.Identifier)
 		respCh <- resp{cert, err}
 	}()
 

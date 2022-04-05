@@ -135,6 +135,7 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		"bad-signer":          {ctx, defaultIdentifier, true, true},
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
+	reqChan := make(chan scheduler.Request)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -143,7 +144,7 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
 			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
-			_, err = signer.GetSSHCertSigningKey(tt.ctx, tt.identifier)
+			_, err = signer.GetSSHCertSigningKey(tt.ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -285,6 +286,8 @@ func TestGetX509CACert(t *testing.T) {
 		"bad-identifier": {badIdentifier, false, true},
 		"bad-signer":     {defaultIdentifier, true, false},
 	}
+	reqChan := make(chan scheduler.Request)
+
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -293,7 +296,7 @@ func TestGetX509CACert(t *testing.T) {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
 			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
-			_, err = signer.GetX509CACert(ctx, tt.identifier)
+			_, err = signer.GetX509CACert(ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}
@@ -584,6 +587,7 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		"bad-signer":          {ctx, defaultIdentifier, true, true},
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
+	reqChan := make(chan scheduler.Request)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -592,7 +596,7 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
 			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
-			_, err = signer.GetBlobSigningPublicKey(tt.ctx, tt.identifier)
+			_, err = signer.GetBlobSigningPublicKey(tt.ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
 			}

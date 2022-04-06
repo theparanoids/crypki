@@ -158,7 +158,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 	return s, nil
 }
 
-func (s *signer) GetSSHCertSigningKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
+func (s *signer) GetSSHCertSigningKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
@@ -215,7 +215,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	return bytes.TrimSpace(ssh.MarshalAuthorizedKey(cert)), nil
 }
 
-func (s *signer) GetX509CACert(ctx context.Context, keyIdentifier string) ([]byte, error) {
+func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
 	cert, ok := s.x509CACerts[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unable to find CA cert for key identifier %q", keyIdentifier)
@@ -271,7 +271,7 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: signedCert}), nil
 }
 
-func (s *signer) GetBlobSigningPublicKey(ctx context.Context, keyIdentifier string) ([]byte, error) {
+func (s *signer) GetBlobSigningPublicKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)

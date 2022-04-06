@@ -63,7 +63,7 @@ func (s *SigningService) GetBlobSigningKey(ctx context.Context, keyMeta *proto.K
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 
-	key, err := s.GetBlobSigningPublicKey(ctx, keyMeta.Identifier)
+	key, err := s.GetBlobSigningPublicKey(ctx, s.RequestChan[config.BlobEndpoint], keyMeta.Identifier)
 	if err != nil {
 		statusCode = http.StatusInternalServerError
 		return nil, status.Error(codes.Internal, "Internal server error")

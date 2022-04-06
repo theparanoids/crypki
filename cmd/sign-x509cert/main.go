@@ -34,9 +34,8 @@ import (
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
-
-const defaultRequestTimeout = 10
 
 var cfg string
 var validityDays uint64
@@ -131,6 +130,10 @@ func main() {
 		cc.Identifier: true,
 	}
 
+	requestChan := make(chan scheduler.Request)
+	p := &scheduler.Pool{Name: cc.Identifier, PoolSize: 2, FeatureEnabled: true, PKCS11Timeout: config.DefaultPKCS11Timeout * time.Second}
+	go scheduler.CollectRequest(ctx, requestChan, p)
+
 	signer, err := pkcs11.NewCertSign(ctx, cc.PKCS11ModulePath, []config.KeyConfig{{
 		Identifier:             cc.Identifier,
 		SlotNumber:             uint(cc.SlotNumber),
@@ -141,7 +144,7 @@ func main() {
 		SessionPoolSize:        2,
 		X509CACertLocation:     caPath,
 		CreateCACertIfNotExist: false,
-	}}, requireX509CACert, "", nil, defaultRequestTimeout) // Hostname and ips should not be needed as CreateCACertIfNotExist is set to be false.
+	}}, requireX509CACert, "", nil, config.DefaultPKCS11Timeout) // Hostname and ips should not be needed as CreateCACertIfNotExist is set to be false.
 
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
@@ -149,7 +152,7 @@ func main() {
 
 	unsignedCert := constructUnsignedX509Cert()
 
-	data, err := signer.SignX509Cert(ctx, nil, unsignedCert, cc.Identifier, proto.Priority_Unspecified_priority)
+	data, err := signer.SignX509Cert(ctx, requestChan, unsignedCert, cc.Identifier, proto.Priority_Unspecified_priority)
 	if err != nil {
 		log.Fatalf("falied to sign x509 cert: %v", err)
 	}

@@ -24,15 +24,16 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/theparanoids/crypki"
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/pkcs11"
+	"github.com/theparanoids/crypki/server/scheduler"
 )
 
 const (
-	defaultCAOutPath      = "/tmp/509_ca.crt"
-	defaultRequestTimeout = 10
+	defaultCAOutPath = "/tmp/509_ca.crt"
 )
 
 var cfg string
@@ -93,13 +94,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// to make NewCertSign create the CA cert
 	requireX509CACert := map[string]bool{
 		cc.Identifier: true,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	requestChan := make(chan scheduler.Request)
+	p := &scheduler.Pool{Name: cc.Identifier, PoolSize: 2, FeatureEnabled: true, PKCS11Timeout: config.DefaultPKCS11Timeout * time.Second}
+	go scheduler.CollectRequest(ctx, requestChan, p)
 
 	signer, err := pkcs11.NewCertSign(ctx, cc.PKCS11ModulePath, []config.KeyConfig{{
 		Identifier:             cc.Identifier,
@@ -118,11 +124,11 @@ func main() {
 		OrganizationalUnit:     cc.OrganizationalUnit,
 		CommonName:             cc.CommonName,
 		ValidityPeriod:         cc.ValidityPeriod,
-	}}, requireX509CACert, hostname, ips, defaultRequestTimeout)
+	}}, requireX509CACert, hostname, ips, config.DefaultPKCS11Timeout)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}
-	cert, err := signer.GetX509CACert(ctx, cc.Identifier)
+	cert, err := signer.GetX509CACert(ctx, requestChan, cc.Identifier)
 	if err != nil {
 		log.Fatalf("unable to get x509 CA cert: %v", err)
 	}

@@ -73,7 +73,7 @@ func (s *SigningService) GetUserSSHCertificateSigningKey(ctx context.Context, ke
 	}
 	respCh := make(chan resp)
 	go func() {
-		key, err := s.GetSSHCertSigningKey(ctx, keyMeta.Identifier)
+		key, err := s.GetSSHCertSigningKey(ctx, s.RequestChan[config.SSHUserCertEndpoint], keyMeta.Identifier)
 		respCh <- resp{key, err}
 	}()
 

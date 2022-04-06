@@ -450,11 +450,7 @@ func TestSignX509ECCert(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			var data []byte
-			if label == "x509-ec-ca-cert-no-server" {
-				data, err = signer.SignX509Cert(tt.ctx, nil, tt.cert, tt.identifier, tt.priority)
-			} else {
-				data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
-			}
+			data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if (err != nil) != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}

@@ -127,32 +127,6 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 	}
 }
 
-// signOnce method is called only when we invoke crypki for a one-time operation like generating X509 cert or generating
-// host certs. In that case we don't need the server running nor do we need to worry about priority scheduling,
-// we immediately fetch the signer from the pool & sign the data.
-func signOnce(ctx context.Context, pool sPool, endpoint string, data interface{}) ([]byte, error) {
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, errors.New("client request timed out, skip signing X509 cert")
-	}
-	signedResp := make(chan Response)
-	switch endpoint {
-	case config.X509CertEndpoint:
-		go data.(*signerX509).signData(ctx, signer, pool, signedResp)
-	case config.SSHHostCertEndpoint:
-		go data.(*signerSSH).signData(ctx, signer, pool, signedResp)
-	case config.BlobEndpoint:
-		go data.(*signerBlob).signData(ctx, signer, pool, signedResp)
-	}
-
-	select {
-	case <-ctx.Done():
-		return nil, errors.New("client request timed out, skip signing cert")
-	case resp := <-signedResp:
-		return resp.data, resp.err
-	}
-}
-
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
 func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, requestTimeout uint) (crypki.CertSign, error) {
 	p11ctx, err := initPKCS11Context(pkcs11ModulePath)
@@ -242,9 +216,6 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	}
 
 	signRequest := &signerSSH{cert: cert}
-	if reqChan == nil {
-		return signOnce(ctx, pool, config.SSHHostCertEndpoint, signRequest)
-	}
 	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
 	ht = resp.hsmTime
 	pt = resp.poolTime
@@ -282,11 +253,6 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		crlDistribPoints: s.crlDistributionPoints[keyIdentifier],
 		x509CACert:       s.x509CACerts[keyIdentifier],
 	}
-
-	if reqChan == nil {
-		return signOnce(ctx, pool, config.X509CertEndpoint, signRequest)
-	}
-
 	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
 	ht = resp.hsmTime
 	pt = resp.poolTime
@@ -328,9 +294,6 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	signRequest := &signerBlob{digest: digest, opts: opts}
-	if reqChan == nil {
-		return signOnce(ctx, pool, config.BlobEndpoint, signRequest)
-	}
 	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
 	ht = resp.hsmTime
 	pt = resp.poolTime

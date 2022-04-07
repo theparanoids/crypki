@@ -41,9 +41,11 @@ import (
 // processing any request from the client.
 type Request struct {
 	pool       sPool          // pool is a signer pool per identifier from which to fetch the signer
-	respChan   chan Response  // respChan is the channel where the worker sends the signer once it gets it from the pool
+	method     string         // method is type of method the worker needs to call based on the request
 	stop       chan bool      // stop is the channel which is closed when the consumer/client times out or cancels request
 	signerData signerMetadata // signerMetadata is an interface which each request can override & use to sign data
+	respChan   chan []byte    // respChan is the channel where the worker sends the signed data
+	errChan    chan error     // errChan is channel where the worker sends an error in case it is not able to sign the request
 }
 
 // Response is used to get signed metadata from the worker. It contains the signed data along with the total time
@@ -91,14 +93,17 @@ type signer struct {
 	requestTimeout uint
 }
 
-func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool sPool, priority proto.Priority, signRequest signerMetadata) Response {
-	respChan := make(chan Response)
+func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool sPool, priority proto.Priority, method string, signRequest signerMetadata) (data []byte, err error) {
+	respChan := make(chan []byte)
+	errChan := make(chan error)
 	stop := make(chan bool)
 	req := &Request{
 		pool:       pool,
-		respChan:   respChan,
 		signerData: signRequest,
+		method:     method,
 		stop:       stop,
+		respChan:   respChan,
+		errChan:    errChan,
 	}
 	if priority == proto.Priority_Unspecified_priority {
 		// If priority is unspecified, treat the request as high priority.
@@ -109,21 +114,17 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 	case <-ctx.Done():
 		// channel is closed.
 		// This should ideally not happen but in order to avoid a blocking call we add this check in place.
-		return Response{
-			err: errors.New("request channel is closed, cannot fetch signer"),
-		}
+		return nil, errors.New("request channel is closed, cannot fetch signer")
 	}
+
 	select {
-	case resp, ok := <-respChan:
-		if !ok {
-			resp.err = errors.New("worker closed channel, request cancelled")
-		}
-		return resp
+	case err := <-errChan:
+		return nil, err
+	case resp := <-respChan:
+		return resp, nil
 	case <-ctx.Done():
 		close(stop)
-		return Response{
-			err: ctx.Err(),
-		}
+		return nil, ctx.Err()
 	}
 }
 
@@ -181,32 +182,17 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 }
 
 func (s *signer) GetSSHCertSigningKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetSSHCertSigningKey"
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.put(signer)
-
-	sshSigner, err := ssh.NewSignerFromSigner(signer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sshSigner: %v", err)
-	}
-	return ssh.MarshalAuthorizedKey(sshSigner.PublicKey()), nil
+	signRequest := &signerSSH{}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignSSHCert"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, tt=%d, pt=%d", methodName, ht, tt, pt)
-	}()
-
 	if cert == nil {
 		return nil, errors.New("signSSHCert: cannot sign empty cert")
 	}
@@ -216,10 +202,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	}
 
 	signRequest := &signerSSH{cert: cert}
-	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
-	ht = resp.hsmTime
-	pt = resp.poolTime
-	return resp.data, resp.err
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
@@ -236,12 +219,6 @@ func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Reque
 
 func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignX509Cert"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		xt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, xt=%d, pt=%d", methodName, ht, xt, pt)
-	}()
 
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
@@ -253,38 +230,21 @@ func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Reques
 		crlDistribPoints: s.crlDistributionPoints[keyIdentifier],
 		x509CACert:       s.x509CACerts[keyIdentifier],
 	}
-	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
-	ht = resp.hsmTime
-	pt = resp.poolTime
-	return resp.data, resp.err
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 func (s *signer) GetBlobSigningPublicKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetBlobSigningPublicKey"
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.put(signer)
-	pk, err := x509.MarshalPKIXPublicKey(signer.Public())
-	if err != nil {
-		return nil, err
-	}
-	b := &pem.Block{Type: "PUBLIC KEY", Bytes: pk}
-	return pem.EncodeToMemory(b), nil
+	signRequest := &signerBlob{}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignBlob"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, tt=%d, pt=%d", methodName, ht, tt, pt)
-	}()
 
 	if digest == nil {
 		return nil, fmt.Errorf("%s: cannot sign empty digest", methodName)
@@ -294,10 +254,7 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
 	signRequest := &signerBlob{digest: digest, opts: opts}
-	resp := getSignerData(ctx, reqChan, pool, priority, signRequest)
-	ht = resp.hsmTime
-	pt = resp.poolTime
-	return resp.data, resp.err
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.

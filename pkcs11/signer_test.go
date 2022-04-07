@@ -136,6 +136,7 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -287,7 +288,7 @@ func TestGetX509CACert(t *testing.T) {
 		"bad-signer":     {defaultIdentifier, true, false},
 	}
 	reqChan := make(chan scheduler.Request)
-
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -584,6 +585,7 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {

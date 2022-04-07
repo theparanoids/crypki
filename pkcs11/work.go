@@ -130,13 +130,6 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	}
 }
 
-// sendResponse sends the response on the respChan if the channel is not yet closed by the client.
-func (w *Work) sendResponse(resp Response) {
-
-	// case when client is waiting for a response from worker.
-	// close(w.work.respChan)
-}
-
 // getData gets X509 CA certificate.
 func (s *signerX509) getData(ctx context.Context, signer signerWithSignAlgorithm, pool sPool, data chan []byte, errCh chan error) {
 
@@ -177,7 +170,6 @@ func (s *signerSSH) getData(ctx context.Context, signer signerWithSignAlgorithm,
 		return
 	}
 	data <- ssh.MarshalAuthorizedKey(sshSigner.PublicKey())
-	return
 }
 
 // signData signs SSH certificate by using the signer fetched from the pool.
@@ -213,7 +205,6 @@ func (s *signerBlob) getData(ctx context.Context, signer signerWithSignAlgorithm
 	}
 	b := &pem.Block{Type: "PUBLIC KEY", Bytes: pk}
 	data <- pem.EncodeToMemory(b)
-	return
 }
 
 // signData signs blob data by using the signer fetched from the pool.

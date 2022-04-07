@@ -48,15 +48,6 @@ type Request struct {
 	errChan    chan error     // errChan is channel where the worker sends an error in case it is not able to sign the request
 }
 
-// Response is used to get signed metadata from the worker. It contains the signed data along with the total time
-// taken to retrieve both signer from pool & the signing operation in HSM.
-type Response struct {
-	data     []byte
-	poolTime int64
-	hsmTime  int64
-	err      error
-}
-
 type signerX509 struct {
 	cert             *x509.Certificate
 	identifier       string

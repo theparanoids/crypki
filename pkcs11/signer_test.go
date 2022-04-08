@@ -340,7 +340,7 @@ func TestSignX509RSACert(t *testing.T) {
 	cp := x509.NewCertPool()
 	cp.AddCert(caCert)
 
-	ctx, cnc := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cnc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cnc()
 	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

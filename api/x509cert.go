@@ -115,7 +115,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	}
 
 	// Create a context with server side timeout.
-	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(s.RequestTimeout)*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, 200 * time.Millisecond)
 	defer cancel() // Cancel ctx as soon as PostX509Certificate returns
 
 	maxValidity := s.MaxValidity[config.X509CertEndpoint]
@@ -160,6 +160,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	case response := <-respCh:
 		if response.err != nil {
 			statusCode = http.StatusInternalServerError
+			err = fmt.Errorf("internal server error %v", response.err)
 			return nil, status.Error(codes.Internal, "Internal server error")
 		}
 		return &proto.X509Certificate{Cert: string(response.cert)}, nil

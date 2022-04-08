@@ -40,12 +40,13 @@ import (
 // It has multiple channels, one for response & other to notify the worker if the client request times out to stop
 // processing any request from the client.
 type Request struct {
-	pool       sPool          // pool is a signer pool per identifier from which to fetch the signer
-	method     string         // method is type of method the worker needs to call based on the request
-	stop       chan bool      // stop is the channel which is closed when the consumer/client times out or cancels request
-	signerData signerMetadata // signerMetadata is an interface which each request can override & use to sign data
-	respChan   chan []byte    // respChan is the channel where the worker sends the signed data
-	errChan    chan error     // errChan is channel where the worker sends an error in case it is not able to sign the request
+	pool       sPool           // pool is a signer pool per identifier from which to fetch the signer
+	method     string          // method is type of method the worker needs to call based on the request
+	stop       chan bool       // stop is the channel which is closed when the consumer/client times out or cancels request
+	signerData signerMetadata  // signerMetadata is an interface which each request can override & use to sign data
+	respChan   chan []byte     // respChan is the channel where the worker sends the signed data
+	errChan    chan error      // errChan is channel where the worker sends an error in case it is not able to sign the request
+    ctx        context.Context // ctx is the request context declared at caller side.
 }
 
 type signerX509 struct {
@@ -95,6 +96,7 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 		stop:       stop,
 		respChan:   respChan,
 		errChan:    errChan,
+		ctx:        ctx,
 	}
 	if priority == proto.Priority_Unspecified_priority {
 		// If priority is unspecified, treat the request as high priority.
@@ -114,6 +116,9 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 	case resp := <-respChan:
 		return resp, nil
 	case <-ctx.Done():
+		// Closing respChan and errChan guarantees the goroutine gets panic() when writing data on the other side.
+		close(respChan)
+		close(errChan)
 		close(stop)
 		return nil, ctx.Err()
 	}

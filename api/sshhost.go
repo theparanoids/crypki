@@ -127,7 +127,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 	defer cancel() // Cancel ctx as soon as PostHostSSHCertificate returns
 
 	maxValidity := s.MaxValidity[config.SSHHostCertEndpoint]
-	if err := checkValidity(request.GetValidity(), maxValidity); err != nil {
+	if err = checkValidity(request.GetValidity(), maxValidity); err != nil {
 		statusCode = http.StatusBadRequest
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
@@ -169,6 +169,7 @@ func (s *SigningService) PostHostSSHCertificate(ctx context.Context, request *pr
 	case response := <-respCh:
 		if response.err != nil {
 			statusCode = http.StatusInternalServerError
+			err = fmt.Errorf("internal server error %v", response.err)
 			return nil, status.Error(codes.Internal, "Internal server error")
 		}
 		return &proto.SSHKey{Key: string(response.data)}, nil

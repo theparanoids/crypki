@@ -55,8 +55,6 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 	dataCh := make(chan []byte)
 	errCh := make(chan error)
 
-	reqCtx, cancel := context.WithTimeout(context.Background(), worker.PKCS11Timeout)
-	defer cancel()
 	var (
 		ht, pt         int64
 		pStart, hStart time.Time
@@ -77,7 +75,7 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 		case signerResp <- sInfo{signer, err}:
 			// case when we fetched signer from the pool.
 		}
-	}(reqCtx)
+	}(w.work.ctx)
 
 	for {
 		select {
@@ -85,10 +83,9 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 			// Case 1: Worker stopped or cancelled request.
 			// The client is still waiting for a response, so return on error channel.
 			worker.TotalTimeout.Inc()
-			cancel()
 			w.work.errChan <- errors.New("worker cancelled request")
 			return
-		case <-reqCtx.Done():
+		case <-w.work.ctx.Done():
 			// Case 2: HSM/PKCS11 request timed out.
 			// The client is still waiting for a response in this case, so return on error channel.
 			worker.TotalTimeout.Inc()
@@ -98,7 +95,6 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 			// Case 3: Client cancelled the request.
 			// In this case we no longer need to process the signing request & we should clean up signer if assigned & return.
 			worker.TotalTimeout.Inc()
-			cancel()
 			return
 		case sResp := <-signerResp:
 			pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
@@ -114,9 +110,9 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 			hStart = time.Now()
 			switch w.work.method {
 			case "GetSSHCertSigningKey", "GetX509CACert", "GetBlobSigningPublicKey":
-				go w.work.signerData.getData(reqCtx, sResp.signer, w.work.pool, dataCh, errCh)
+				go w.work.signerData.getData(w.work.ctx, sResp.signer, w.work.pool, dataCh, errCh)
 			case "SignSSHCert", "SignX509Cert", "SignBlob":
-				go w.work.signerData.signData(reqCtx, sResp.signer, w.work.pool, dataCh, errCh)
+				go w.work.signerData.signData(w.work.ctx, sResp.signer, w.work.pool, dataCh, errCh)
 			}
 		case resp := <-dataCh:
 			ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()

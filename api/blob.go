@@ -81,7 +81,7 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 
 	f := func(statusCode int, err error) {
 		log.Printf(`m=%s,digest=%q,hash=%q,st=%d,p=%d,et=%d,id=%q,err="%v"`,
-			methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, request.Priority, timeElapsedSince(start), request.KeyMeta.Identifiererr)
+			methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, request.Priority, timeElapsedSince(start), request.KeyMeta.Identifier, err)
 	}
 	defer logWithCheckingPanic(f, &statusCode, &err)
 

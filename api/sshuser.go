@@ -119,6 +119,7 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("request.keyMeta is empty for %q", config.SSHUserCertEndpoint)
+		request.KeyMeta = &proto.KeyMeta{} // Set an empty key meta for logging.
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 

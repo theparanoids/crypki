@@ -111,6 +111,7 @@ func (s *SigningService) PostX509Certificate(ctx context.Context, request *proto
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("request.keyMeta is empty for %q", config.X509CertEndpoint)
+		request.KeyMeta = &proto.KeyMeta{} // Set an empty key meta for logging.
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 

@@ -80,14 +80,15 @@ func (s *SigningService) PostSignBlob(ctx context.Context, request *proto.BlobSi
 	var err error
 
 	f := func(statusCode int, err error) {
-		log.Printf(`m=%s,digest=%q,hash=%q,st=%d,p=%d,et=%d,err="%v"`,
-			methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, request.Priority, timeElapsedSince(start), err)
+		log.Printf(`m=%s,digest=%q,hash=%q,st=%d,p=%d,et=%d,id=%q,err="%v"`,
+			methodName, request.GetDigest(), request.HashAlgorithm.String(), statusCode, request.Priority, timeElapsedSince(start), request.KeyMeta.Identifiererr)
 	}
 	defer logWithCheckingPanic(f, &statusCode, &err)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("request.keyMeta is empty for %q", config.BlobEndpoint)
+		request.KeyMeta = &proto.KeyMeta{} // Set an empty key meta for logging.
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 

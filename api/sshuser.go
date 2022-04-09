@@ -111,14 +111,15 @@ func (s *SigningService) PostUserSSHCertificate(ctx context.Context, request *pr
 		if cert != nil {
 			kid = cert.KeyId
 		}
-		log.Printf(`m=%s,id=%q,principals=%q,st=%d,p=%d,et=%d,err="%v"`,
-			methodName, kid, request.Principals, statusCode, request.Priority, timeElapsedSince(start), err)
+		log.Printf(`m=%s,id=%q,principals=%q,st=%d,p=%d,et=%d,id=%q,err="%v"`,
+			methodName, kid, request.Principals, statusCode, request.Priority, timeElapsedSince(start), request.KeyMeta.Identifier, err)
 	}
 	defer logWithCheckingPanic(f, &statusCode, &err)
 
 	if request.KeyMeta == nil {
 		statusCode = http.StatusBadRequest
 		err = fmt.Errorf("request.keyMeta is empty for %q", config.SSHUserCertEndpoint)
+		request.KeyMeta = &proto.KeyMeta{} // Set an empty key meta for logging.
 		return nil, status.Errorf(codes.InvalidArgument, "Bad request: %v", err)
 	}
 

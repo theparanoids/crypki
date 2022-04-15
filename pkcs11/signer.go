@@ -197,15 +197,21 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 }
 
 func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetSSHCertSigningKey"
 	cert, ok := s.x509CACerts[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unable to find CA cert for key identifier %q", keyIdentifier)
 	}
-	certBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
-	})
-	return certBytes, nil
+	pool, ok := s.sPool[keyIdentifier]
+	if !ok {
+		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
+	}
+	signRequest := &signerX509{
+		cert:       cert,
+		identifier: keyIdentifier,
+		x509CACert: s.x509CACerts[keyIdentifier],
+	}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {

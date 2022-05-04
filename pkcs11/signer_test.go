@@ -136,6 +136,7 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -287,7 +288,7 @@ func TestGetX509CACert(t *testing.T) {
 		"bad-signer":     {defaultIdentifier, true, false},
 	}
 	reqChan := make(chan scheduler.Request)
-
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
@@ -450,11 +451,7 @@ func TestSignX509ECCert(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
 			var data []byte
-			if label == "x509-ec-ca-cert-no-server" {
-				data, err = signer.SignX509Cert(tt.ctx, nil, tt.cert, tt.identifier, tt.priority)
-			} else {
-				data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
-			}
+			data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if (err != nil) != tt.expectError {
 				t.Fatalf("%s: got err: %v, expect err: %v", label, err, tt.expectError)
 			}
@@ -588,6 +585,7 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
+	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {

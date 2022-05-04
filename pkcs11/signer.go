@@ -15,10 +15,8 @@
 package pkcs11
 
 import (
-	"bytes"
 	"context"
 	"crypto"
-	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -38,13 +36,33 @@ import (
 	"github.com/theparanoids/crypki/x509cert"
 )
 
-/* Request holds information needed by the collector to fetch the request & process it.
-   It also has a channel on which it waits for the response.
-*/
+// Request holds information needed by the collector to fetch the request & process it.
+// It has multiple channels, one for response & other to notify the worker if the client request times out to stop
+// processing any request from the client.
 type Request struct {
-	pool       sPool                        // pool is a signer pool per identifier from which to fetch the signer
-	identifier string                       // identifier indicates the endpoint for which we are fetching the signer in order to sign it
-	respChan   chan signerWithSignAlgorithm // respChan is the channel where the worker sends the signer once it gets it from the pool
+	pool       sPool          // pool is a signer pool per identifier from which to fetch the signer
+	method     string         // method is type of method the worker needs to call based on the request
+	stop       chan bool      // stop is the channel which is closed when the consumer/client times out or cancels request
+	signerData signerMetadata // signerMetadata is an interface which each request can override & use to sign data
+	respChan   chan []byte    // respChan is the channel where the worker sends the signed data
+	errChan    chan error     // errChan is channel where the worker sends an error in case it is not able to sign the request
+}
+
+type signerX509 struct {
+	cert             *x509.Certificate
+	identifier       string
+	ocspServer       []string
+	crlDistribPoints []string
+	x509CACert       *x509.Certificate
+}
+
+type signerSSH struct {
+	cert *ssh.Certificate
+}
+
+type signerBlob struct {
+	digest []byte
+	opts   crypto.SignerOpts
 }
 
 // signer implements crypki.CertSign interface.
@@ -66,19 +84,17 @@ type signer struct {
 	requestTimeout uint
 }
 
-func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPool, keyIdentifier string, priority proto.Priority) (signer signerWithSignAlgorithm, err error) {
-	// Need to handle case when we directly invoke SignSSHCert or SignX509Cert for
-	// either generating the host certs or X509 CA certs. In that case we don't need the server
-	// running nor do we need to worry about priority scheduling. In that case, we immediately
-	// fetch the signer from the pool.
-	if requestChan == nil {
-		return pool.get(ctx)
-	}
-	respChan := make(chan signerWithSignAlgorithm)
+func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool sPool, priority proto.Priority, method string, signRequest signerMetadata) (data []byte, err error) {
+	respChan := make(chan []byte)
+	errChan := make(chan error)
+	stop := make(chan bool)
 	req := &Request{
 		pool:       pool,
-		identifier: keyIdentifier,
+		signerData: signRequest,
+		method:     method,
+		stop:       stop,
 		respChan:   respChan,
+		errChan:    errChan,
 	}
 	if priority == proto.Priority_Unspecified_priority {
 		// If priority is unspecified, treat the request as high priority.
@@ -91,18 +107,16 @@ func getSigner(ctx context.Context, requestChan chan scheduler.Request, pool sPo
 		// This should ideally not happen but in order to avoid a blocking call we add this check in place.
 		return nil, errors.New("request channel is closed, cannot fetch signer")
 	}
-	var ok bool
+
 	select {
-	case signer, ok = <-respChan:
-		if signer == nil || !ok {
-			return nil, errors.New("client request timed out, skip signing cert request")
-		}
+	case err := <-errChan:
+		return nil, err
+	case resp := <-respChan:
+		return resp, nil
 	case <-ctx.Done():
-		// In order to ensure we don't keep on blocking on the response, we close the response channel for this request & return.
-		close(respChan)
+		close(stop)
 		return nil, ctx.Err()
 	}
-	return signer, nil
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
@@ -159,32 +173,17 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 }
 
 func (s *signer) GetSSHCertSigningKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetSSHCertSigningKey"
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.put(signer)
-
-	sshSigner, err := ssh.NewSignerFromSigner(signer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sshSigner: %v", err)
-	}
-	return ssh.MarshalAuthorizedKey(sshSigner.PublicKey()), nil
+	signRequest := &signerSSH{}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request, cert *ssh.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignSSHCert"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, tt=%d, pt=%d", methodName, ht, tt, pt)
-	}()
-
 	if cert == nil {
 		return nil, errors.New("signSSHCert: cannot sign empty cert")
 	}
@@ -192,111 +191,57 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
-	if err != nil {
-		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
-	}
-	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	defer pool.put(signer)
 
-	sshSigner, err := newAlgorithmSignerFromSigner(signer, signer.publicKeyAlgorithm(), signer.signAlgorithm())
-	if err != nil {
-		return nil, fmt.Errorf("failed to new ssh signer from signer, error :%v", err)
-	}
-	// measure time taken by hsm
-	hStart := time.Now()
-	if err := cert.SignCert(rand.Reader, sshSigner); err != nil {
-		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
-	}
-	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	return bytes.TrimSpace(ssh.MarshalAuthorizedKey(cert)), nil
+	signRequest := &signerSSH{cert: cert}
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetSSHCertSigningKey"
 	cert, ok := s.x509CACerts[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unable to find CA cert for key identifier %q", keyIdentifier)
 	}
-	certBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
-	})
-	return certBytes, nil
+	pool, ok := s.sPool[keyIdentifier]
+	if !ok {
+		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
+	}
+	signRequest := &signerX509{
+		cert:       cert,
+		identifier: keyIdentifier,
+		x509CACert: s.x509CACerts[keyIdentifier],
+	}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignX509Cert(ctx context.Context, reqChan chan scheduler.Request, cert *x509.Certificate, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignX509Cert"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		xt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, xt=%d pt=%d", methodName, ht, xt, pt)
-	}()
 
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
-	if err != nil {
-		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
+	signRequest := &signerX509{cert: cert,
+		identifier:       keyIdentifier,
+		ocspServer:       s.ocspServers[keyIdentifier],
+		crlDistribPoints: s.crlDistributionPoints[keyIdentifier],
+		x509CACert:       s.x509CACerts[keyIdentifier],
 	}
-	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	defer pool.put(signer)
-
-	// Validate the cert request to ensure it matches the keyType and also the HSM supports the signature algo.
-	if val := isValidCertRequest(cert, signer.signAlgorithm()); !val {
-		log.Printf("signX509cert: cn=%q unsupported-sa=%q supported-sa=%d",
-			s.x509CACerts[keyIdentifier].Subject.CommonName, cert.SignatureAlgorithm.String(), signer.signAlgorithm())
-		// Not a valid signature algorithm. Overwrite it with what the configured keyType supports.
-		cert.SignatureAlgorithm = signer.signAlgorithm()
-	}
-
-	cert.OCSPServer = s.ocspServers[keyIdentifier]
-	cert.CRLDistributionPoints = s.crlDistributionPoints[keyIdentifier]
-
-	// measure time taken by hsm
-	hStart := time.Now()
-	signedCert, err := x509.CreateCertificate(rand.Reader, cert, s.x509CACerts[keyIdentifier], cert.PublicKey, signer)
-	if err != nil {
-		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
-	}
-	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: signedCert}), nil
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 func (s *signer) GetBlobSigningPublicKey(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
+	const methodName = "GetBlobSigningPublicKey"
 	pool, ok := s.sPool[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	signer, err := pool.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.put(signer)
-	pk, err := x509.MarshalPKIXPublicKey(signer.Public())
-	if err != nil {
-		return nil, err
-	}
-	b := &pem.Block{Type: "PUBLIC KEY", Bytes: pk}
-	return pem.EncodeToMemory(b), nil
+	signRequest := &signerBlob{}
+	return getSignerData(ctx, reqChan, pool, proto.Priority_High, methodName, signRequest)
 }
 
 func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, digest []byte, opts crypto.SignerOpts, keyIdentifier string, priority proto.Priority) ([]byte, error) {
 	const methodName = "SignBlob"
-	start := time.Now()
-	var ht, pt int64
-	defer func() {
-		tt := time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds()
-		log.Printf("m=%s: ht=%d, tt=%d, pt=%d", methodName, ht, tt, pt)
-	}()
 
 	if digest == nil {
 		return nil, fmt.Errorf("%s: cannot sign empty digest", methodName)
@@ -305,24 +250,8 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 	if !ok {
 		return nil, fmt.Errorf("unknown key identifier %q", keyIdentifier)
 	}
-	pStart := time.Now()
-	signer, err := getSigner(ctx, reqChan, pool, keyIdentifier, priority)
-	if err != nil {
-		pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
-	}
-	pt = time.Since(pStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	defer pool.put(signer)
-
-	// measure time taken by hsm
-	hStart := time.Now()
-	signature, err := signer.Sign(rand.Reader, digest, opts)
-	if err != nil {
-		ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-		return nil, err
-	}
-	ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()
-	return signature, nil
+	signRequest := &signerBlob{digest: digest, opts: opts}
+	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.

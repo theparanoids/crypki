@@ -33,7 +33,6 @@ import (
 
 	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
 	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -307,7 +306,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 			client := tt.setupClient(ctx, grpcServer, listener)
 			_, err := client.Ping(ctx, ping)
 			if err != nil {
-				require.NoError(t, err, "no error should occur")
+				t.Fatal(err)
 			}
 			actualLog := buffer.String()
 

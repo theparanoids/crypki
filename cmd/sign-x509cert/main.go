@@ -22,7 +22,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
@@ -157,7 +156,7 @@ func main() {
 		log.Fatalf("falied to sign x509 cert: %v", err)
 	}
 
-	if err := ioutil.WriteFile(certOutPath, data, 0444); err != nil {
+	if err := os.WriteFile(certOutPath, data, 0444); err != nil {
 		log.Printf("the newly signed cert has been generated, but unable to write to file %s: %v", certOutPath, err)
 	} else {
 		log.Printf("the newly signed x509 cert has been written to %s", certOutPath)

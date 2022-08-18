@@ -15,6 +15,7 @@ import (
 
 // PKCS11Ctx interface is added to mock pkcs11.Ctx
 // run the following command to generate mock
+//
 //go:generate mockgen -source=pkcs11.go -destination ./mock_pkcs11/mock_pkcs11.go
 type PKCS11Ctx interface {
 	GetAttributeValue(p11.SessionHandle, p11.ObjectHandle, []*p11.Attribute) ([]*p11.Attribute, error)

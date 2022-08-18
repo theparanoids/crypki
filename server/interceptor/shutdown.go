@@ -92,21 +92,21 @@ func (c *ShutdownCounter) startTicker(ctx context.Context) {
 // InterceptorFn is intended to be used to create a StatusInterceptor to
 // monitor service status and shutdown the server when the criteria meet.
 //
-// 		shutdownCounterConfig := interceptor.ShutdownCounterConfig{
-//			ReportOnly:            true,
-//			ConsecutiveCountLimit: 4,
-//			TimeRangeCountLimit:   10,
-//			TickerDuration:        60 * time.Second,
-//			ShutdownFn: func() {
-//				grpcServer.GracefulStop()
-//				if err := server.Shutdown(ctx); err != nil {
-//					log.Fatalf("failed to shutdown server: %v", err)
-//				}
-//			},
-//		}
-//		interceptors = []grpc.UnaryServerInterceptor{
-//			interceptor.StatusInterceptor((interceptor.NewShutdownCounter(ctx, shutdownCounterConfig)).InterceptorFn),
-//		}
+//	shutdownCounterConfig := interceptor.ShutdownCounterConfig{
+//		ReportOnly:            true,
+//		ConsecutiveCountLimit: 4,
+//		TimeRangeCountLimit:   10,
+//		TickerDuration:        60 * time.Second,
+//		ShutdownFn: func() {
+//			grpcServer.GracefulStop()
+//			if err := server.Shutdown(ctx); err != nil {
+//				log.Fatalf("failed to shutdown server: %v", err)
+//			}
+//		},
+//	}
+//	interceptors = []grpc.UnaryServerInterceptor{
+//		interceptor.StatusInterceptor((interceptor.NewShutdownCounter(ctx, shutdownCounterConfig)).InterceptorFn),
+//	}
 func (c *ShutdownCounter) InterceptorFn(code codes.Code) {
 	if code == codes.Internal {
 		atomic.AddInt32(&c.consecutiveCounter, 1)

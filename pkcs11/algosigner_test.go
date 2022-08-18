@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,19 +31,19 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 		"rsa pub rsa 256 signing": {
 			pubAlgo:   x509.RSA,
 			signAlgo:  x509.SHA256WithRSA,
-			want:      ssh.SigAlgoRSASHA2256,
+			want:      ssh.KeyAlgoRSASHA256,
 			wantError: false,
 		},
 		"rsa pub rsa 512 signing": {
 			pubAlgo:   x509.RSA,
 			signAlgo:  x509.SHA512WithRSA,
-			want:      ssh.SigAlgoRSASHA2512,
+			want:      ssh.KeyAlgoRSASHA512,
 			wantError: false,
 		},
 		"rsa pub sha1 signing": {
 			pubAlgo:   x509.RSA,
 			signAlgo:  x509.SHA1WithRSA,
-			want:      ssh.SigAlgoRSA,
+			want:      ssh.KeyAlgoRSA,
 			wantError: false,
 		},
 		"rsa pub ec signing": {
@@ -55,7 +55,7 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 		"rsa pub no signing algo": {
 			pubAlgo:   x509.RSA,
 			signAlgo:  x509.UnknownSignatureAlgorithm,
-			want:      ssh.SigAlgoRSASHA2256,
+			want:      ssh.KeyAlgoRSASHA256,
 			wantError: false,
 		},
 		"ec pub ec sign": {

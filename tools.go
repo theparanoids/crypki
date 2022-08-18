@@ -1,6 +1,7 @@
 // Copyright 2020, Oath Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 
+//go:build tools
 // +build tools
 
 package crypki

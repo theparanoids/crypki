@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,13 +43,13 @@ func getSignatureAlgorithm(publicAlgo x509.PublicKeyAlgorithm, signAlgo x509.Sig
 			case x509.ECDSAWithSHA256, x509.ECDSAWithSHA384:
 				err = errors.New("public key algo & signature algo mismatch, unable to get AlgorithmSigner")
 			case x509.SHA1WithRSA:
-				algorithm = ssh.SigAlgoRSA
+				algorithm = ssh.KeyAlgoRSA
 			case x509.SHA512WithRSA:
-				algorithm = ssh.SigAlgoRSASHA2512
+				algorithm = ssh.KeyAlgoRSASHA512
 			case x509.SHA256WithRSA:
-				algorithm = ssh.SigAlgoRSASHA2256
+				algorithm = ssh.KeyAlgoRSASHA256
 			default:
-				algorithm = ssh.SigAlgoRSASHA2256
+				algorithm = ssh.KeyAlgoRSASHA256
 			}
 		}
 	case x509.ECDSA:

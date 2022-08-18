@@ -232,10 +232,10 @@ func TestSignSSHCert(t *testing.T) {
 		expectError           bool
 		expectedSignatureAlgo string
 	}{
-		"host-cert-rsa":             {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.SigAlgoRSASHA2256},
+		"host-cert-rsa":             {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.KeyAlgoRSASHA256},
 		"host-cert-ec":              {ctx, hostCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
 		"host-cert-bad-signer":      {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
-		"user-cert-rsa":             {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.SigAlgoRSASHA2256},
+		"user-cert-rsa":             {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.KeyAlgoRSASHA256},
 		"user-cert-ec":              {ctx, userCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
 		"user-cert-bad-identifier":  {ctx, userCertRSA, x509.RSA, badIdentifier, proto.Priority_High, false, true, ""},
 		"user-cert-bad-signer":      {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},

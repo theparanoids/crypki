@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"time"
 
@@ -38,6 +39,9 @@ const (
 
 var cfg string
 var caOutPath string
+var skipHostname bool
+var skipIPs bool
+var uri string
 
 func getIPs() (ips []net.IP, err error) {
 	ifaces, err := net.Interfaces()
@@ -67,6 +71,10 @@ func getIPs() (ips []net.IP, err error) {
 func main() {
 	flag.StringVar(&cfg, "config", "", "CA cert configuration file")
 	flag.StringVar(&caOutPath, "out", defaultCAOutPath, "the output path of the generated CA cert")
+	flag.BoolVar(&skipHostname, "skip-hostname", false, "skip including dnsName attribute in CA cert")
+	flag.BoolVar(&skipIPs, "skip-ips", false, "skip including IP attribute in CA cert")
+	flag.StringVar(&uri, "uri", "", "URI value to include in CA cert SAN")
+
 	flag.Parse()
 	log.SetFlags(log.LstdFlags | log.LUTC | log.Lmicroseconds | log.Lshortfile)
 
@@ -85,14 +93,34 @@ func main() {
 	if err := json.Unmarshal(cfgData, cc); err != nil {
 		log.Fatal(err)
 	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal(err)
+
+	hostname := ""
+	if !skipHostname {
+		hostname, err = os.Hostname()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	ips, err := getIPs()
-	if err != nil {
-		log.Fatal(err)
+	var ips []net.IP
+	if !skipIPs {
+		ips, err = getIPs()
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		ips = nil
+	}
+
+	var uris []*url.URL
+	if uri != "" {
+		parsedUri, err := url.Parse(uri)
+		if err != nil {
+			log.Fatal(err)
+		}
+		uris = []*url.URL{parsedUri}
+	} else {
+		uris = nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,7 +152,7 @@ func main() {
 		OrganizationalUnit:     cc.OrganizationalUnit,
 		CommonName:             cc.CommonName,
 		ValidityPeriod:         cc.ValidityPeriod,
-	}}, requireX509CACert, hostname, ips, config.DefaultPKCS11Timeout)
+	}}, requireX509CACert, hostname, ips, uris, config.DefaultPKCS11Timeout)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}

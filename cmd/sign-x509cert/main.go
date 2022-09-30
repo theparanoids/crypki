@@ -143,7 +143,7 @@ func main() {
 		SessionPoolSize:        2,
 		X509CACertLocation:     caPath,
 		CreateCACertIfNotExist: false,
-	}}, requireX509CACert, "", nil, config.DefaultPKCS11Timeout) // Hostname and ips should not be needed as CreateCACertIfNotExist is set to be false.
+	}}, requireX509CACert, "", nil, nil, config.DefaultPKCS11Timeout) // Hostname and ips should not be needed as CreateCACertIfNotExist is set to be false.
 
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)

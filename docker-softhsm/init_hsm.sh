@@ -24,7 +24,7 @@ error() {
 SOPIN=1234
 USERPIN=123456
 
-modulepath="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+modulepath="/usr/lib/softhsm/libsofthsm2.so" # softlink to the exact shared library based on the os arch
 slot_pubkeys_path="/opt/crypki/slot_pubkeys"
 
 user_ssh_label="user_ssh"

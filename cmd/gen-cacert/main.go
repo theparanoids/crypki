@@ -108,8 +108,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else {
-		ips = nil
 	}
 
 	var uris []*url.URL
@@ -119,8 +117,6 @@ func main() {
 			log.Fatal(err)
 		}
 		uris = []*url.URL{parsedUri}
-	} else {
-		uris = nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

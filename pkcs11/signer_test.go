@@ -94,13 +94,13 @@ func createCAKeysAndCert(keyType x509.PublicKeyAlgorithm) (priv crypto.Signer, c
 }
 
 // initMockSigner initializes a mock signer.
-func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad bool, sleepTime time.Duration, requestTimeout uint) *signer {
+func initMockSigner(keyType x509.PublicKeyAlgorithm, priv crypto.Signer, cert *x509.Certificate, isBad, isNullPublicKey bool, sleepTime time.Duration, requestTimeout uint) *signer {
 	s := &signer{
 		x509CACerts: make(map[string]*x509.Certificate),
 		sPool:       make(map[string]sPool),
 	}
 
-	sp := newMockSignerPool(isBad, keyType, priv)
+	sp := newMockSignerPool(isBad, isNullPublicKey, keyType, priv)
 	s.sPool[defaultIdentifier] = sp
 	s.x509CACerts[defaultIdentifier] = cert
 	s.requestTimeout = requestTimeout
@@ -125,15 +125,17 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
-		ctx         context.Context
-		identifier  string
-		isBadSigner bool
-		expectError bool
+		ctx             context.Context
+		identifier      string
+		isBadSigner     bool
+		isNullPublicKey bool
+		expectError     bool
 	}{
-		"good-signer":         {ctx, defaultIdentifier, false, false},
-		"bad-identifier":      {ctx, badIdentifier, false, true},
-		"bad-signer":          {ctx, defaultIdentifier, true, true},
-		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
+		"good-signer":            {ctx, defaultIdentifier, false, false, false},
+		"bad-identifier":         {ctx, badIdentifier, false, false, true},
+		"bad-signer":             {ctx, defaultIdentifier, true, false, true},
+		"bad-signer-null-pubkey": {ctx, defaultIdentifier, true, true, true},
+		"bad-request-timeout":    {timeoutCtx, defaultIdentifier, false, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
 	go dummyScheduler(ctx, reqChan)
@@ -144,7 +146,7 @@ func TestGetSSHCertSigningKey(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, tt.isNullPublicKey, timeout, 10)
 			_, err = signer.GetSSHCertSigningKey(tt.ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -229,17 +231,20 @@ func TestSignSSHCert(t *testing.T) {
 		identifier            string
 		priority              proto.Priority
 		isBadSigner           bool
+		isNullPublicKey       bool
 		expectError           bool
 		expectedSignatureAlgo string
 	}{
-		"host-cert-rsa":             {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, ssh.KeyAlgoRSASHA256},
-		"host-cert-ec":              {ctx, hostCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
-		"host-cert-bad-signer":      {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
-		"user-cert-rsa":             {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, ssh.KeyAlgoRSASHA256},
-		"user-cert-ec":              {ctx, userCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, ssh.KeyAlgoECDSA256},
-		"user-cert-bad-identifier":  {ctx, userCertRSA, x509.RSA, badIdentifier, proto.Priority_High, false, true, ""},
-		"user-cert-bad-signer":      {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, ""},
-		"user-cert-request-timeout": {timeoutCtx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, true, ""},
+		"host-cert-rsa":                    {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, false, ssh.KeyAlgoRSASHA256},
+		"host-cert-ec":                     {ctx, hostCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, false, ssh.KeyAlgoECDSA256},
+		"host-cert-bad-signer":             {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, false, true, ""},
+		"host-cert-bad-signer-null-pubkey": {ctx, hostCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, true, ""},
+		"user-cert-rsa":                    {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, false, ssh.KeyAlgoRSASHA256},
+		"user-cert-ec":                     {ctx, userCertEC, x509.ECDSA, defaultIdentifier, proto.Priority_Medium, false, false, false, ssh.KeyAlgoECDSA256},
+		"user-cert-bad-identifier":         {ctx, userCertRSA, x509.RSA, badIdentifier, proto.Priority_High, false, false, true, ""},
+		"user-cert-bad-signer":             {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, false, true, ""},
+		"user-cert-bad-signer-null-pubkey": {ctx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, true, true, true, ""},
+		"user-cert-request-timeout":        {timeoutCtx, userCertRSA, x509.RSA, defaultIdentifier, proto.Priority_Low, false, false, true, ""},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
@@ -248,7 +253,7 @@ func TestSignSSHCert(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(tt.keyType, caPriv, caCert, tt.isBadSigner, tt.isNullPublicKey, timeout, 10)
 			data, err := signer.SignSSHCert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -279,13 +284,15 @@ func TestGetX509CACert(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	testcases := map[string]struct {
-		identifier  string
-		isBadSigner bool
-		expectError bool
+		identifier     string
+		isBadSigner    bool
+		isNullPubicKey bool
+		expectError    bool
 	}{
-		"good-signer":    {defaultIdentifier, false, false},
-		"bad-identifier": {badIdentifier, false, true},
-		"bad-signer":     {defaultIdentifier, true, false},
+		"good-signer":            {defaultIdentifier, false, false, false},
+		"bad-identifier":         {badIdentifier, false, false, true},
+		"bad-signer":             {defaultIdentifier, true, false, false},
+		"bad-signer-null-pubkey": {defaultIdentifier, true, true, false},
 	}
 	reqChan := make(chan scheduler.Request)
 	go dummyScheduler(ctx, reqChan)
@@ -296,7 +303,7 @@ func TestGetX509CACert(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, tt.isNullPubicKey, timeout, 10)
 			_, err = signer.GetX509CACert(ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -347,23 +354,25 @@ func TestSignX509RSACert(t *testing.T) {
 
 	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
-		ctx         context.Context
-		cert        *x509.Certificate
-		identifier  string
-		priority    proto.Priority
-		isBadSigner bool
-		expectError bool
+		ctx            context.Context
+		cert           *x509.Certificate
+		identifier     string
+		priority       proto.Priority
+		isBadSigner    bool
+		isNullPubicKey bool
+		expectError    bool
 	}{
-		"cert-rsa-good-signer":   {ctx, certRSA, defaultIdentifier, proto.Priority_High, false, false},
-		"cert-bad-identifier":    {ctx, certRSA, badIdentifier, proto.Priority_Medium, false, true},
-		"cert-bad-signer":        {ctx, certRSA, defaultIdentifier, proto.Priority_Low, true, true},
-		"cert-request-cancelled": {cancelCtx, certRSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, true},
+		"cert-rsa-good-signer":        {ctx, certRSA, defaultIdentifier, proto.Priority_High, false, false, false},
+		"cert-bad-identifier":         {ctx, certRSA, badIdentifier, proto.Priority_Medium, false, false, true},
+		"cert-bad-signer":             {ctx, certRSA, defaultIdentifier, proto.Priority_Low, true, false, true},
+		"cert-bad-signer-null-pubkey": {ctx, certRSA, defaultIdentifier, proto.Priority_Low, true, true, true},
+		"cert-request-cancelled":      {cancelCtx, certRSA, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, true},
 	}
 	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, tt.isNullPubicKey, timeout, 10)
 			if tt.ctx == cancelCtx {
 				cancel()
 			}
@@ -433,23 +442,25 @@ func TestSignX509ECCert(t *testing.T) {
 	defer cnc()
 	reqChan := make(chan scheduler.Request)
 	testcases := map[string]struct {
-		ctx         context.Context
-		cert        *x509.Certificate
-		identifier  string
-		priority    proto.Priority
-		isBadSigner bool
-		expectError bool
+		ctx            context.Context
+		cert           *x509.Certificate
+		identifier     string
+		priority       proto.Priority
+		isBadSigner    bool
+		isNullPubicKey bool
+		expectError    bool
 	}{
-		"cert-ec-good-signer":       {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
-		"cert-ec-bad-identifier":    {ctx, certEC, badIdentifier, proto.Priority_Medium, false, true},
-		"cert-ec-bad-signer":        {ctx, certEC, badIdentifier, proto.Priority_Medium, true, true},
-		"x509-ec-ca-cert-no-server": {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false},
+		"cert-ec-good-signer":            {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, false},
+		"cert-ec-bad-identifier":         {ctx, certEC, badIdentifier, proto.Priority_Medium, false, false, true},
+		"cert-ec-bad-signer":             {ctx, certEC, badIdentifier, proto.Priority_Medium, true, false, true},
+		"cert-ec-bad-signer-null-pubkey": {ctx, certEC, badIdentifier, proto.Priority_Medium, true, true, true},
+		"x509-ec-ca-cert-no-server":      {ctx, certEC, defaultIdentifier, proto.Priority_Unspecified_priority, false, false, false},
 	}
 	go dummyScheduler(ctx, reqChan)
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, tt.isNullPubicKey, timeout, 10)
 			var data []byte
 			data, err = signer.SignX509Cert(tt.ctx, reqChan, tt.cert, tt.identifier, tt.priority)
 			if (err != nil) != tt.expectError {
@@ -536,7 +547,7 @@ func TestSignX509Cert_ContextCancel(t *testing.T) {
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.ECDSA, caPriv, caCert, tt.isBadSigner, false, timeout, 10)
 			if tt.ctx == cancelCtx {
 				cncl()
 			}
@@ -574,15 +585,17 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	testcases := map[string]struct {
-		ctx         context.Context
-		identifier  string
-		isBadSigner bool
-		expectError bool
+		ctx            context.Context
+		identifier     string
+		isBadSigner    bool
+		isNullPubicKey bool
+		expectError    bool
 	}{
-		"good-signer":         {ctx, defaultIdentifier, false, false},
-		"bad-identifier":      {ctx, badIdentifier, false, true},
-		"bad-signer":          {ctx, defaultIdentifier, true, true},
-		"bad-request-timeout": {timeoutCtx, defaultIdentifier, false, true},
+		"good-signer":            {ctx, defaultIdentifier, false, false, false},
+		"bad-identifier":         {ctx, badIdentifier, false, false, true},
+		"bad-signer":             {ctx, defaultIdentifier, true, false, true},
+		"bad-signer-null-pubkey": {ctx, defaultIdentifier, true, true, true},
+		"bad-request-timeout":    {timeoutCtx, defaultIdentifier, false, false, true},
 	}
 	reqChan := make(chan scheduler.Request)
 	go dummyScheduler(ctx, reqChan)
@@ -593,7 +606,7 @@ func TestGetBlobSigningPublicKey(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create CA keys and certificate: %v", err)
 			}
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, tt.isNullPubicKey, timeout, 10)
 			_, err = signer.GetBlobSigningPublicKey(tt.ctx, reqChan, tt.identifier)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)
@@ -626,27 +639,29 @@ func TestSignBlob(t *testing.T) {
 	go dummyScheduler(ctx, reqChan)
 
 	testcases := map[string]struct {
-		ctx         context.Context
-		digest      []byte
-		opts        crypto.SignerOpts
-		identifier  string
-		isBadSigner bool
-		expectError bool
+		ctx            context.Context
+		digest         []byte
+		opts           crypto.SignerOpts
+		identifier     string
+		isBadSigner    bool
+		isNullPubicKey bool
+		expectError    bool
 	}{
-		"good-SHA224":         {ctx, goodDigestSHA224[:], crypto.SHA224, defaultIdentifier, false, false},
-		"good-SHA256":         {ctx, goodDigestSHA256[:], crypto.SHA256, defaultIdentifier, false, false},
-		"good-SHA384":         {ctx, goodDigestSHA384[:], crypto.SHA384, defaultIdentifier, false, false},
-		"good-SHA512":         {ctx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false},
-		"bad-digest":          {ctx, []byte("bad digest"), crypto.SHA256, defaultIdentifier, false, true},
-		"bad-wrong-hash":      {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, false, true},
-		"bad-identifier":      {ctx, goodDigestSHA224[:], crypto.SHA256, badIdentifier, false, true},
-		"bad-signer":          {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, true},
-		"bad-request-timeout": {timeoutCtx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, true},
+		"good-SHA224":            {ctx, goodDigestSHA224[:], crypto.SHA224, defaultIdentifier, false, false, false},
+		"good-SHA256":            {ctx, goodDigestSHA256[:], crypto.SHA256, defaultIdentifier, false, false, false},
+		"good-SHA384":            {ctx, goodDigestSHA384[:], crypto.SHA384, defaultIdentifier, false, false, false},
+		"good-SHA512":            {ctx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false, false},
+		"bad-digest":             {ctx, []byte("bad digest"), crypto.SHA256, defaultIdentifier, false, false, true},
+		"bad-wrong-hash":         {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, false, false, true},
+		"bad-identifier":         {ctx, goodDigestSHA224[:], crypto.SHA256, badIdentifier, false, false, true},
+		"bad-signer":             {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, false, true},
+		"bad-signer-null-pubkey": {ctx, goodDigestSHA224[:], crypto.SHA256, defaultIdentifier, true, true, true},
+		"bad-request-timeout":    {timeoutCtx, goodDigestSHA512[:], crypto.SHA512, defaultIdentifier, false, false, true},
 	}
 	for label, tt := range testcases {
 		label, tt := label, tt
 		t.Run(label, func(t *testing.T) {
-			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, timeout, 10)
+			signer := initMockSigner(x509.RSA, caPriv, caCert, tt.isBadSigner, tt.isNullPubicKey, timeout, 10)
 			signature, err := signer.SignBlob(tt.ctx, reqChan, tt.digest, tt.opts, tt.identifier, proto.Priority_High)
 			if err != nil != tt.expectError {
 				t.Fatalf("got err: %v, expect err: %v", err, tt.expectError)

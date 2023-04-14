@@ -18,6 +18,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"errors"
+	"log"
 	"math/big"
 
 	p11 "github.com/miekg/pkcs11"
@@ -38,7 +39,8 @@ func publicRSA(s *p11Signer) crypto.PublicKey {
 	}
 	attr, err := s.context.GetAttributeValue(s.session, s.publicKey, attrTemplate)
 	if err != nil {
-		panic("Error returning public key: " + err.Error())
+		log.Printf("Error returning public key: %v\n", err)
+		return nil
 	}
 	gotMod, gotExp := false, false
 	rsapubkey := new(rsa.PublicKey)
@@ -53,7 +55,8 @@ func publicRSA(s *p11Signer) crypto.PublicKey {
 		}
 	}
 	if !gotExp || !gotMod {
-		panic("unable to retrieve modulus and/or exponent")
+		log.Println("unable to retrieve modulus and/or exponent")
+		return nil
 	}
 	return rsapubkey
 }

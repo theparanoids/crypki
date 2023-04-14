@@ -21,6 +21,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 
 	p11 "github.com/miekg/pkcs11"
@@ -70,29 +71,35 @@ func publicECDSA(s *p11Signer) crypto.PublicKey {
 		p11.NewAttribute(p11.CKA_EC_POINT, nil),
 	})
 	if err != nil {
-		panic("publicECDSA: GetAttributeValue failed: " + err.Error())
+		log.Printf("publicECDSA: GetAttributeValue failed: %v\n", err)
+		return nil
 	}
 	if len(attrs) < 2 {
-		panic("publicECDSA: expected two attributes")
+		log.Println("publicECDSA: expected two attributes")
+		return nil
 	}
 
 	curve, ok := oidDERToCurve[fmt.Sprintf("%X", attrs[0].Value)]
 	if !ok {
-		panic("publicECDSA: unknown curve: " + fmt.Sprintf("%X", attrs[0].Value))
+		log.Printf("publicECDSA: unknown curve: %s\n", fmt.Sprintf("%X", attrs[0].Value))
+		return nil
 	}
 
 	pointBytes := attrs[1].Value
 	if pointBytes == nil {
-		panic("publicECDSA: unable to get EC point")
+		log.Println("publicECDSA: unable to get EC point")
+		return nil
 	}
 	var pb []byte
 	_, err = asn1.Unmarshal(pointBytes, &pb)
 	if err != nil {
-		panic("publicECDSA: asn1 unmarshal failed: " + err.Error())
+		log.Printf("publicECDSA: asn1 unmarshal failed: %v\n", err)
+		return nil
 	}
 	pubkey, err := getPublic(pb, curve)
 	if err != nil {
-		panic("publicECDSA: getPublic failed: " + err.Error())
+		log.Printf("publicECDSA: getPublic failed: %v\n", err)
+		return nil
 	}
 	return pubkey
 }

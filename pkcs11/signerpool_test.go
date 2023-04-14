@@ -33,7 +33,17 @@ func (b *badSigner) Public() crypto.PublicKey {
 	return []byte("bad byte")
 }
 
-func (b *badSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (b *badSigner) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte, error) {
+	return nil, errors.New("bad signer")
+}
+
+type badNullSigner struct{}
+
+func (b *badNullSigner) Public() crypto.PublicKey {
+	return nil
+}
+
+func (b *badNullSigner) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte, error) {
 	return nil, errors.New("bad signer")
 }
 
@@ -51,8 +61,7 @@ func (c MockSignerPool) get(ctx context.Context) (signerWithSignAlgorithm, error
 	}
 }
 
-func (c MockSignerPool) put(instance signerWithSignAlgorithm) {
-
+func (c MockSignerPool) put(signerWithSignAlgorithm) {
 }
 
 func (c MockSignerPool) publicKeyAlgorithm() x509.PublicKeyAlgorithm {
@@ -74,9 +83,13 @@ func (c MockSignerPool) Sign(rand io.Reader, digest []byte, opts crypto.SignerOp
 	return c.signer.Sign(rand, digest, opts)
 }
 
-func newMockSignerPool(isBad bool, keyType x509.PublicKeyAlgorithm, priv crypto.Signer) sPool {
+func newMockSignerPool(isBad, isNullPublicKey bool, keyType x509.PublicKeyAlgorithm, priv crypto.Signer) sPool {
 	if isBad {
-		return MockSignerPool{&badSigner{}, keyType}
+		if isNullPublicKey {
+			return MockSignerPool{&badNullSigner{}, keyType}
+		} else {
+			return MockSignerPool{&badSigner{}, keyType}
+		}
 	}
 	return MockSignerPool{priv, keyType}
 }

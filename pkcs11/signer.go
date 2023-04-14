@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"time"
 
@@ -120,7 +121,7 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
-func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, requestTimeout uint) (crypki.CertSign, error) {
+func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, uris []*url.URL, requestTimeout uint) (crypki.CertSign, error) {
 	p11ctx, err := initPKCS11Context(pkcs11ModulePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
@@ -159,7 +160,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 		s.sPool[key.Identifier] = pool
 		// initialize x509 CA cert if this key will be used for signing x509 certs.
 		if requireX509CACert[key.Identifier] {
-			cert, err := getX509CACert(ctx, key, pool, hostname, ips)
+			cert, err := getX509CACert(ctx, key, pool, hostname, ips, uris)
 			if err != nil {
 				log.Fatalf("failed to get x509 CA cert for key with identifier %q, err: %v", key.Identifier, err)
 			}
@@ -257,7 +258,7 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.
 // If the certificate is not valid, and CreateCACertIfNotExist is true, a new CA
 // certificate will be generated based on the config, and wrote to X509CACertLocation.
-func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostname string, ips []net.IP) (*x509.Certificate, error) {
+func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostname string, ips []net.IP, uris []*url.URL) (*x509.Certificate, error) {
 	// Try parse certificate in the given location.
 	if certBytes, err := os.ReadFile(key.X509CACertLocation); err == nil {
 		block, _ := pem.Decode(certBytes)
@@ -293,7 +294,7 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	}
 	caConfig.LoadDefaults()
 
-	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, signer.publicKeyAlgorithm(), signer.signAlgorithm())
+	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, uris, signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate x509 CA certificate: %v", err)
 	}

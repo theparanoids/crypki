@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"net"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -25,11 +26,15 @@ func TestGenCACert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	spiffeUri, _ := url.Parse("spiffe://paranoids/crypki")
+	uris := []*url.URL{spiffeUri}
+
 	tests := map[string]struct {
 		cfg         *crypki.CAConfig
 		signer      crypto.Signer
 		hostname    string
 		ips         []net.IP
+		uris        []*url.URL
 		pka         x509.PublicKeyAlgorithm
 		sa          x509.SignatureAlgorithm
 		wantSubj    pkix.Name
@@ -48,6 +53,28 @@ func TestGenCACert(t *testing.T) {
 			hostname: "hostname.example.com",
 			pka:      pka,
 			sa:       sa,
+			wantSubj: pkix.Name{
+				CommonName:         "foo.example.com",
+				Country:            []string{"US"},
+				Locality:           []string{"Sunnyvale"},
+				Province:           []string{"CA"},
+				Organization:       []string{"Foo Org"},
+				OrganizationalUnit: []string{"Foo Org Unit"},
+			},
+		},
+		"no-hostname-with-uri": {
+			cfg: &crypki.CAConfig{
+				Country:            "US",
+				Locality:           "Sunnyvale",
+				State:              "CA",
+				Organization:       "Foo Org",
+				OrganizationalUnit: "Foo Org Unit",
+				CommonName:         "foo.example.com",
+			},
+			signer: eckey,
+			uris:   uris,
+			pka:    pka,
+			sa:     sa,
 			wantSubj: pkix.Name{
 				CommonName:         "foo.example.com",
 				Country:            []string{"US"},
@@ -123,7 +150,7 @@ func TestGenCACert(t *testing.T) {
 		name, tt := name, tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got, err := GenCACert(tt.cfg, tt.signer, tt.hostname, tt.ips, tt.pka, tt.sa)
+			got, err := GenCACert(tt.cfg, tt.signer, tt.hostname, tt.ips, tt.uris, tt.pka, tt.sa)
 			if err != nil {
 				if !tt.expectError {
 					t.Error("unexpected error")
@@ -144,6 +171,20 @@ func TestGenCACert(t *testing.T) {
 			tt.wantSubj.Names = cert.Subject.Names
 			if !reflect.DeepEqual(cert.Subject, tt.wantSubj) {
 				t.Errorf("subject mismatch:\n got: \n%+v\n want: \n%+v\n", cert.Subject, tt.wantSubj)
+			}
+			if len(tt.uris) > 0 {
+				if !reflect.DeepEqual(cert.URIs, tt.uris) {
+					t.Errorf("uri mismatch: %+v\n", cert.URIs)
+				}
+			}
+			if tt.hostname != "" {
+				if tt.hostname != cert.DNSNames[0] {
+					t.Errorf("dnsName mismatch: got:%s want: %s\n", cert.DNSNames[0], tt.hostname)
+				}
+			} else {
+				if len(cert.DNSNames) > 0 {
+					t.Errorf("unexpected dnsName values: %s\n", cert.DNSNames[0])
+				}
 			}
 		})
 	}

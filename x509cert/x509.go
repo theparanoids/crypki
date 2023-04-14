@@ -12,18 +12,19 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/theparanoids/crypki"
 )
 
 // GenCACert creates the CA certificate given signer.
-func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, pka x509.PublicKeyAlgorithm, sa x509.SignatureAlgorithm) ([]byte, error) {
+func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, ips []net.IP, uris []*url.URL, pka x509.PublicKeyAlgorithm, sa x509.SignatureAlgorithm) ([]byte, error) {
 	// Backdate start time by one hour as the current system clock may be ahead of other running systems.
 	start := uint64(time.Now().Unix())
 	end := start + config.ValidityPeriod
 	start -= 3600
-	var country, locality, province, org, orgUnit []string
+	var country, locality, province, org, orgUnit, dnsNames []string
 	if config.Country != "" {
 		country = []string{config.Country}
 	}
@@ -38,6 +39,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	}
 	if config.OrganizationalUnit != "" {
 		orgUnit = []string{config.OrganizationalUnit}
+	}
+	if hostname != "" {
+		dnsNames = []string{hostname}
 	}
 
 	subj := pkix.Name{
@@ -56,8 +60,9 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 		SignatureAlgorithm:    sa,
 		NotBefore:             time.Unix(int64(start), 0),
 		NotAfter:              time.Unix(int64(end), 0),
-		DNSNames:              []string{hostname},
+		DNSNames:              dnsNames,
 		IPAddresses:           ips,
+		URIs:                  uris,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,

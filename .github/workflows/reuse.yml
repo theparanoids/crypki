@@ -77,7 +77,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Run Trivy vulnerability scanner in repo mode
         if: ${{inputs.tag == 'release'}}
-        uses: aquasecurity/trivy-action@b43daad0c3c96202fc5800b511dfae8e6ecce864
+        uses: aquasecurity/trivy-action@0cd397afbfae6b60e8061fda662f3511aa5d054e
         with:
           scan-type: 'fs'
           ignore-unfixed: true

@@ -34,6 +34,12 @@ func TestDecodeRequest(t *testing.T) {
 			eku:         nil,
 			expectError: false,
 		},
+		"good-req-extra-extensions": {
+			csrFile:     "testdata/csr-timestamping.pem",
+			expiryTime:  3600,
+			eku:         nil,
+			expectError: false,
+		},
 		"bad-req-bad-csr": {
 			csrFile:     "testdata/csr-bad.pem",
 			expiryTime:  3600,
@@ -112,6 +118,8 @@ func TestDecodeRequest(t *testing.T) {
 				URIs:                  csr.URIs,
 				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 				ExtKeyUsage:           x509ExtKeyUsages,
+				Extensions:            csr.Extensions,
+				ExtraExtensions:       csr.ExtraExtensions,
 				BasicConstraintsValid: true,
 			}
 
@@ -125,7 +133,6 @@ func TestDecodeRequest(t *testing.T) {
 				t.Errorf("validity mismatch: got: %v, want: %v", got.NotAfter.Sub(got.NotBefore).Seconds(), tt.expiryTime+3600)
 				return
 			}
-
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
 				return

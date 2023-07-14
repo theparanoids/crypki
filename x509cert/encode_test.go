@@ -3,8 +3,12 @@
 package x509cert
 
 import (
+	"bytes"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -60,7 +64,9 @@ func TestDecodeRequest(t *testing.T) {
 		},
 	}
 	for k, tt := range testcases {
-		tt := tt // capture range variable - see https://blog.golang.org/subtests
+		// capture range variable - see https://blog.golang.org/subtests
+		k := k
+		tt := tt
 		t.Run(k, func(t *testing.T) {
 			t.Parallel()
 			pemData, err := os.ReadFile(tt.csrFile)
@@ -137,7 +143,31 @@ func TestDecodeRequest(t *testing.T) {
 				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
 				return
 			}
-
+			// custom check for the CSR Timestamping Extension
+			if k == "good-req-extra-extensions" {
+				timestampExtension, err := asn1.Marshal([]asn1.ObjectIdentifier{{1, 3, 6, 1, 5, 5, 7, 3, 8}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantExtension := pkix.Extension{
+					Id:       asn1.ObjectIdentifier{2, 5, 29, 37},
+					Critical: true,
+					Value:    timestampExtension,
+				}
+				extensionFound := false
+				for _, ext := range got.Extensions {
+					if ext.Id.Equal(wantExtension.Id) &&
+						ext.Critical == wantExtension.Critical &&
+						bytes.Equal(ext.Value, wantExtension.Value) {
+						extensionFound = true
+						log.Printf("DMDEBUG found %#v", ext)
+						break
+					}
+				}
+				if !extensionFound {
+					t.Errorf("timestamping Extension expected but not found in the decoded CSR")
+				}
+			}
 		})
 	}
 }

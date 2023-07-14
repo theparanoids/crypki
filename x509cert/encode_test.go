@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -38,6 +37,14 @@ func TestDecodeRequest(t *testing.T) {
 			eku:         nil,
 			expectError: false,
 		},
+		// the CSR in 'csr-eku.pem' is generated with https://github.com/dmitris/gencert/tree/csr-eku code
+		"good-req-nonempty-eku": {
+			csrFile:     "testdata/csr-eku.pem",
+			expiryTime:  3600,
+			eku:         nil,
+			expectError: false,
+		},
+
 		"good-req-extra-extensions": {
 			csrFile:     "testdata/csr-timestamping.pem",
 			expiryTime:  3600,
@@ -144,7 +151,7 @@ func TestDecodeRequest(t *testing.T) {
 				return
 			}
 			// custom check for the CSR Timestamping Extension
-			if k == "good-req-extra-extensions" {
+			if k == "good-req-extra-extensions" || k == "good-req-nonempty-eku" {
 				timestampExtension, err := asn1.Marshal([]asn1.ObjectIdentifier{{1, 3, 6, 1, 5, 5, 7, 3, 8}})
 				if err != nil {
 					t.Fatal(err)
@@ -160,7 +167,6 @@ func TestDecodeRequest(t *testing.T) {
 						ext.Critical == wantExtension.Critical &&
 						bytes.Equal(ext.Value, wantExtension.Value) {
 						extensionFound = true
-						log.Printf("DMDEBUG found %#v", ext)
 						break
 					}
 				}

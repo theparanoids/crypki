@@ -5,6 +5,8 @@ package x509cert
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -34,6 +36,13 @@ func TestDecodeRequest(t *testing.T) {
 			eku:         nil,
 			expectError: false,
 		},
+		// the CSR in 'csr-eku.pem' is generated with https://github.com/dmitris/gencert/tree/csr-eku code
+		"good-req-nonempty-eku": {
+			csrFile:     "testdata/csr-eku.pem",
+			expiryTime:  3600,
+			eku:         nil,
+			expectError: false,
+		},
 		"bad-req-bad-csr": {
 			csrFile:     "testdata/csr-bad.pem",
 			expiryTime:  3600,
@@ -54,6 +63,7 @@ func TestDecodeRequest(t *testing.T) {
 		},
 	}
 	for k, tt := range testcases {
+		k := k
 		tt := tt // capture range variable - see https://blog.golang.org/subtests
 		t.Run(k, func(t *testing.T) {
 			t.Parallel()
@@ -127,10 +137,38 @@ func TestDecodeRequest(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, want) {
+				// figure out which exactly field differs
+				typeOfCert := reflect.TypeOf(*got)
+				valueOfCert1 := reflect.ValueOf(*got)
+				valueOfCert2 := reflect.ValueOf(*want)
+
+				for i := 0; i < typeOfCert.NumField(); i++ {
+					field := typeOfCert.Field(i)
+					value1 := valueOfCert1.Field(i)
+					value2 := valueOfCert2.Field(i)
+
+					if !reflect.DeepEqual(value1.Interface(), value2.Interface()) {
+						fmt.Printf("Field '%s' differs. Value1: %v, Value2: %v\n", field.Name, value1.Interface(), value2.Interface())
+					}
+				}
+				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
 				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
 				return
 			}
-
+			// for the nonempty-EKU test, ensure the EKU is correct
+			if k == "good-req-nonempty-eku" {
+				timestampingEKUFound := false
+				for i, eku := range got.ExtKeyUsage {
+					log.Printf("[INFO] %s, EKU #%d: %#v", k, i, eku)
+					if eku == x509.ExtKeyUsageTimeStamping {
+						timestampingEKUFound = true
+						break
+					}
+				}
+				if !timestampingEKUFound {
+					t.Errorf("%s: ExtKeyUsageTimeStamping (%#v) not found", k, x509.ExtKeyUsageTimeStamping)
+				}
+			}
 		})
 	}
 }

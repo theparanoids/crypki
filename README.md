@@ -30,7 +30,7 @@ Prerequisites:
 Run:
 
 ```sh
-go get github.com/theparanoids/crypki
+go install github.com/theparanoids/crypki/cmd/crypki@latest
 ```
 
 ## Usage 

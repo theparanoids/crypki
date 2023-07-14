@@ -34,6 +34,13 @@ func TestDecodeRequest(t *testing.T) {
 			eku:         nil,
 			expectError: false,
 		},
+		// the CSR in 'csr-eku.pem' is generated with https://github.com/dmitris/gencert/tree/csr-eku code
+		"good-req-nonempty-eku": {
+			csrFile:     "testdata/csr-eku.pem",
+			expiryTime:  3600,
+			eku:         nil,
+			expectError: false,
+		},
 		"bad-req-bad-csr": {
 			csrFile:     "testdata/csr-bad.pem",
 			expiryTime:  3600,
@@ -54,6 +61,7 @@ func TestDecodeRequest(t *testing.T) {
 		},
 	}
 	for k, tt := range testcases {
+		k := k
 		tt := tt // capture range variable - see https://blog.golang.org/subtests
 		t.Run(k, func(t *testing.T) {
 			t.Parallel()
@@ -112,6 +120,7 @@ func TestDecodeRequest(t *testing.T) {
 				URIs:                  csr.URIs,
 				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 				ExtKeyUsage:           x509ExtKeyUsages,
+				Extensions: csr.Extensions,
 				BasicConstraintsValid: true,
 			}
 
@@ -130,7 +139,6 @@ func TestDecodeRequest(t *testing.T) {
 				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
 				return
 			}
-
 		})
 	}
 }

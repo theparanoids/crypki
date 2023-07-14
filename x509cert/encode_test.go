@@ -36,7 +36,7 @@ func TestDecodeRequest(t *testing.T) {
 			eku:         nil,
 			expectError: false,
 		},
-		"good-req-extra-extension": {
+		"good-req-extra-extensions": {
 			csrFile:     "testdata/csr-timestamping.pem",
 			expiryTime:  3600,
 			eku:         nil,
@@ -120,6 +120,7 @@ func TestDecodeRequest(t *testing.T) {
 				URIs:                  csr.URIs,
 				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 				ExtKeyUsage:           x509ExtKeyUsages,
+				Extensions:            csr.Extensions,
 				ExtraExtensions:       csr.ExtraExtensions,
 				BasicConstraintsValid: true,
 			}
@@ -134,7 +135,6 @@ func TestDecodeRequest(t *testing.T) {
 				t.Errorf("validity mismatch: got: %v, want: %v", got.NotAfter.Sub(got.NotBefore).Seconds(), tt.expiryTime+3600)
 				return
 			}
-
 			// PublicKey is an opaque pointer, hard to meaningfully compare
 			want.PublicKey = got.PublicKey
 			if !reflect.DeepEqual(got, want) {

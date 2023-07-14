@@ -51,6 +51,7 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 		URIs:                  csr.URIs,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           x509ExtKeyUsage,
+		Extensions:            csr.Extensions,
 		ExtraExtensions:       x509ExtraExtensions,
 		BasicConstraintsValid: true,
 	}, nil

@@ -5,6 +5,8 @@ package x509cert
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -30,6 +32,12 @@ func TestDecodeRequest(t *testing.T) {
 		},
 		"good-req-empty-eku": {
 			csrFile:     "testdata/csr.pem",
+			expiryTime:  3600,
+			eku:         nil,
+			expectError: false,
+		},
+		"good-req-extra-extension": {
+			csrFile:     "testdata/csr-timestamping.pem",
 			expiryTime:  3600,
 			eku:         nil,
 			expectError: false,
@@ -112,11 +120,12 @@ func TestDecodeRequest(t *testing.T) {
 				URIs:                  csr.URIs,
 				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 				ExtKeyUsage:           x509ExtKeyUsages,
+				ExtraExtensions:       csr.ExtraExtensions,
 				BasicConstraintsValid: true,
 			}
 
 			// cannot validate ValidBefore, ValidAfter and SerialNumber fields because
-			// those value created by server
+			// those values are created by server
 			want.NotAfter = got.NotAfter
 			want.NotBefore = got.NotBefore
 			want.SerialNumber = got.SerialNumber
@@ -126,9 +135,25 @@ func TestDecodeRequest(t *testing.T) {
 				return
 			}
 
+			// PublicKey is an opaque pointer, hard to meaningfully compare
+			want.PublicKey = got.PublicKey
 			if !reflect.DeepEqual(got, want) {
+				log.Printf("ExtraExtensions in got: %#v, in want: %#v", got.ExtraExtensions, want.Extensions)
+				// figure out exactly which field causes the diff
+				typeOfCert := reflect.TypeOf(*got)
+				valueOfGot := reflect.ValueOf(*got)
+				valueOfWant := reflect.ValueOf(*want)
+
+				for i := 0; i < typeOfCert.NumField(); i++ {
+					field := typeOfCert.Field(i)
+					value1 := valueOfGot.Field(i)
+					value2 := valueOfWant.Field(i)
+
+					if !reflect.DeepEqual(value1.Interface(), value2.Interface()) {
+						fmt.Printf("Field '%s' differs. Value1: %v, Value2: %v\n", field.Name, value1.Interface(), value2.Interface())
+					}
+				}
 				t.Errorf("Cert got: \n%+v\n want: \n%+v\n", got, want)
-				return
 			}
 
 		})

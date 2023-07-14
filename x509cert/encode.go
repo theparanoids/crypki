@@ -5,6 +5,8 @@ package x509cert
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -23,6 +25,11 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 	x509ExtKeyUsage, err := getX509ExtKeyUsage(req.GetExtKeyUsage())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ExtKeyUsage: %v", err)
+	}
+
+	x509ExtraExtensions, err := getX509ExtraExtensions(req.GetExtraExtensions())
+	if err != nil {
+		return nil, fmt.Errorf("invalid ExtraExtensions: %v", err)
 	}
 	// Backdate start time by one hour as the current system clock may be ahead of other running systems.
 	start := uint64(time.Now().Unix())
@@ -44,6 +51,7 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 		URIs:                  csr.URIs,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           x509ExtKeyUsage,
+		ExtraExtensions:       x509ExtraExtensions,
 		BasicConstraintsValid: true,
 	}, nil
 }
@@ -62,6 +70,41 @@ func getX509ExtKeyUsage(x509ExtKeyUsages []int32) ([]x509.ExtKeyUsage, error) {
 		x509ExtKeyUsagesRet = append(x509ExtKeyUsagesRet, x509.ExtKeyUsage(x509ExtKeyUsage))
 	}
 	return x509ExtKeyUsagesRet, nil
+}
+
+// convertOID converts a []int32 into asn1.ObjectIdentifier (via []int cast)
+func convertOID(inp []int32) (asn1.ObjectIdentifier, error) {
+	if len(inp) == 0 {
+		return asn1.ObjectIdentifier{}, nil
+	}
+	var tmp []int
+	for _, id := range inp {
+		tmp = append(tmp, int(id)) // cast i32 to int
+	}
+	return asn1.ObjectIdentifier(tmp), nil
+}
+
+// getX509ExtraExtensions converts []*PKIXExtension into []pkix.Extension
+func getX509ExtraExtensions(extraExts []*proto.PKIXExtension) ([]pkix.Extension, error) {
+	if len(extraExts) == 0 {
+		return nil, nil
+	}
+	var extraExtsRet []pkix.Extension
+
+	for _, ext := range extraExts {
+		oid, err := convertOID(ext.Id)
+		if err != nil {
+			return nil, fmt.Errorf("getX509ExtraExtensions: %v", err)
+		}
+
+		pkixExt := pkix.Extension{
+			Id:       oid,
+			Critical: ext.Critical,
+			Value:    ext.Value,
+		}
+		extraExtsRet = append(extraExtsRet, pkixExt)
+	}
+	return extraExtsRet, nil
 }
 
 // decodeCSR decodes CSR and returns x509 CertificateRequest struct.

@@ -68,6 +68,17 @@ message SSHKey {
     string key = 1;
 }
 
+// PKIXExtension wraps https://pkg.go.dev/crypto/x509/pkix#Extension.
+// See also https://rfc-editor.org/rfc/rfc5280.html#section-4.2.
+message PKIXExtension {
+  // Id - https://pkg.go.dev/encoding/asn1#ObjectIdentifier
+  repeated int32 id = 1;
+  // Critical indicates whether the Extension is critical.
+  bool critical = 2;
+  // Value
+  bytes value = 3;
+}
+
 // X509CertificateSigningRequest specifies the info used for signing an X509 certificate.
 message X509CertificateSigningRequest {
     // Identifies the signing key in the HSM used for signing the certificate.
@@ -77,8 +88,10 @@ message X509CertificateSigningRequest {
     // Validity period of the certificate in seconds.
     uint64 validity = 3;
     // X509 certificate ExtKeyUsage.
-    // https://godoc.org/crypto/x509#ExtKeyUsage
+    // https://pkg.go.dev/crypto/x509#ExtKeyUsage
     repeated int32 ext_key_usage = 4;
+    // X509 certificate ExtraExtensions - https://pkg.go.dev/crypto/x509#CertificateRequest.ExtraExtensions
+    repeated PKIXExtension extra_extensions = 5;
     // Priority of the request as specified by client. If the server is under heavy load, it may
     // decide to process higher priority requests before the lower priority requests.
     // This feature is currently EXPERIMENTAL where priority value is only logged and not used for anything else. 

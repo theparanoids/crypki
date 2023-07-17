@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.18.x', '1.19', '1.20' ]
+        go: [ '1.18.x', '1.19.x', '1.20.6' ]
     name: Go ${{ matrix.go }} build
     steps:
       - name: checkout

@@ -62,7 +62,7 @@
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         }
     ],
-    "ModulePath": "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",
+    "ModulePath": "/usr/lib/softhsm/libsofthsm2.so",
     "TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
     "TLSClientAuthMode": 4,
     "TLSServerCertPath": "/opt/crypki/tls-crt/server.crt",

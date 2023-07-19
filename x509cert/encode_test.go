@@ -4,6 +4,8 @@ package x509cert
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"os"
 	"reflect"
@@ -14,18 +16,114 @@ import (
 
 func TestDecodeRequest(t *testing.T) {
 	t.Parallel()
-	goodEKU := []int32{int32(x509.ExtKeyUsageClientAuth), int32(x509.ExtKeyUsageServerAuth)}
+	goodEKU := []int32{int32(x509.ExtKeyUsageServerAuth), int32(x509.ExtKeyUsageClientAuth)}
+	goodEKUCrit := []int32{int32(x509.ExtKeyUsageTimeStamping)}
+	goodEKUCritNonCrit := []int32{int32(x509.ExtKeyUsageServerAuth), int32(x509.ExtKeyUsageTimeStamping), int32(x509.ExtKeyUsageClientAuth)}
+	goodEKUAll := []int32{
+		int32(x509.ExtKeyUsageAny),
+		int32(x509.ExtKeyUsageServerAuth),
+		int32(x509.ExtKeyUsageClientAuth),
+		int32(x509.ExtKeyUsageCodeSigning),
+		int32(x509.ExtKeyUsageEmailProtection),
+		int32(x509.ExtKeyUsageIPSECEndSystem),
+		int32(x509.ExtKeyUsageIPSECTunnel),
+		int32(x509.ExtKeyUsageIPSECUser),
+		int32(x509.ExtKeyUsageTimeStamping),
+		int32(x509.ExtKeyUsageOCSPSigning),
+		int32(x509.ExtKeyUsageMicrosoftServerGatedCrypto),
+		int32(x509.ExtKeyUsageNetscapeServerGatedCrypto),
+		int32(x509.ExtKeyUsageMicrosoftCommercialCodeSigning),
+		int32(x509.ExtKeyUsageMicrosoftKernelCodeSigning),
+	}
 	badEKU := []int32{int32(x509.ExtKeyUsageClientAuth), int32(x509.ExtKeyUsageServerAuth), int32(1000)}
+	eku, err := asn1.Marshal([]asn1.ObjectIdentifier{
+		{1, 3, 6, 1, 5, 5, 7, 3, 1}, // server auth
+		{1, 3, 6, 1, 5, 5, 7, 3, 2}, // client auth
+	},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ekuCrit, err := asn1.Marshal([]asn1.ObjectIdentifier{
+		{1, 3, 6, 1, 5, 5, 7, 3, 8}, // timestamping
+	},
+	)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ekuAllASN, err := asn1.Marshal([]asn1.ObjectIdentifier{
+		{2, 5, 29, 37, 0},
+		{1, 3, 6, 1, 5, 5, 7, 3, 1},
+		{1, 3, 6, 1, 5, 5, 7, 3, 2},
+		{1, 3, 6, 1, 5, 5, 7, 3, 3},
+		{1, 3, 6, 1, 5, 5, 7, 3, 4},
+		{1, 3, 6, 1, 5, 5, 7, 3, 5},
+		{1, 3, 6, 1, 5, 5, 7, 3, 6},
+		{1, 3, 6, 1, 5, 5, 7, 3, 7},
+		{1, 3, 6, 1, 5, 5, 7, 3, 9},
+		{1, 3, 6, 1, 4, 1, 311, 10, 3, 3},
+		{2, 16, 840, 1, 113730, 4, 1},
+		{1, 3, 6, 1, 4, 1, 311, 2, 1, 22},
+		{1, 3, 6, 1, 4, 1, 311, 61, 1, 1},
+	},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ext := pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 37},
+		Critical: false,
+		Value:    eku,
+	}
+	extCrit := pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 37},
+		Critical: true,
+		Value:    ekuCrit,
+	}
+	extAll := pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 37},
+		Critical: false,
+		Value:    ekuAllASN,
+	}
+	defaultEKU := []pkix.Extension{ext}
+	critEKU := []pkix.Extension{extCrit}
+	critNonCritEKU := []pkix.Extension{extCrit, ext}
+	ekuAll := []pkix.Extension{extCrit, extAll}
 	testcases := map[string]struct {
 		csrFile     string
 		expiryTime  uint64
 		eku         []int32
+		ext         []pkix.Extension
 		expectError bool
 	}{
 		"good-req": {
 			csrFile:     "testdata/csr.pem",
 			expiryTime:  3600,
 			eku:         goodEKU,
+			ext:         defaultEKU,
+			expectError: false,
+		},
+		"good-req-crit": {
+			csrFile:     "testdata/csr.pem",
+			expiryTime:  3600,
+			eku:         goodEKUCrit,
+			ext:         critEKU,
+			expectError: false,
+		},
+		"good-req-crit-noncrit": {
+			csrFile:     "testdata/csr.pem",
+			expiryTime:  3600,
+			eku:         goodEKUCritNonCrit,
+			ext:         critNonCritEKU,
+			expectError: false,
+		},
+		"good-req-eku-all": {
+			csrFile:     "testdata/csr.pem",
+			expiryTime:  3600,
+			eku:         goodEKUAll,
+			ext:         ekuAll,
 			expectError: false,
 		},
 		"good-req-empty-eku": {
@@ -94,12 +192,10 @@ func TestDecodeRequest(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			var x509ExtKeyUsages []x509.ExtKeyUsage
-			for _, eku := range tt.eku {
-				x509ExtKeyUsages = append(x509ExtKeyUsages, x509.ExtKeyUsage(eku))
-			}
+			var x509ExtKeyUsages []pkix.Extension
+			x509ExtKeyUsages = tt.ext
 			if len(x509ExtKeyUsages) == 0 {
-				x509ExtKeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+				x509ExtKeyUsages = defaultEKU
 			}
 			want := &x509.Certificate{
 				Subject:               csr.Subject,
@@ -111,7 +207,7 @@ func TestDecodeRequest(t *testing.T) {
 				EmailAddresses:        csr.EmailAddresses,
 				URIs:                  csr.URIs,
 				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-				ExtKeyUsage:           x509ExtKeyUsages,
+				ExtraExtensions:       x509ExtKeyUsages,
 				BasicConstraintsValid: true,
 			}
 

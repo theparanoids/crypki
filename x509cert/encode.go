@@ -163,14 +163,16 @@ func extKeyUsageToExtension(extKeyUsage []x509.ExtKeyUsage) ([]pkix.Extension, e
 
 // getX509ExtKeyUsage returns []pkix.Extension from []int32
 func getX509ExtKeyUsage(x509ExtKeyUsages []int32) ([]pkix.Extension, error) {
-
+	// value of last EKU x509.ExtKeyUsageMicrosoftKernelCodeSigning
+	// per https://go.dev/src/crypto/x509/x509.go?s=18153:18173#L634
+	const maxValidEKU = 13
 	if len(x509ExtKeyUsages) == 0 {
 		return extKeyUsageToExtension([]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth})
 	}
 	ekuRet := make([]x509.ExtKeyUsage, len(x509ExtKeyUsages))
 	for i, eku := range x509ExtKeyUsages {
 		// extKeyUsage valid values - https://golang.org/src/crypto/x509/x509.go?s=18153:18173#L621
-		if eku < 0 || eku > 13 {
+		if eku < 0 || eku > maxValidEKU {
 			return nil, fmt.Errorf("invalid x509 ExtKeyUsage value: %d, valid values are [0,1,...13]", eku)
 		}
 		ekuRet[i] = x509.ExtKeyUsage(eku)

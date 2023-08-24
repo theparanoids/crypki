@@ -43,13 +43,13 @@ jobs:
     steps:
       - name: Checkout release
         if: ${{ inputs.tag == 'release'}}
-        uses: actions/checkout@v3.5.3 # v3.5.3
+        uses: actions/checkout@v3.6.0 # v3.5.3
         with:
           fetch-depth: 0
 
       - name: Checkout image
         if: ${{ inputs.tag == 'image'}}
-        uses: actions/checkout@v3.5.3 # v3.5.3
+        uses: actions/checkout@v3.6.0 # v3.5.3
 
       - name: Unshallow
         if: ${{ inputs.tag == 'image'}}

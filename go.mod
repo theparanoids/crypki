@@ -6,7 +6,7 @@ require (
 	github.com/golang/glog v1.1.1 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.1
 	github.com/miekg/pkcs11 v1.1.1
 	golang.org/x/crypto v0.12.0
 	golang.org/x/tools v0.11.0 // indirect

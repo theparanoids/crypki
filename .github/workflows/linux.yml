@@ -29,7 +29,7 @@ jobs:
     name: Go ${{ matrix.go }} build
     steps:
       - name: checkout
-        uses: actions/checkout@v3.6.0
+        uses: actions/checkout@v4.0.0
 
       # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
       - uses: actions/cache@v3

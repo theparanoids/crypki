@@ -25,14 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.18.x', '1.19.x', '1.20.6' ]
+        go: [ '1.19.x', '1.20.x', '1.21.0' ]
     name: Go ${{ matrix.go }} build
     steps:
       - name: checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
-      - uses: actions/cache@v3
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           # In order:
           # * Module download cache
@@ -45,7 +45,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version: ${{ matrix.go }}
 
@@ -62,6 +62,6 @@ jobs:
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload coverage to Codecov  
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         with:
          file: ./coverage.txt

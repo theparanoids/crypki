@@ -27,6 +27,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: 1.20.6
-      - uses: actions/checkout@v3.6.0
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3.7.0
+        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3.7.0

@@ -6,6 +6,7 @@ gomod:
 env:
   - GO111MODULE=on
   - COSIGN_YES=true
+  - CGO_ENABLED=1 # required for miekg/pkcs11
 
 
 sboms:

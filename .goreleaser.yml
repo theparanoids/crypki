@@ -1,0 +1,52 @@
+project_name: crypki
+
+gomod:
+  proxy: true
+
+env:
+  - GO111MODULE=on
+  - COSIGN_YES=true
+
+
+sboms:
+- artifacts: binary
+
+builds:
+- main: ./cmd/crypki
+  goos:
+    - linux
+
+kos:
+  - repository: ghcr.io/theparanoids/crypki
+    tags:
+    - '{{.Version}}'
+    - latest
+    bare: true
+    preserve_import_paths: false
+    platforms:
+    - linux/amd64
+    - linux/arm64
+
+signs:
+- cmd: cosign
+  signature: "${artifact}.sig"
+  certificate: "${artifact}.pem"
+  args:
+    - sign-blob
+    - '--output-certificate=${certificate}'
+    - '--output-signature=${signature}'
+    - '${artifact}'
+  artifacts: all
+  output: true
+
+docker_signs:
+- cmd: cosign
+  args:
+  - 'sign'
+  - '${artifact}'
+  artifacts: manifests
+  output: true
+
+release:
+  footer: |
+    ### Thanks for all contributors!

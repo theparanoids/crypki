@@ -12,51 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: create release and upload binary
-
+name: Create Release and Upload Binaries
+# run only on tags
 on:
   push:
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
+  packages: write # needed to upload artifacts
+env:
+  GO_VERSION: 1.21.3
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # this is important, otherwise it won't checkout the full tree (i.e. no previous tags)
 
-    - name: install go
-      uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
-      with:
-        go-version: 1.20.6
+      - uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: get version
-      id: v
-      run: echo ::set-output name=tag::$( awk -F '/' '{print $NF}' <<< "${GITHUB_REF}" )
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-    - name: build
-      run: |
-       go build ./cmd/crypki
-       tar -czvf crypki-${{ steps.v.outputs.tag }}-linux.tar.gz --transform 's,^,crypki-${{ steps.v.outputs.tag }}-${OS}/,' crypki
-
-    - name: create release
-      id: create-release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.v.outputs.tag }}
-        release_name: ${{ steps.v.outputs.tag }}
-        draft: false
-        prerelease: false
-
-    - name: upload linux binary
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create-release.outputs.upload_url }}
-        asset_path: crypki-${{ steps.v.outputs.tag }}-linux.tar.gz
-        asset_name: crypki-${{ steps.v.outputs.tag }}-linux.tar.gz
-        asset_content_type: application/gzip
+      - uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
+        with:
+          cosign-release: 'v2.2.0' # optional
+      - uses: anchore/sbom-action/download-syft@78fc58e266e87a38d4194b2137a3d4e9bcaf7ca1 # v0.14.3
+      - uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 # v5.0.0
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

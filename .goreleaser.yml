@@ -18,7 +18,6 @@ builds:
     - linux
   goarch:
       - amd64
-      - arm64
 
 kos:
   - repository: ghcr.io/theparanoids/crypki

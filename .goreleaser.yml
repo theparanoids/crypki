@@ -21,6 +21,7 @@ builds:
 
 kos:
   - repository: ghcr.io/theparanoids/crypki
+    base_image: cgr.dev/chainguard/busybox
     tags:
     - '{{.Version}}'
     - latest

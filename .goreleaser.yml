@@ -43,7 +43,7 @@ docker_signs:
   args:
   - 'sign'
   - '${artifact}'
-  artifacts: manifests
+  artifacts: all
   output: true
 
 release:

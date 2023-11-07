@@ -42,7 +42,7 @@ docker_signs:
 - cmd: cosign
   args:
   - 'sign'
-  - '${artifact}'
+  - '${artifact}@${digest}'
   artifacts: all
   output: true
 

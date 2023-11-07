@@ -17,18 +17,14 @@ builds:
   goos:
     - linux
   goarch:
-      - amd64
+    - amd64
 
-kos:
-  - repository: ghcr.io/theparanoids/crypki
-    base_image: cgr.dev/chainguard/busybox
-    tags:
-    - '{{.Version}}'
-    - latest
-    bare: true
-    preserve_import_paths: false
-    platforms:
-    - linux/amd64
+dockers:
+  - image_templates:
+      - "ghcr.io/theparanoids/{{ .ProjectName }}:latest"
+      - "ghcr.io/theparanoids/{{ .ProjectName }}:{{ .Version }}"
+      - "ghcr.io/theparanoids/{{ .ProjectName }}:{{ .ShortCommit }}"
+    dockerfile: Dockerfile
 
 signs:
 - cmd: cosign

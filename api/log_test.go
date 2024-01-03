@@ -65,8 +65,6 @@ func TestLogWithCheckingPanic(t *testing.T) {
 		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := ""
 			f := func(statusCode int, err error) {
 				got = fmt.Sprintf(logStr, statusCode, err)

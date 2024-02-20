@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.20.6
+FROM golang:1.22.0
 ENV CRYPKI_DIR /go/src/github.com/theparanoids/crypki
 COPY . ${CRYPKI_DIR}
 WORKDIR ${CRYPKI_DIR}

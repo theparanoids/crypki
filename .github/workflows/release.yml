@@ -48,13 +48,13 @@ jobs:
       - uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
 
       - name: Create SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@24b0d5238516480139aa8bc6f92eeb7b54a9eb0a # v0.15.5
         with:
           format: spdx-json
           output-file: "${{ github.event.repository.name }}-sbom.spdx.json"
 
       - name: Scan SBOM
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@ecfd0e98932e57ea8f68f29c4f418fc41a8194db
         with:
           sbom: "${{ github.event.repository.name }}-sbom.spdx.json"
 

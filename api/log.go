@@ -17,6 +17,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 )
 
 type logFunc func(statusCode int, err error)
@@ -27,10 +28,17 @@ type logFunc func(statusCode int, err error)
 // then panics again if there was indeed a panic to
 // make UnaryInterceptor in server/server.go return "internal server error" to the client.
 func logWithCheckingPanic(f logFunc, statusCode *int, err *error) {
-	if r := recover(); r != nil {
-		*statusCode = http.StatusInternalServerError
-		*err = fmt.Errorf("panic: %v", r)
-		defer panic(r)
+	r := recover()
+	if r != nil {
+		switch r.(type) {
+		// Starting Go 1.21 panic with nil results in run-time panic of type *runtime.PanicNilError
+		// Ref - https://tip.golang.org/doc/go1.21 and https://github.com/golang/go/issues/25448
+		case *runtime.PanicNilError:
+		default:
+			*statusCode = http.StatusInternalServerError
+			*err = fmt.Errorf("panic: %v", r)
+			defer panic(r)
+		}
 	}
 	f(*statusCode, *err)
 }

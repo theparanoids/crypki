@@ -24,7 +24,7 @@ permissions:
   id-token: write # needed for keyless signing
   packages: write # needed to upload artifacts
 env:
-  GO_VERSION: 1.22.0
+  GO_VERSION: 1.22.5
 
 jobs:
   release:

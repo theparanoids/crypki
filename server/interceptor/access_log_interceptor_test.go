@@ -198,7 +198,7 @@ func TestAccessLogInterceptor(t *testing.T) {
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
 				clientCertPem, clientPrivPem, err := genAndSignX509Cert(clientCName, ca, caPriv)
 				if err != nil {
-					t.Fatalf("failed to gerenate server cert, err: %v", err)
+					t.Fatalf("failed to generate server cert, err: %v", err)
 				}
 
 				clientCertificate, err := tls.X509KeyPair(clientCertPem, clientPrivPem)
@@ -213,8 +213,8 @@ func TestAccessLogInterceptor(t *testing.T) {
 					ServerName:   serverCName,
 				}
 
-				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-					return listener.Dial()
+				clientConn, _ := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+					return listener.DialContext(ctx)
 				}), grpc.WithTransportCredentials(credentials.NewTLS(clientTLConfig)))
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},
@@ -240,8 +240,8 @@ func TestAccessLogInterceptor(t *testing.T) {
 				return grpcServer, closer
 			},
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
-				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-					return listener.Dial()
+				clientConn, _ := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+					return listener.DialContext(ctx)
 				}), grpc.WithTransportCredentials(insecure.NewCredentials()))
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},
@@ -285,8 +285,9 @@ func TestAccessLogInterceptor(t *testing.T) {
 			},
 			setupClient: func(ctx context.Context, server *grpc.Server, listener *bufconn.Listener) pb_testproto.TestServiceClient {
 				clientTLConfig := &tls.Config{MinVersion: tls.VersionTLS13, ServerName: serverCName, RootCAs: caCertPool}
-				clientConn, _ := grpc.DialContext(ctx, "", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-					return listener.Dial()
+
+				clientConn, _ := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+					return listener.DialContext(ctx)
 				}), grpc.WithTransportCredentials(credentials.NewTLS(clientTLConfig)))
 				return pb_testproto.NewTestServiceClient(clientConn)
 			},

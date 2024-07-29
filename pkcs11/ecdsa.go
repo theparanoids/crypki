@@ -41,6 +41,7 @@ var oidDERToCurve = map[string]elliptic.Curve{
 	"06052B81040023":       elliptic.P521(),
 }
 
+//nolint:staticcheck // skipping staticcheck for this function until we move to using crypto/ecdh
 func getPublic(point []byte, curve elliptic.Curve) (pub crypto.PublicKey, err error) {
 	var ecdsaPub ecdsa.PublicKey
 

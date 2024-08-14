@@ -274,7 +274,7 @@ func (s *signerBlob) signData(ctx context.Context, signer signerWithSignAlgorith
 		pool.put(signer)
 	}()
 	if s.digest == nil {
-		e = fmt.Errorf("signBlob: cannot sign empty digest")
+		e = errors.New("signBlob: cannot sign empty digest")
 		return
 	}
 

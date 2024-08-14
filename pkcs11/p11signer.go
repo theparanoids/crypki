@@ -7,7 +7,6 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"io"
 
 	p11 "github.com/miekg/pkcs11"
@@ -34,7 +33,7 @@ func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType x509.Pu
 		err2 := context.CloseSession(session)
 		// append CloseSession error to getPrivateKey error
 		if err2 != nil {
-			return nil, fmt.Errorf(err.Error() + ", CloseSession: " + err2.Error())
+			return nil, errors.New(err.Error() + ", CloseSession: " + err2.Error())
 		}
 		return nil, err
 	}
@@ -45,7 +44,7 @@ func makeSigner(context PKCS11Ctx, slot uint, tokenLabel string, keyType x509.Pu
 		err2 := context.CloseSession(session)
 		// append CloseSession error to getPublicKey error
 		if err2 != nil {
-			return nil, fmt.Errorf(err.Error() + ", CloseSession: " + err2.Error())
+			return nil, errors.New(err.Error() + ", CloseSession: " + err2.Error())
 		}
 		return nil, err
 	}

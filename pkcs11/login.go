@@ -66,7 +66,7 @@ func openLoginSession(context PKCS11Ctx, slot uint, userPin string) (p11.Session
 		err2 := context.CloseSession(session)
 		// append CloseSession error to Login error
 		if err2 != nil {
-			return 0, fmt.Errorf(err.Error() + ", CloseSession: " + err2.Error())
+			return 0, errors.New(err.Error() + ", CloseSession: " + err2.Error())
 		}
 		return 0, err
 	}

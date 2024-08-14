@@ -38,7 +38,7 @@ func initPKCS11Context(modulePath string) (*p11.Ctx, error) {
 	context := p11.New(modulePath)
 
 	if context == nil {
-		return nil, fmt.Errorf("unable to load PKCS#11 module:" + modulePath)
+		return nil, errors.New("unable to load PKCS#11 module:" + modulePath)
 	}
 
 	err := context.Initialize()

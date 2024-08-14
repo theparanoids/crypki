@@ -53,11 +53,11 @@ func getPublic(point []byte, curve elliptic.Curve) (pub crypto.PublicKey, err er
 	}
 	ecdsaPub.X, ecdsaPub.Y = elliptic.Unmarshal(ecdsaPub.Curve, point[:pointLength])
 	if ecdsaPub.X == nil {
-		err = fmt.Errorf("failed to decode CKA_EC_POINT")
+		err = errors.New("failed to decode CKA_EC_POINT")
 		return
 	}
 	if !ecdsaPub.Curve.IsOnCurve(ecdsaPub.X, ecdsaPub.Y) {
-		err = fmt.Errorf("public key is not on curve")
+		err = errors.New("public key is not on curve")
 		return
 	}
 

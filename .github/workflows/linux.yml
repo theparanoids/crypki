@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
-      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v3.3.1
+      - uses: actions/cache@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v3.3.1
         with:
           # In order:
           # * Module download cache

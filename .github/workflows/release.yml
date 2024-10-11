@@ -54,7 +54,7 @@ jobs:
           output-file: "${{ github.event.repository.name }}-sbom.spdx.json"
 
       - name: Scan SBOM
-        uses: anchore/scan-action@64a33b277ea7a1215a3c142735a1091341939ff5
+        uses: anchore/scan-action@4e08a16a68fb1b35d2fca00f0607db0b5b5120a7
         with:
           sbom: "${{ github.event.repository.name }}-sbom.spdx.json"
 

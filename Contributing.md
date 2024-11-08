@@ -25,6 +25,14 @@ Please follow [best practices](https://github.com/trein/dev-best-practices/wiki/
 
 When your code is ready to be submitted, you can [submit a pull request](https://help.github.com/articles/creating-a-pull-request/) to begin the code review process.
 
+#### Add license 
+
+Please use license headers in all code files. You can apply the `./license_header` template by utilizing [addlicense](https://github.com/google/addlicense).
+
+```sh
+addlicense -f ./license_header ./
+```
+
 #### Generate Go Code
 
 If your work requires re-generating the code (e.g. mock), please run `./gen.sh` at the project root.

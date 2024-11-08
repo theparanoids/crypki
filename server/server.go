@@ -22,7 +22,7 @@ import (
 
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/theparanoids/crypki/utils"
+	"github.com/theparanoids/crypki/certreload"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -366,8 +366,8 @@ func tlsServerConfiguration(caCertPath string, certPath, keyPath string, clientA
 }
 
 func tlsClientConfiguration(caCertPath, certPath, keyPath string) (*tls.Config, error) {
-	reloader, err := utils.NewCertReloader(
-		utils.CertReloadConfig{
+	reloader, err := certreload.NewCertReloader(
+		certreload.CertReloadConfig{
 			CertKeyGetter: func() ([]byte, []byte, error) {
 				certPEMBlock, err := os.ReadFile(certPath)
 				if err != nil {

@@ -227,7 +227,6 @@ func Main() {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 		interceptor.AccessLogInterceptor(),
 	}
-
 	if cfg.ShutdownOnInternalFailure {
 		criteria := cfg.ShutdownOnInternalFailureCriteria
 		shutdownCounterConfig := interceptor.ShutdownCounterConfig{

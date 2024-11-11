@@ -56,7 +56,7 @@ func TestParse(t *testing.T) {
 			CACertPath            string
 		}{
 			Enabled:               true,
-			OTELCollectorEndpoint: "http://loetalhost:4317",
+			OTELCollectorEndpoint: "http://localhost:4317",
 			ClientCertPath:        "/path/to/client/cert",
 			ClientKeyPath:         "/path/to/client/key",
 			CACertPath:            "/path/to/ca/cert",

@@ -142,7 +142,7 @@ func Main() {
 		if err != nil {
 			log.Fatalf("Error merging resources: %v", err)
 		}
-		otelTLSConf, err := tlsClientConfiguration(cfg.OTel.OTelCACertPath, cfg.OTel.ClientCertPath,
+		otelTLSConf, err := tlsClientConfiguration(cfg.OTel.CACertPath, cfg.OTel.ClientCertPath,
 			cfg.OTel.ClientKeyPath)
 		if err != nil {
 			log.Fatalf("Error loading otel TLS config: %v", err)

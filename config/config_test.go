@@ -53,13 +53,13 @@ func TestParse(t *testing.T) {
 			OTELCollectorEndpoint string
 			ClientCertPath        string
 			ClientKeyPath         string
-			OTelCACertPath        string
+			CACertPath            string
 		}{
 			Enabled:               true,
-			OTELCollectorEndpoint: "http://localhost:4317",
+			OTELCollectorEndpoint: "http://loetalhost:4317",
 			ClientCertPath:        "/path/to/client/cert",
 			ClientKeyPath:         "/path/to/client/key",
-			OTelCACertPath:        "/path/to/ca/cert",
+			CACertPath:            "/path/to/ca/cert",
 		},
 	}
 	testcases := map[string]struct {

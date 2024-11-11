@@ -159,8 +159,8 @@ type Config struct {
 		ClientCertPath string
 		// ClientKeyPath specifies path to client key used to obtain mTLS with OTel collector.
 		ClientKeyPath string
-		// OTelCACertPath specifies path to root CA cert, used to verify OTel collector cert.
-		OTelCACertPath string
+		// CACertPath specifies path to root CA cert, used to verify OTel collector cert.
+		CACertPath string
 	}
 }
 

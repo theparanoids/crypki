@@ -28,6 +28,6 @@
     "OTELCollectorEndpoint": "http://localhost:4317",
     "ClientCertPath": "/path/to/client/cert",
     "ClientKeyPath": "/path/to/client/key",
-    "OTelCACertPath": "/path/to/ca/cert"
+    "CACertPath": "/path/to/ca/cert"
   }
 }

@@ -48,6 +48,19 @@ func TestParse(t *testing.T) {
 		ReadTimeout:          10,
 		WriteTimeout:         10,
 		PKCS11RequestTimeout: 15,
+		OTel: struct {
+			Enabled               bool
+			OTELCollectorEndpoint string
+			ClientCertPath        string
+			ClientKeyPath         string
+			CACertPath            string
+		}{
+			Enabled:               true,
+			OTELCollectorEndpoint: "http://localhost:4317",
+			ClientCertPath:        "/path/to/client/cert",
+			ClientKeyPath:         "/path/to/client/key",
+			CACertPath:            "/path/to/ca/cert",
+		},
 	}
 	testcases := map[string]struct {
 		filePath    string

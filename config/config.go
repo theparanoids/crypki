@@ -148,6 +148,20 @@ type Config struct {
 	// PKCS11RequestTimeout indicates the max time an HSM can take to process a signing request for a
 	// certificate in seconds.
 	PKCS11RequestTimeout uint `json:"requestTimeout"`
+
+	// OTel defines the configuration for oTel instrumentation.
+	OTel struct {
+		// Enabled indicates whether to enable OTel metrics.
+		Enabled bool
+		// OTELCollectorEndpoint specifies the endpoint of OTel collector.
+		OTELCollectorEndpoint string
+		// ClientCertPath specifies path to client cert used to obtain mTLS with OTel collector.
+		ClientCertPath string
+		// ClientKeyPath specifies path to client key used to obtain mTLS with OTel collector.
+		ClientKeyPath string
+		// CACertPath specifies path to root CA cert, used to verify OTel collector cert.
+		CACertPath string
+	}
 }
 
 // Parse loads configuration values from input file and returns config object and CA cert.

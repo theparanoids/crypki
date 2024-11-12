@@ -22,5 +22,12 @@
   "IdleTimeout": 30,
   "ReadTimeout": 10,
   "WriteTimeout": 10,
-  "RequestTimeout": 15
+  "RequestTimeout": 15,
+  "OTel": {
+    "Enabled": true,
+    "OTELCollectorEndpoint": "http://localhost:4317",
+    "ClientCertPath": "/path/to/client/cert",
+    "ClientKeyPath": "/path/to/client/key",
+    "CACertPath": "/path/to/ca/cert"
+  }
 }

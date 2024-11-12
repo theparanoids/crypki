@@ -1,7 +1,7 @@
 // Copyright 2022 Yahoo Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 
-package utils
+package certreload
 
 //go:generate certstrap init --passphrase "" --common-name "ca" --years 80
 //go:generate certstrap request-cert --passphrase "" --common-name client

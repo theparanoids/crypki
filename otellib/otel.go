@@ -19,8 +19,7 @@ func InitOTelSDK(ctx context.Context, collectorEndpoint string, tlsConfig *tls.C
 	// Set up an OTel exporter for metrics.
 	var opts []otlpmetrichttp.Option
 	opts = append(opts, otlpmetrichttp.WithEndpoint(collectorEndpoint))
-	opts = append(opts, otlpmetrichttp.WithInsecure())
-	//opts = append(opts, otlpmetrichttp.WithTLSClientConfig(tlsConfig))
+	opts = append(opts, otlpmetrichttp.WithTLSClientConfig(tlsConfig))
 
 	metricExporter, err := otlpmetrichttp.New(ctx, opts...)
 	if err != nil {

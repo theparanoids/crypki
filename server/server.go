@@ -24,7 +24,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/theparanoids/crypki/certreload"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"google.golang.org/grpc"
@@ -289,8 +288,7 @@ func Main() {
 			log.Fatal(hcServer.ListenAndServeTLS("", ""))
 		}
 	}()
-	oTelGWMux := otelhttp.NewHandler(gwmux, "grpc-gateway")
-	server = initHTTPServer(ctx, tlsConfig, grpcServer, oTelGWMux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
+	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
 		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {

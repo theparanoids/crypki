@@ -35,7 +35,7 @@ import (
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/healthcheck"
 	"github.com/theparanoids/crypki/oor"
-	otellib "github.com/theparanoids/crypki/otellib"
+	"github.com/theparanoids/crypki/otellib"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/interceptor"

@@ -35,7 +35,7 @@ import (
 	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/healthcheck"
 	"github.com/theparanoids/crypki/oor"
-	otellib "github.com/theparanoids/crypki/otel"
+	"github.com/theparanoids/crypki/otellib"
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/interceptor"
@@ -58,14 +58,14 @@ func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler 
 
 // initHTTPServer initializes HTTP server with TLS credentials and returns http.Server.
 func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
-	grpcServer *grpc.Server, gwmux *runtime.ServeMux, addr string,
+	grpcServer *grpc.Server, gwmux http.Handler, addr string,
 	idleTimeout, readTimeout, writeTimeout uint) *http.Server {
 	mux := http.NewServeMux()
 	// handler to check if service is up
 	mux.HandleFunc("/ruok", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(w, "imok")
 	})
-	mux.Handle("/", gwmux)
+	mux.Handle("/", otellib.NewHTTPMiddleware(gwmux, "crypki-gateway"))
 
 	srv := &http.Server{
 		Addr: addr,

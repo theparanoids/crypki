@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 const scopeName = "github.com/theparanoids/crypki/otellib"
@@ -57,7 +57,7 @@ func (h *httpMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	labeler, _ := otelhttp.LabelerFromContext(r.Context())
 	// Add the http.target attribute to the OTel labeler.
 	if r.URL != nil {
-		labeler.Add(semconv.HTTPTargetKey.String(r.URL.RequestURI()))
+		labeler.Add(semconv.HTTPRouteKey.String(r.URL.RequestURI()))
 	}
 	defer func() {
 		if rec := recover(); rec != nil {

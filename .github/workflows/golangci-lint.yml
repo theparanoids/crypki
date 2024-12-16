@@ -21,7 +21,7 @@ on:
 permissions:
   contents: read
 env:
-  GO_VERSION: 1.22.5
+  GO_VERSION: 1.23.4
 jobs:
   golangci:
     name: lint

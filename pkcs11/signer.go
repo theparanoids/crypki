@@ -130,7 +130,8 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 	for idx, key := range keys {
 		if key.TokenLabel != "" {
 			if keys[idx].SlotNumber, err = findSlotNumber(p11ctx, key.TokenLabel); err != nil {
-				return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
+				return nil, fmt.Errorf("unable to find key slot for key label %s when initializing the key identifier %q: %v",
+					key.TokenLabel, key.Identifier, err)
 			}
 		}
 	}
@@ -155,7 +156,7 @@ func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.Key
 	for _, key := range keys {
 		pool, err := newSignerPool(p11ctx, key.SessionPoolSize, key.SlotNumber, key.KeyLabel, key.KeyType, key.SignatureAlgo)
 		if err != nil {
-			return nil, fmt.Errorf("unable to initialize key with identifier %q: %v", key.Identifier, err)
+			return nil, fmt.Errorf("unable to initialize signer pool for key identifier %q: %v", key.Identifier, err)
 		}
 		s.sPool[key.Identifier] = pool
 		// initialize x509 CA cert if this key will be used for signing x509 certs.

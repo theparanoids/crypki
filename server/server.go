@@ -137,7 +137,8 @@ func Main() {
 	if cfg.OTel.Enabled {
 		otelResource, err := resource.Merge(
 			resource.Default(),
-			resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String("crypki")),
+			resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String("crypki"),
+				semconv.ServiceInstanceIDKey.String(os.Getenv("SERVICE_INSTANCE_ID"))),
 		)
 		if err != nil {
 			log.Fatalf("Error merging resources: %v", err)

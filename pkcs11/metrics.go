@@ -5,11 +5,12 @@ package pkcs11
 
 import (
 	"context"
+	"time"
+
 	p11 "github.com/miekg/pkcs11"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"time"
 )
 
 const (
@@ -34,6 +35,7 @@ func init() {
 	}
 }
 
+// ExportSignerMetadataLatencyMetric exports the latency of the signer metadata method.
 func ExportSignerMetadataLatencyMetric(operation string, method string, start time.Time) {
 	durationMs := float64(time.Since(start).Microseconds()) / 1000.0
 	signerLatencyMetric.Record(context.Background(),
@@ -81,6 +83,7 @@ func (i *InstrumentedPKCS11Ctx) exportLatency(method string, start time.Time) {
 	)
 }
 
+// GetAttributeValue gets the attribute value.
 func (i *InstrumentedPKCS11Ctx) GetAttributeValue(param1 p11.SessionHandle, param2 p11.ObjectHandle, param3 []*p11.Attribute) (ret1 []*p11.Attribute, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.GetAttributeValue(param1, param2, param3)
@@ -88,6 +91,7 @@ func (i *InstrumentedPKCS11Ctx) GetAttributeValue(param1 p11.SessionHandle, para
 	return
 }
 
+// SignInit initializes the signing.
 func (i *InstrumentedPKCS11Ctx) SignInit(param1 p11.SessionHandle, param2 []*p11.Mechanism, param3 p11.ObjectHandle) (ret1 error) {
 	start := time.Now()
 	ret1 = i.PKCS11Ctx.SignInit(param1, param2, param3)
@@ -95,6 +99,7 @@ func (i *InstrumentedPKCS11Ctx) SignInit(param1 p11.SessionHandle, param2 []*p11
 	return
 }
 
+// Sign signs the data.
 func (i *InstrumentedPKCS11Ctx) Sign(param1 p11.SessionHandle, param2 []byte) (ret1 []byte, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.Sign(param1, param2)
@@ -102,6 +107,7 @@ func (i *InstrumentedPKCS11Ctx) Sign(param1 p11.SessionHandle, param2 []byte) (r
 	return
 }
 
+// Login logs in.
 func (i *InstrumentedPKCS11Ctx) Login(param1 p11.SessionHandle, param2 uint, param3 string) (ret1 error) {
 	start := time.Now()
 	ret1 = i.PKCS11Ctx.Login(param1, param2, param3)
@@ -109,6 +115,7 @@ func (i *InstrumentedPKCS11Ctx) Login(param1 p11.SessionHandle, param2 uint, par
 	return
 }
 
+// GenerateRandom generates random data.
 func (i *InstrumentedPKCS11Ctx) GenerateRandom(param1 p11.SessionHandle, param2 int) (ret1 []byte, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.GenerateRandom(param1, param2)
@@ -116,6 +123,7 @@ func (i *InstrumentedPKCS11Ctx) GenerateRandom(param1 p11.SessionHandle, param2 
 	return
 }
 
+// FindObjectsInit initializes the object finding.
 func (i *InstrumentedPKCS11Ctx) FindObjectsInit(param1 p11.SessionHandle, param2 []*p11.Attribute) (ret1 error) {
 	start := time.Now()
 	ret1 = i.PKCS11Ctx.FindObjectsInit(param1, param2)
@@ -123,6 +131,7 @@ func (i *InstrumentedPKCS11Ctx) FindObjectsInit(param1 p11.SessionHandle, param2
 	return
 }
 
+// FindObjects finds the objects.
 func (i *InstrumentedPKCS11Ctx) FindObjects(param1 p11.SessionHandle, param2 int) (ret1 []p11.ObjectHandle, ret2 bool, ret3 error) {
 	start := time.Now()
 	ret1, ret2, ret3 = i.PKCS11Ctx.FindObjects(param1, param2)
@@ -130,6 +139,7 @@ func (i *InstrumentedPKCS11Ctx) FindObjects(param1 p11.SessionHandle, param2 int
 	return
 }
 
+// FindObjectsFinal finalizes the object finding.
 func (i *InstrumentedPKCS11Ctx) FindObjectsFinal(param1 p11.SessionHandle) (ret1 error) {
 	start := time.Now()
 	ret1 = i.PKCS11Ctx.FindObjectsFinal(param1)
@@ -137,6 +147,7 @@ func (i *InstrumentedPKCS11Ctx) FindObjectsFinal(param1 p11.SessionHandle) (ret1
 	return
 }
 
+// CloseSession closes the session.
 func (i *InstrumentedPKCS11Ctx) CloseSession(param1 p11.SessionHandle) (ret1 error) {
 	start := time.Now()
 	ret1 = i.PKCS11Ctx.CloseSession(param1)
@@ -144,6 +155,7 @@ func (i *InstrumentedPKCS11Ctx) CloseSession(param1 p11.SessionHandle) (ret1 err
 	return
 }
 
+// OpenSession opens a session.
 func (i *InstrumentedPKCS11Ctx) OpenSession(param1 uint, param2 uint) (ret1 p11.SessionHandle, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.OpenSession(param1, param2)
@@ -151,6 +163,7 @@ func (i *InstrumentedPKCS11Ctx) OpenSession(param1 uint, param2 uint) (ret1 p11.
 	return
 }
 
+// GetSlotList gets the slot list.
 func (i *InstrumentedPKCS11Ctx) GetSlotList(param1 bool) (ret1 []uint, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.GetSlotList(param1)
@@ -158,6 +171,7 @@ func (i *InstrumentedPKCS11Ctx) GetSlotList(param1 bool) (ret1 []uint, ret2 erro
 	return
 }
 
+// GetSlotInfo gets the slot info.
 func (i *InstrumentedPKCS11Ctx) GetSlotInfo(param1 uint) (ret1 p11.SlotInfo, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.GetSlotInfo(param1)
@@ -165,6 +179,7 @@ func (i *InstrumentedPKCS11Ctx) GetSlotInfo(param1 uint) (ret1 p11.SlotInfo, ret
 	return
 }
 
+// GetTokenInfo gets the token info.
 func (i *InstrumentedPKCS11Ctx) GetTokenInfo(param1 uint) (ret1 p11.TokenInfo, ret2 error) {
 	start := time.Now()
 	ret1, ret2 = i.PKCS11Ctx.GetTokenInfo(param1)

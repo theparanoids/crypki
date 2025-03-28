@@ -110,9 +110,15 @@ func (w *Work) DoWork(workerCtx context.Context, worker *scheduler.Worker) {
 			hStart = time.Now()
 			switch w.work.method {
 			case "GetSSHCertSigningKey", "GetX509CACert", "GetBlobSigningPublicKey":
-				go w.work.signerData.getData(requestCtx, sResp.signer, w.work.pool, w.work.respChan, w.work.errChan, done)
+				go func() {
+					w.work.signerData.getData(requestCtx, sResp.signer, w.work.pool, w.work.respChan, w.work.errChan, done)
+					ExportSignerMetadataLatencyMetric(w.work.method, "getData", hStart)
+				}()
 			case "SignSSHCert", "SignX509Cert", "SignBlob":
-				go w.work.signerData.signData(requestCtx, sResp.signer, w.work.pool, w.work.respChan, w.work.errChan, done)
+				go func() {
+					w.work.signerData.signData(requestCtx, sResp.signer, w.work.pool, w.work.respChan, w.work.errChan, done)
+					ExportSignerMetadataLatencyMetric(w.work.method, "signData", hStart)
+				}()
 			}
 		case <-done:
 			ht = time.Since(hStart).Nanoseconds() / time.Microsecond.Nanoseconds()

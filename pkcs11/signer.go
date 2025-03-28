@@ -121,10 +121,15 @@ func getSignerData(ctx context.Context, requestChan chan scheduler.Request, pool
 }
 
 // NewCertSign initializes a CertSign object that interacts with PKCS11 compliant device.
-func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, uris []*url.URL, requestTimeout uint) (crypki.CertSign, error) {
+func NewCertSign(ctx context.Context, pkcs11ModulePath string, keys []config.KeyConfig, requireX509CACert map[string]bool, hostname string, ips []net.IP, uris []*url.URL, requestTimeout uint, enableOTel bool) (crypki.CertSign, error) {
+	var p11ctx PKCS11Ctx
 	p11ctx, err := initPKCS11Context(pkcs11ModulePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize PKCS11 context: %v", err)
+	}
+
+	if enableOTel {
+		p11ctx = NewInstrumentedPKCS11Ctx(p11ctx)
 	}
 
 	for idx, key := range keys {
@@ -199,7 +204,7 @@ func (s *signer) SignSSHCert(ctx context.Context, reqChan chan scheduler.Request
 }
 
 func (s *signer) GetX509CACert(ctx context.Context, reqChan chan scheduler.Request, keyIdentifier string) ([]byte, error) {
-	const methodName = "GetSSHCertSigningKey"
+	const methodName = "GetX509CACert"
 	cert, ok := s.x509CACerts[keyIdentifier]
 	if !ok {
 		return nil, fmt.Errorf("unable to find CA cert for key identifier %q", keyIdentifier)

@@ -199,7 +199,7 @@ func Main() {
 		log.Fatal(err)
 	}
 
-	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips, nil, cfg.PKCS11RequestTimeout)
+	signer, err := pkcs11.NewCertSign(ctx, cfg.ModulePath, cfg.Keys, keyUsages[config.X509CertEndpoint], hostname, ips, nil, cfg.PKCS11RequestTimeout, cfg.OTel.Enabled)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}

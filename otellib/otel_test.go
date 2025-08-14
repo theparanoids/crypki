@@ -148,11 +148,9 @@ func TestInitOTelSDK(t *testing.T) {
 		RootCAs: crtPool,
 	}
 
-	// HTTP endpoint test case.
-	t.Run("should initialize with HTTP endpoint", func(t *testing.T) {
-		// Create a mock HTTP server that the exporter can connect to
+	t.Run("HTTP endpoint test case", func(t *testing.T) {
 		httpServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK) // Respond with success
+			w.WriteHeader(http.StatusOK)
 		}))
 		defer httpServer.Close()
 
@@ -167,9 +165,7 @@ func TestInitOTelSDK(t *testing.T) {
 		require.NoError(t, err, "Shutdown should not produce an error")
 	})
 
-	// gRPC endpoint test case.
-	t.Run("should initialize with gRPC endpoint", func(t *testing.T) {
-		// Create a listener on a random available port
+	t.Run("gRPC endpoint test case", func(t *testing.T) {
 		lis, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
 
@@ -190,10 +186,10 @@ func TestInitOTelSDK(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("should fail with an unreachable endpoint", func(t *testing.T) {
+	t.Run("unreachable endpoint", func(t *testing.T) {
 		invalidEndpoint := "localhost:99999"
 		shutdown := InitOTelSDK(ctx, invalidEndpoint, &tls.Config{}, oTelRes)
 
-		require.NotNil(t, shutdown, "Function should still return a function on failure")
+		require.NotNil(t, shutdown, "should return failure")
 	})
 }

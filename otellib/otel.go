@@ -33,7 +33,7 @@ func InitOTelSDK(ctx context.Context, collectorEndpoint string, tlsConfig *tls.C
 		opts = append(opts, otlpmetricgrpc.WithTLSCredentials(credentials.NewTLS(tlsConfig)))
 		metricExporter, err = otlpmetricgrpc.New(ctx, opts...)
 		if err != nil {
-			log.Printf("failed to create oTel metric exporter: %v\n", err)
+			log.Printf("failed to create oTel metric gRPC exporter: %v\n", err)
 			return nilShutdown
 		}
 	} else {

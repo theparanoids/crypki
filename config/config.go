@@ -161,6 +161,8 @@ type Config struct {
 		ClientKeyPath string
 		// CACertPath specifies path to root CA cert, used to verify OTel collector cert.
 		CACertPath string
+		// ServiceInstanceID is the unique identifier for this instance of the service showing in OTel metrics.
+		ServiceInstanceID string
 	}
 }
 

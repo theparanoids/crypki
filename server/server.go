@@ -138,9 +138,11 @@ func Main() {
 	if cfg.OTel.Enabled {
 		otelAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String("crypki")}
 
-		serviceInstanceID := os.Getenv("SERVICE_INSTANCE_ID")
-		if serviceInstanceID != "" {
-			otelAttributes = append(otelAttributes, semconv.ServiceInstanceIDKey.String(serviceInstanceID))
+		if cfg.OTel.ServiceInstanceID == "" {
+			cfg.OTel.ServiceInstanceID = os.Getenv("SERVICE_INSTANCE_ID")
+		}
+		if cfg.OTel.ServiceInstanceID != "" {
+			otelAttributes = append(otelAttributes, semconv.ServiceInstanceIDKey.String(cfg.OTel.ServiceInstanceID))
 		}
 
 		otelResource, err := resource.Merge(

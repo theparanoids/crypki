@@ -24,6 +24,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/theparanoids/crypki/certreload"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"google.golang.org/grpc"
@@ -135,10 +136,18 @@ func Main() {
 	go logRotate(file)
 
 	if cfg.OTel.Enabled {
+		otelAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String("crypki")}
+
+		if cfg.OTel.ServiceInstanceID == "" {
+			cfg.OTel.ServiceInstanceID = os.Getenv("SERVICE_INSTANCE_ID")
+		}
+		if cfg.OTel.ServiceInstanceID != "" {
+			otelAttributes = append(otelAttributes, semconv.ServiceInstanceIDKey.String(cfg.OTel.ServiceInstanceID))
+		}
+
 		otelResource, err := resource.Merge(
 			resource.Default(),
-			resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String("crypki"),
-				semconv.ServiceInstanceIDKey.String(os.Getenv("SERVICE_INSTANCE_ID"))),
+			resource.NewWithAttributes(semconv.SchemaURL, otelAttributes...),
 		)
 		if err != nil {
 			log.Fatalf("Error merging resources: %v", err)

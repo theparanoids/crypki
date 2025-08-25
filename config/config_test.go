@@ -54,6 +54,7 @@ func TestParse(t *testing.T) {
 			ClientCertPath        string
 			ClientKeyPath         string
 			CACertPath            string
+			ServiceInstanceID     string
 		}{
 			Enabled:               true,
 			OTELCollectorEndpoint: "http://localhost:4317",

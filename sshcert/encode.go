@@ -13,7 +13,7 @@ import (
 
 var supportAlgoNames = map[string]struct{}{
 	ssh.KeyAlgoRSA:        {},
-	ssh.KeyAlgoDSA:        {},
+	ssh.KeyAlgoDSA:        {}, //nolint:staticcheck // we intentionally support DSA
 	ssh.KeyAlgoECDSA256:   {},
 	ssh.KeyAlgoECDSA384:   {},
 	ssh.KeyAlgoECDSA521:   {},

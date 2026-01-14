@@ -60,10 +60,23 @@ func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler 
 // initHTTPServer initializes HTTP server with TLS credentials and returns http.Server.
 func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
 	grpcServer *grpc.Server, gwmux http.Handler, addr string,
-	idleTimeout, readTimeout, writeTimeout uint) *http.Server {
+	idleTimeout, readTimeout, writeTimeout uint, hcService *healthcheck.Service) *http.Server {
 	mux := http.NewServeMux()
 	// handler to check if service is up
 	mux.HandleFunc("/ruok", func(w http.ResponseWriter, req *http.Request) {
+		if hcService != nil {
+			resp, err := hcService.Check(req.Context(), &proto.HealthCheckRequest{})
+			if err != nil {
+				log.Printf("healthcheck failed: %v", err)
+				http.Error(w, "healthcheck failed", http.StatusServiceUnavailable)
+				return
+			}
+			if resp.Status != proto.HealthCheckResponse_SERVING {
+				log.Printf("not serving, status=%v", resp.Status)
+				http.Error(w, "not in rotation", http.StatusServiceUnavailable)
+				return
+			}
+		}
 		fmt.Fprintln(w, "imok")
 	})
 	mux.Handle("/", otellib.NewHTTPMiddleware(gwmux, "crypki-gateway"))
@@ -272,21 +285,22 @@ func Main() {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
 
+	// Set up out-of-rotation handler so healthcheck can check rotation status
+	oorh := oor.NewHandler(true)
+	hs.InRotation = oorh.InRotation
+
 	proto.RegisterSigningServer(grpcServer, ss)
 	proto.RegisterHealthServer(grpcServer, hs)
 
 	go func() {
 		if cfg.HealthCheck.Enabled {
-			// only enable oor handler if we want to enable health check listener
-			oorh := oor.NewHandler(true) // TODO: do we want to start with inRotation true?
-			hs.InRotation = oorh.InRotation
 			// healthcheck http listener tls config
 			hh := &hcHandler{hcService: hs}
 			hctc, err := tlsServerConfiguration(
 				cfg.TLSCACertPath,
 				cfg.TLSServerCertPath,
 				cfg.TLSServerKeyPath,
-				tls.RequestClientCert) // TODO: clientAuthType can be made configurable.
+				tls.NoClientCert) // Disable mTLS
 			if err != nil {
 				log.Fatalf("crypki: failed to setup healthcheck listener TLS config: %v", err)
 			}
@@ -299,7 +313,7 @@ func Main() {
 		}
 	}()
 	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
-		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
+		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout, hs)
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

@@ -57,12 +57,25 @@ func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler 
 	})
 }
 
+// mTLSMiddleware checks the TLSClientAuthMode and only enforces mTLS when mode is VerifyClientCertIfGiven (3).
+func mTLSMiddleware(authMode tls.ClientAuthType, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if authMode == tls.VerifyClientCertIfGiven && (r.TLS == nil || len(r.TLS.VerifiedChains) == 0) {
+			log.Printf("mTLS required but no valid client certificate provided for %s", r.URL.Path)
+			http.Error(w, "client certificate required", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // initHTTPServer initializes HTTP server with TLS credentials and returns http.Server.
 func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
 	grpcServer *grpc.Server, gwmux http.Handler, addr string,
-	idleTimeout, readTimeout, writeTimeout uint, hcService *healthcheck.Service) *http.Server {
+	idleTimeout, readTimeout, writeTimeout uint, hcService *healthcheck.Service,
+	tlsClientAuthMode tls.ClientAuthType) *http.Server {
 	mux := http.NewServeMux()
-	// handler to check if service is up
+	// /ruok endpoint - NO mTLS required (healthcheck for load balancers)
 	mux.HandleFunc("/ruok", func(w http.ResponseWriter, req *http.Request) {
 		if hcService != nil {
 			resp, err := hcService.Check(req.Context(), &proto.HealthCheckRequest{})
@@ -79,7 +92,7 @@ func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
 		}
 		fmt.Fprintln(w, "imok")
 	})
-	mux.Handle("/", otellib.NewHTTPMiddleware(gwmux, "crypki-gateway"))
+	mux.Handle("/", mTLSMiddleware(tlsClientAuthMode, otellib.NewHTTPMiddleware(gwmux, "crypki-gateway")))
 
 	srv := &http.Server{
 		Addr: addr,
@@ -300,7 +313,7 @@ func Main() {
 				cfg.TLSCACertPath,
 				cfg.TLSServerCertPath,
 				cfg.TLSServerKeyPath,
-				tls.NoClientCert) // Disable mTLS
+				tls.RequestClientCert) // TODO: clientAuthType can be made configurable.
 			if err != nil {
 				log.Fatalf("crypki: failed to setup healthcheck listener TLS config: %v", err)
 			}
@@ -313,7 +326,7 @@ func Main() {
 		}
 	}()
 	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
-		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout, hs)
+		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout, hs, cfg.TLSClientAuthMode)
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

@@ -299,11 +299,11 @@ func Main() {
 		}
 	}()
 
-	// Start status check endpoint if enabled
+	// Start status check endpoint if configured
 	go func() {
-		if cfg.StatusCheck.Enabled {
+		if cfg.StatusCheck != nil {
 			statusHandler := &statusCheckHandler{statusFilePath: cfg.StatusCheck.StatusFilePath}
-			statusAddr := net.JoinHostPort(cfg.StatusCheck.Host, cfg.StatusCheck.Port)
+			statusAddr := net.JoinHostPort("", cfg.StatusCheck.Port)
 
 			stc, err := tlsServerConfiguration(
 				cfg.TLSCACertPath,
@@ -315,12 +315,9 @@ func Main() {
 			}
 
 			statusServer := &http.Server{
-				Addr:         statusAddr,
-				Handler:      statusHandler,
-				TLSConfig:    stc,
-				IdleTimeout:  time.Duration(cfg.IdleTimeout) * time.Second,
-				ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
-				WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+				Addr:      statusAddr,
+				Handler:   statusHandler,
+				TLSConfig: stc,
 			}
 			log.Printf("starting status check server on %s", statusAddr)
 			log.Fatal(statusServer.ListenAndServeTLS("", ""))

@@ -57,42 +57,16 @@ func grpcHandlerFunc(ctx context.Context, grpcServer *grpc.Server, otherHandler 
 	})
 }
 
-// mTLSMiddleware checks the TLSClientAuthMode and only enforces mTLS when mode is VerifyClientCertIfGiven (3).
-func mTLSMiddleware(authMode tls.ClientAuthType, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if authMode == tls.VerifyClientCertIfGiven && (r.TLS == nil || len(r.TLS.VerifiedChains) == 0) {
-			log.Printf("mTLS required but no valid client certificate provided for %s", r.URL.Path)
-			http.Error(w, "client certificate required", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 // initHTTPServer initializes HTTP server with TLS credentials and returns http.Server.
 func initHTTPServer(ctx context.Context, tlsConfig *tls.Config,
 	grpcServer *grpc.Server, gwmux http.Handler, addr string,
-	idleTimeout, readTimeout, writeTimeout uint, hcService *healthcheck.Service,
-	tlsClientAuthMode tls.ClientAuthType) *http.Server {
+	idleTimeout, readTimeout, writeTimeout uint) *http.Server {
 	mux := http.NewServeMux()
-	// /ruok endpoint - NO mTLS required (healthcheck for load balancers)
+	// handler to check if service is up
 	mux.HandleFunc("/ruok", func(w http.ResponseWriter, req *http.Request) {
-		if hcService != nil {
-			resp, err := hcService.Check(req.Context(), &proto.HealthCheckRequest{})
-			if err != nil {
-				log.Printf("healthcheck failed: %v", err)
-				http.Error(w, "healthcheck failed", http.StatusServiceUnavailable)
-				return
-			}
-			if resp.Status != proto.HealthCheckResponse_SERVING {
-				log.Printf("not serving, status=%v", resp.Status)
-				http.Error(w, "not in rotation", http.StatusServiceUnavailable)
-				return
-			}
-		}
 		fmt.Fprintln(w, "imok")
 	})
-	mux.Handle("/", mTLSMiddleware(tlsClientAuthMode, otellib.NewHTTPMiddleware(gwmux, "crypki-gateway")))
+	mux.Handle("/", otellib.NewHTTPMiddleware(gwmux, "crypki-gateway"))
 
 	srv := &http.Server{
 		Addr: addr,
@@ -298,15 +272,14 @@ func Main() {
 		log.Fatalf("crypki: failed to register signing service handler, err: %v", err)
 	}
 
-	// Set up out-of-rotation handler so healthcheck can check rotation status
-	oorh := oor.NewHandler(true)
-	hs.InRotation = oorh.InRotation
-
 	proto.RegisterSigningServer(grpcServer, ss)
 	proto.RegisterHealthServer(grpcServer, hs)
 
 	go func() {
 		if cfg.HealthCheck.Enabled {
+			// only enable oor handler if we want to enable health check listener
+			oorh := oor.NewHandler(true) // TODO: do we want to start with inRotation true?
+			hs.InRotation = oorh.InRotation
 			// healthcheck http listener tls config
 			hh := &hcHandler{hcService: hs}
 			hctc, err := tlsServerConfiguration(
@@ -325,8 +298,36 @@ func Main() {
 			log.Fatal(hcServer.ListenAndServeTLS("", ""))
 		}
 	}()
+
+	// Start status check endpoint if enabled
+	go func() {
+		if cfg.StatusCheck.Enabled {
+			statusHandler := &statusCheckHandler{statusFilePath: cfg.StatusCheck.StatusFilePath}
+			statusAddr := net.JoinHostPort(cfg.StatusCheck.Host, cfg.StatusCheck.Port)
+
+			stc, err := tlsServerConfiguration(
+				cfg.TLSCACertPath,
+				cfg.TLSServerCertPath,
+				cfg.TLSServerKeyPath,
+				tls.NoClientCert) // No mTLS for status endpoint
+			if err != nil {
+				log.Fatalf("crypki: failed to setup status check listener TLS config: %v", err)
+			}
+
+			statusServer := &http.Server{
+				Addr:         statusAddr,
+				Handler:      statusHandler,
+				TLSConfig:    stc,
+				IdleTimeout:  time.Duration(cfg.IdleTimeout) * time.Second,
+				ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
+				WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+			}
+			log.Printf("starting status check server on %s", statusAddr)
+			log.Fatal(statusServer.ListenAndServeTLS("", ""))
+		}
+	}()
 	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
-		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout, hs, cfg.TLSClientAuthMode)
+		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -360,6 +361,32 @@ func (h *hcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write([]byte("imok\n"))
 	log.Print(err)
+}
+
+type statusCheckHandler struct {
+	statusFilePath string
+}
+
+func (h *statusCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Only accept GET requests to /status.html
+	if r.URL.Path != "/status.html" || r.Method != "GET" {
+		http.Error(w, "invalid path or method", http.StatusNotFound)
+		return
+	}
+
+	if _, err := os.Stat(h.statusFilePath); err == nil {
+		// File exists, return 200 OK
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "OK")
+	} else if os.IsNotExist(err) {
+		// File does not exist, return 404
+		http.Error(w, "status file not found", http.StatusNotFound)
+		log.Printf("status check: file not found at %s, returning 404", h.statusFilePath)
+	} else {
+		// Other error occurred
+		log.Printf("status check: error checking file at %s: %v", h.statusFilePath, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
 }
 
 // tlsServerConfiguration returns tls configuration.

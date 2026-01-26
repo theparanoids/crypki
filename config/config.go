@@ -23,6 +23,8 @@ const (
 	defaultKeyType           = x509.RSA
 	defaultSignatureAlgo     = x509.SHA256WithRSA
 	defaultHealthCheckKeyID  = "ssh-user-key"
+	defaultStatusPort        = "8443"
+	defaultStatusFilePath    = "/opt/crypki/status"
 
 	defaultShutdownOnSigningFailureConsecutiveCount    = 4
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
@@ -59,6 +61,14 @@ type HealthCheck struct {
 	// KeyID specifies the identifier of the key to be used by
 	// healthcheck listener.
 	KeyID string
+}
+
+// StatusCheck specifies configs related to status check endpoint.
+type StatusCheck struct {
+	// Port specifies the port for the status check listener.
+	Port string
+	// StatusFilePath specifies the path to the status file.
+	StatusFilePath string
 }
 
 // KeyUsage configures which key(s) can be used for the API call.
@@ -131,6 +141,7 @@ type Config struct {
 	Keys              []KeyConfig
 	KeyUsages         []KeyUsage
 	HealthCheck
+	StatusCheck *StatusCheck
 
 	ShutdownOnInternalFailure         bool
 	ShutdownOnInternalFailureCriteria struct {
@@ -266,6 +277,14 @@ func (c *Config) loadDefaults() {
 	}
 	if strings.TrimSpace(c.TLSPort) == "" {
 		c.TLSPort = defaultTLSPort
+	}
+	if c.StatusCheck != nil {
+		if strings.TrimSpace(c.StatusCheck.Port) == "" {
+			c.StatusCheck.Port = defaultStatusPort
+		}
+		if strings.TrimSpace(c.StatusCheck.StatusFilePath) == "" {
+			c.StatusCheck.StatusFilePath = defaultStatusFilePath
+		}
 	}
 	for i := range c.Keys {
 		if c.Keys[i].KeyType == 0 {

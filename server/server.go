@@ -298,6 +298,31 @@ func Main() {
 			log.Fatal(hcServer.ListenAndServeTLS("", ""))
 		}
 	}()
+
+	// Start status check endpoint if configured
+	go func() {
+		if cfg.StatusCheck != nil {
+			statusHandler := &statusCheckHandler{statusFilePath: cfg.StatusCheck.StatusFilePath}
+			statusAddr := net.JoinHostPort("", cfg.StatusCheck.Port)
+
+			stc, err := tlsServerConfiguration(
+				cfg.TLSCACertPath,
+				cfg.TLSServerCertPath,
+				cfg.TLSServerKeyPath,
+				tls.NoClientCert) // No mTLS for status endpoint
+			if err != nil {
+				log.Fatalf("crypki: failed to setup status check listener TLS config: %v", err)
+			}
+
+			statusServer := &http.Server{
+				Addr:      statusAddr,
+				Handler:   statusHandler,
+				TLSConfig: stc,
+			}
+			log.Printf("starting status check server on %s", statusAddr)
+			log.Fatal(statusServer.ListenAndServeTLS("", ""))
+		}
+	}()
 	server = initHTTPServer(ctx, tlsConfig, grpcServer, gwmux, net.JoinHostPort(cfg.TLSHost, cfg.TLSPort),
 		cfg.IdleTimeout, cfg.ReadTimeout, cfg.WriteTimeout)
 	listener, err := net.Listen("tcp", server.Addr)
@@ -333,6 +358,32 @@ func (h *hcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write([]byte("imok\n"))
 	log.Print(err)
+}
+
+type statusCheckHandler struct {
+	statusFilePath string
+}
+
+func (h *statusCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Only accept GET requests to /status.html
+	if r.URL.Path != "/status.html" || r.Method != "GET" {
+		http.Error(w, "invalid path or method", http.StatusNotFound)
+		return
+	}
+
+	if _, err := os.Stat(h.statusFilePath); err == nil {
+		// File exists, return 200 OK
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "OK")
+	} else if os.IsNotExist(err) {
+		// File does not exist, return 404
+		http.Error(w, "status file not found", http.StatusNotFound)
+		log.Printf("status check: file not found at %s, returning 404", h.statusFilePath)
+	} else {
+		// Other error occurred
+		log.Printf("status check: error checking file at %s: %v", h.statusFilePath, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
 }
 
 // tlsServerConfiguration returns tls configuration.

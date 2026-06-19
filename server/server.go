@@ -147,7 +147,7 @@ func Main() {
 
 		otelResource, err := resource.Merge(
 			resource.Default(),
-			resource.NewWithAttributes(semconv.SchemaURL, otelAttributes...),
+			resource.NewSchemaless(otelAttributes...),
 		)
 		if err != nil {
 			log.Fatalf("Error merging resources: %v", err)

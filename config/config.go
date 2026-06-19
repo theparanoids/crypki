@@ -30,6 +30,11 @@ const (
 	defaultShutdownOnSigningFailureTimerDurationSecond = 60
 	defaultShutdownOnSigningFailureTimerCount          = 10
 
+	// Defaults for per-caller signing rate limiting.
+	defaultRateLimitRequestsPerSecond      = 100
+	defaultRateLimitBurst                  = 20
+	defaultRateLimitCleanupIntervalSeconds = 600
+
 	defaultIdleTimeout   = 30
 	defaultReadTimeout   = 10
 	defaultWriteTimeout  = 10
@@ -69,6 +74,27 @@ type StatusCheck struct {
 	Port string
 	// StatusFilePath specifies the path to the status file.
 	StatusFilePath string
+}
+
+// RateLimit specifies configs related to per-caller rate limiting on the
+// signing endpoints. Each caller is identified by the common name of its mTLS
+// client certificate and gets its own independent token bucket. This protects
+// the HSM from exhaustion and prevents bulk certificate issuance from a single
+// (potentially compromised) caller.
+type RateLimit struct {
+	// Enabled specifies whether per-caller rate limiting is enforced on the
+	// signing endpoints.
+	Enabled bool
+	// RequestsPerSecond is the sustained number of signing requests allowed per
+	// caller per second.
+	RequestsPerSecond float64
+	// Burst is the maximum number of signing requests a caller may issue in a
+	// momentary burst before being throttled to RequestsPerSecond.
+	Burst int
+	// CleanupIntervalSeconds controls how often idle per-caller buckets are
+	// garbage collected. A bucket is dropped once it has been idle for at least
+	// this interval.
+	CleanupIntervalSeconds uint
 }
 
 // KeyUsage configures which key(s) can be used for the API call.
@@ -142,6 +168,7 @@ type Config struct {
 	KeyUsages         []KeyUsage
 	HealthCheck
 	StatusCheck *StatusCheck
+	RateLimit   *RateLimit
 
 	ShutdownOnInternalFailure         bool
 	ShutdownOnInternalFailureCriteria struct {
@@ -284,6 +311,17 @@ func (c *Config) loadDefaults() {
 		}
 		if strings.TrimSpace(c.StatusCheck.StatusFilePath) == "" {
 			c.StatusCheck.StatusFilePath = defaultStatusFilePath
+		}
+	}
+	if c.RateLimit != nil {
+		if c.RateLimit.RequestsPerSecond <= 0 {
+			c.RateLimit.RequestsPerSecond = defaultRateLimitRequestsPerSecond
+		}
+		if c.RateLimit.Burst <= 0 {
+			c.RateLimit.Burst = defaultRateLimitBurst
+		}
+		if c.RateLimit.CleanupIntervalSeconds == 0 {
+			c.RateLimit.CleanupIntervalSeconds = defaultRateLimitCleanupIntervalSeconds
 		}
 	}
 	for i := range c.Keys {

@@ -20,6 +20,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
 	go.opentelemetry.io/proto/otlp v1.4.0
 	golang.org/x/crypto v0.45.0
+	golang.org/x/time v0.14.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250204164813-702378808489
 	google.golang.org/grpc v1.70.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1

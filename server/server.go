@@ -237,6 +237,20 @@ func Main() {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(recoveryHandler)),
 		interceptor.AccessLogInterceptor(),
 	}
+	// Per-caller rate limiting on the signing endpoints. Placed innermost (after
+	// access logging) so that throttled requests are still logged for detection,
+	// while short-circuiting before reaching the HSM signing handler.
+	if cfg.RateLimit != nil && cfg.RateLimit.Enabled {
+		rl := interceptor.NewRateLimiter(
+			cfg.RateLimit.RequestsPerSecond,
+			cfg.RateLimit.Burst,
+			time.Duration(cfg.RateLimit.CleanupIntervalSeconds)*time.Second,
+		)
+		rl.Start(ctx)
+		interceptors = append(interceptors, rl.UnaryInterceptor())
+		log.Printf("crypki: per-caller signing rate limiting enabled (%.2f req/s, burst %d)",
+			cfg.RateLimit.RequestsPerSecond, cfg.RateLimit.Burst)
+	}
 	if cfg.ShutdownOnInternalFailure {
 		criteria := cfg.ShutdownOnInternalFailureCriteria
 		shutdownCounterConfig := interceptor.ShutdownCounterConfig{

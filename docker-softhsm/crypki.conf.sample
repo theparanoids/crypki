@@ -66,5 +66,11 @@
     "TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
     "TLSClientAuthMode": 4,
     "TLSServerCertPath": "/opt/crypki/tls-crt/server.crt",
-    "TLSServerKeyPath": "/opt/crypki/tls-crt/server.key"
+    "TLSServerKeyPath": "/opt/crypki/tls-crt/server.key",
+    "RateLimit": {
+        "Enabled": true,
+        "RequestsPerSecond": 100,
+        "Burst": 20,
+        "CleanupIntervalSeconds": 600
+    }
 }

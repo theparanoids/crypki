@@ -185,3 +185,50 @@ func TestValidatePinIntegrity(t *testing.T) {
 		})
 	}
 }
+
+func TestRateLimitDefaults(t *testing.T) {
+	t.Parallel()
+	tests := map[string]struct {
+		in   *RateLimit
+		want *RateLimit
+	}{
+		"nil-stays-nil": {
+			in:   nil,
+			want: nil,
+		},
+		"empty-gets-defaults": {
+			in: &RateLimit{Enabled: true},
+			want: &RateLimit{
+				Enabled:                true,
+				RequestsPerSecond:      defaultRateLimitRequestsPerSecond,
+				Burst:                  defaultRateLimitBurst,
+				CleanupIntervalSeconds: defaultRateLimitCleanupIntervalSeconds,
+			},
+		},
+		"explicit-values-preserved": {
+			in: &RateLimit{
+				Enabled:                true,
+				RequestsPerSecond:      42,
+				Burst:                  7,
+				CleanupIntervalSeconds: 30,
+			},
+			want: &RateLimit{
+				Enabled:                true,
+				RequestsPerSecond:      42,
+				Burst:                  7,
+				CleanupIntervalSeconds: 30,
+			},
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			c := &Config{RateLimit: tt.in}
+			c.loadDefaults()
+			if !reflect.DeepEqual(c.RateLimit, tt.want) {
+				t.Errorf("RateLimit defaults mismatch, got: %+v, want: %+v", c.RateLimit, tt.want)
+			}
+		})
+	}
+}

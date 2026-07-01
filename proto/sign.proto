@@ -58,6 +58,9 @@ message SSHCertificateSigningRequest {
     // This feature is currently EXPERIMENTAL where priority value is only logged and not used for anything else. 
     // Specific implementation will be based on analysis of client request patterns.
     Priority priority = 10;
+    // Number of seconds to subtract from the certificate start time to address clock drift.
+    // If not specified, crypki defaults to one hour.
+    uint64 backdate_seconds = 11;
 }
 
 // SSHKey specifies an SSH key that can either be an:

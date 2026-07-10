@@ -80,8 +80,9 @@ func TestDecodeRequest(t *testing.T) {
 	optsEmpty["touchless-sudo-hosts"] = ""
 
 	testcases := map[string]struct {
-		validity uint64
-		req      *ssh.Certificate
+		validity        uint64
+		backdateSeconds uint64
+		req             *ssh.Certificate
 	}{
 		"good-req-user": {
 			validity: (12 + 1) * 3600,
@@ -154,6 +155,16 @@ func TestDecodeRequest(t *testing.T) {
 				},
 			},
 		},
+		"good-req-user-custom-backdate": {
+			validity:        (12 + 1) * 3600,
+			backdateSeconds: 7200,
+			req: &ssh.Certificate{
+				CertType:        ssh.UserCert,
+				ValidPrincipals: []string{"principal.yahoo.com", "principal.aol.com"},
+				Key:             pub,
+				KeyId:           "",
+			},
+		},
 		"good-req-host": {
 			validity: (12 + 1) * 3600,
 			req: &ssh.Certificate{
@@ -186,6 +197,11 @@ func TestDecodeRequest(t *testing.T) {
 		tt := tt // capture range variable - see https://blog.golang.org/subtests
 		t.Run(k, func(t *testing.T) {
 
+			backdateSeconds := tt.backdateSeconds
+			if backdateSeconds == 0 {
+				backdateSeconds = defaultBackdateSeconds
+			}
+
 			cReq := &proto.SSHCertificateSigningRequest{
 				Principals:      tt.req.ValidPrincipals,
 				PublicKey:       string(ssh.MarshalAuthorizedKey(tt.req.Key)),
@@ -193,6 +209,7 @@ func TestDecodeRequest(t *testing.T) {
 				KeyId:           tt.req.KeyId,
 				CriticalOptions: tt.req.Permissions.CriticalOptions,
 				Extensions:      tt.req.Extensions,
+				BackdateSeconds: tt.backdateSeconds,
 			}
 
 			expectError := k[0:3] == "bad"
@@ -214,8 +231,8 @@ func TestDecodeRequest(t *testing.T) {
 			tt.req.ValidAfter = req.ValidAfter
 			tt.req.KeyId = req.KeyId
 
-			if req.ValidBefore-req.ValidAfter != cReq.Validity+3600 {
-				t.Errorf("validity mismatch: got: %v, want: %v", req.ValidBefore-req.ValidAfter, cReq.Validity)
+			if req.ValidBefore-req.ValidAfter != cReq.Validity+backdateSeconds {
+				t.Errorf("validity mismatch: got: %v, want: %v", req.ValidBefore-req.ValidAfter, cReq.Validity+backdateSeconds)
 				return
 			}
 

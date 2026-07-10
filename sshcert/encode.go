@@ -22,6 +22,8 @@ var supportAlgoNames = map[string]struct{}{
 	ssh.KeyAlgoSKED25519:  {},
 }
 
+const defaultBackdateSeconds = 3600
+
 // DecodeRequest process the SSHCertificateSigningRequest and returns an (unsigned) SSH certificate.
 func DecodeRequest(req *proto.SSHCertificateSigningRequest, sshCertType uint32) (*ssh.Certificate, error) {
 	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(req.GetPublicKey()))
@@ -33,10 +35,14 @@ func DecodeRequest(req *proto.SSHCertificateSigningRequest, sshCertType uint32) 
 		return nil, fmt.Errorf("bad public key type: %v", publicKey.Type())
 	}
 
-	// Backdate start time by one hour as the current system clock may be ahead of other running systems.
+	// Backdate start time as the current system clock may be ahead of other running systems.
+	backdateSeconds := req.GetBackdateSeconds()
+	if backdateSeconds == 0 {
+		backdateSeconds = defaultBackdateSeconds
+	}
 	start := uint64(time.Now().Unix())
 	end := start + req.GetValidity()
-	start -= 3600
+	start -= backdateSeconds
 
 	return &ssh.Certificate{
 		KeyId:           req.GetKeyId(),

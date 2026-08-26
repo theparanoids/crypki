@@ -36,6 +36,21 @@ const (
 
 )
 
+const (
+	// SubjectKeyIdHashSHA1 derives the CA certificate's SubjectKeyId with method
+	// 1 of RFC 5280, Section 4.2.1.2: the 160-bit SHA-1 hash of the value of the
+	// BIT STRING subjectPublicKey.
+	SubjectKeyIdHashSHA1 = "SHA1"
+	// SubjectKeyIdHashSHA256 derives it with method 1 of RFC 7093, Section 2:
+	// the leftmost 160 bits of the SHA-256 hash of that same value.
+	SubjectKeyIdHashSHA256 = "SHA256"
+
+	// defaultSubjectKeyIdHash keeps the identifier that CA certificates
+	// generated before this was configurable already carry, so that upgrading
+	// crypki does not alter an existing trust anchor.
+	defaultSubjectKeyIdHash = SubjectKeyIdHashSHA1
+)
+
 // CertSign interface contains methods related to signing certificates.
 type CertSign interface {
 	// GetSSHCertSigningKey returns the SSH signing key of the specified key.
@@ -65,6 +80,14 @@ type CAConfig struct {
 	// The validity time period of the CA cert, which is specified in seconds.
 	ValidityPeriod uint64 `json:"ValidityPeriod"`
 
+	// SubjectKeyIdHash selects the hash used to derive the CA certificate's
+	// SubjectKeyId: SubjectKeyIdHashSHA1 (the default) or
+	// SubjectKeyIdHashSHA256. Changing it for an existing CA changes that CA's
+	// key identifier, and with it the authorityKeyIdentifier of every
+	// certificate the CA subsequently signs, so treat a change as a trust anchor
+	// rotation rather than a configuration tweak.
+	SubjectKeyIdHash string `json:"SubjectKeyIdHash"`
+
 	// PKCS#11 device fields.
 	Identifier       string `json:"Identifier"`
 	KeyLabel         string `json:"KeyLabel"`
@@ -91,5 +114,8 @@ func (c *CAConfig) LoadDefaults() {
 	}
 	if c.ValidityPeriod <= 0 {
 		c.ValidityPeriod = defaultValidityPeriod
+	}
+	if c.SubjectKeyIdHash == "" {
+		c.SubjectKeyIdHash = defaultSubjectKeyIdHash
 	}
 }

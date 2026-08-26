@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -195,12 +196,12 @@ func TestGenCACert(t *testing.T) {
 
 }
 
-// TestGenCACertSubjectKeyID checks that the CA certificate carries a key
-// identifier derived with method 1 of RFC 5280, Section 4.2.1.2, rather than
-// whichever algorithm x509.CreateCertificate would have filled in for the Go
-// release the binary happens to be built with. The identifier is copied into
-// the authorityKeyIdentifier of every certificate the CA signs, so it has to
-// stay a property of the key alone.
+// TestGenCACertSubjectKeyID checks that the CA certificate's key identifier is
+// derived from the configured hash rather than from whichever algorithm
+// x509.CreateCertificate would have filled in for the Go release the binary
+// happens to be built with. The identifier is copied into the
+// authorityKeyIdentifier of every certificate the CA signs, so it has to stay a
+// property of the key and the configuration alone.
 func TestGenCACertSubjectKeyID(t *testing.T) {
 	t.Parallel()
 
@@ -213,7 +214,7 @@ func TestGenCACertSubjectKeyID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tests := map[string]struct {
+	keys := map[string]struct {
 		signer crypto.Signer
 		pka    x509.PublicKeyAlgorithm
 		sa     x509.SignatureAlgorithm
@@ -221,33 +222,61 @@ func TestGenCACertSubjectKeyID(t *testing.T) {
 		"ecdsa": {eckey, x509.ECDSA, x509.ECDSAWithSHA384},
 		"rsa":   {rsakey, x509.RSA, x509.SHA256WithRSA},
 	}
-
-	for name, tt := range tests {
-		name, tt := name, tt
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			got, err := GenCACert(&crypki.CAConfig{CommonName: "foo.example.com"}, tt.signer, "", nil, nil, tt.pka, tt.sa)
-			if err != nil {
-				t.Fatalf("GenCACert() error = %v", err)
-			}
-			block, _ := pem.Decode(got)
-			if block == nil {
-				t.Fatal("unable to decode PEM block containing the certificate")
-			}
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				t.Fatalf("failed to parse certificate: %v", err)
-			}
-			if want := rfc5280KeyID(t, tt.signer.Public()); !bytes.Equal(cert.SubjectKeyId, want) {
-				t.Errorf("SubjectKeyId = %x, want %x (RFC 5280 method 1)", cert.SubjectKeyId, want)
-			}
-		})
+	hashes := map[string]struct {
+		configured string
+		want       func(*testing.T, crypto.PublicKey) []byte
+	}{
+		"unset defaults to sha1":     {"", rfc5280KeyID},
+		"sha1":                       {crypki.SubjectKeyIdHashSHA1, rfc5280KeyID},
+		"sha1 is case-insensitive":   {"sha1", rfc5280KeyID},
+		"sha256":                     {crypki.SubjectKeyIdHashSHA256, rfc7093KeyID},
+		"sha256 is case-insensitive": {"sha256", rfc7093KeyID},
 	}
+
+	for keyName, k := range keys {
+		for hashName, h := range hashes {
+			keyName, k, hashName, h := keyName, k, hashName, h
+			t.Run(keyName+"/"+hashName, func(t *testing.T) {
+				t.Parallel()
+				cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyIdHash: h.configured}
+				got, err := GenCACert(cfg, k.signer, "", nil, nil, k.pka, k.sa)
+				if err != nil {
+					t.Fatalf("GenCACert() error = %v", err)
+				}
+				block, _ := pem.Decode(got)
+				if block == nil {
+					t.Fatal("unable to decode PEM block containing the certificate")
+				}
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					t.Fatalf("failed to parse certificate: %v", err)
+				}
+				if want := h.want(t, k.signer.Public()); !bytes.Equal(cert.SubjectKeyId, want) {
+					t.Errorf("SubjectKeyId = %x, want %x", cert.SubjectKeyId, want)
+				}
+			})
+		}
+	}
+
+	t.Run("unknown hash is rejected", func(t *testing.T) {
+		t.Parallel()
+		cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyIdHash: "SHA3-256"}
+		if _, err := GenCACert(cfg, eckey, "", nil, nil, x509.ECDSA, x509.ECDSAWithSHA384); err == nil {
+			t.Error("GenCACert() expected an error for an unknown SubjectKeyIdHash")
+		}
+	})
+
+	t.Run("the two methods disagree", func(t *testing.T) {
+		t.Parallel()
+		if bytes.Equal(rfc5280KeyID(t, eckey.Public()), rfc7093KeyID(t, eckey.Public())) {
+			t.Error("RFC 5280 and RFC 7093 key identifiers should differ for the same key")
+		}
+	})
 }
 
-// rfc5280KeyID recomputes the expected key identifier independently of the code
-// under test, so the assertion does not go through the same helper it verifies.
-func rfc5280KeyID(t *testing.T, pub crypto.PublicKey) []byte {
+// subjectPublicKeyBytes returns the value of the BIT STRING subjectPublicKey,
+// excluding the tag, length and number of unused bits.
+func subjectPublicKeyBytes(t *testing.T, pub crypto.PublicKey) []byte {
 	t.Helper()
 	der, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
@@ -260,6 +289,20 @@ func rfc5280KeyID(t *testing.T, pub crypto.PublicKey) []byte {
 	if _, err := asn1.Unmarshal(der, &spki); err != nil {
 		t.Fatalf("unable to parse public key: %v", err)
 	}
-	sum := sha1.Sum(spki.SubjectPublicKey.Bytes)
+	return spki.SubjectPublicKey.Bytes
+}
+
+// rfc5280KeyID and rfc7093KeyID recompute the expected identifiers
+// independently of the code under test, so the assertions do not go through the
+// same helper they verify.
+func rfc5280KeyID(t *testing.T, pub crypto.PublicKey) []byte {
+	t.Helper()
+	sum := sha1.Sum(subjectPublicKeyBytes(t, pub))
 	return sum[:]
+}
+
+func rfc7093KeyID(t *testing.T, pub crypto.PublicKey) []byte {
+	t.Helper()
+	sum := sha256.Sum256(subjectPublicKeyBytes(t, pub))
+	return sum[:20]
 }

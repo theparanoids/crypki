@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -15,6 +16,7 @@ import (
 	"math/big"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/theparanoids/crypki"
@@ -54,7 +56,7 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 		Organization:       org,
 		OrganizationalUnit: orgUnit,
 	}
-	skid, err := subjectKeyID(signer.Public())
+	skid, err := subjectKeyID(signer.Public(), config.SubjectKeyIdHash)
 	if err != nil {
 		return nil, err
 	}
@@ -82,21 +84,25 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}), nil
 }
 
-// subjectKeyID derives a key identifier from pub using method 1 of RFC 5280,
-// Section 4.2.1.2: the 160-bit SHA-1 hash of the value of the BIT STRING
-// subjectPublicKey, excluding the tag, length and number of unused bits.
+// subjectKeyID derives a key identifier from pub with the hash named by
+// hashName: crypki.SubjectKeyIdHashSHA1 (method 1 of RFC 5280, Section
+// 4.2.1.2), crypki.SubjectKeyIdHashSHA256 (method 1 of RFC 7093, Section 2), or
+// empty for the SHA-1 default.
 //
-// x509.CreateCertificate fills in a missing SubjectKeyId on its own, but which
-// algorithm it uses depends on the Go release the binary was built with: Go
-// 1.25 switched from the SHA-1 of RFC 5280 to the truncated SHA-256 of RFC
-// 7093, Section 2. A CA certificate's key identifier is part of the trust
-// anchor's identity -- CreateCertificate copies it into the
-// authorityKeyIdentifier of every certificate the CA goes on to sign, and
-// verifiers match that back to the CA when building a chain -- so letting it
-// change with the toolchain silently invalidates the chains an existing
-// deployment already trusts. Deriving it here keeps it a property of the key
-// rather than of the build.
-func subjectKeyID(pub crypto.PublicKey) ([]byte, error) {
+// x509.CreateCertificate can fill in a missing SubjectKeyId on its own, but
+// which algorithm it uses depends on the Go release the binary was built with:
+// Go 1.25 switched from the SHA-1 of RFC 5280 to the truncated SHA-256 of RFC
+// 7093. A CA certificate's key identifier is part of the trust anchor's
+// identity -- CreateCertificate copies it into the authorityKeyIdentifier of
+// every certificate the CA goes on to sign, and verifiers match that back to
+// the CA when building a chain -- so letting it change with the toolchain
+// silently invalidates the chains an existing deployment already trusts.
+// Deriving it here makes it a property of the key and the configuration rather
+// than of the build.
+//
+// The default is applied here rather than left to CAConfig.LoadDefaults, which
+// cmd/gen-cacert does not call.
+func subjectKeyID(pub crypto.PublicKey, hashName string) ([]byte, error) {
 	der, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return nil, fmt.Errorf("unable to marshal public key: %v", err)
@@ -108,8 +114,16 @@ func subjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 	if _, err := asn1.Unmarshal(der, &spki); err != nil {
 		return nil, fmt.Errorf("unable to parse public key: %v", err)
 	}
-	sum := sha1.Sum(spki.SubjectPublicKey.Bytes)
-	return sum[:], nil
+	switch strings.ToUpper(strings.TrimSpace(hashName)) {
+	case "", crypki.SubjectKeyIdHashSHA1:
+		sum := sha1.Sum(spki.SubjectPublicKey.Bytes)
+		return sum[:], nil
+	case crypki.SubjectKeyIdHashSHA256:
+		sum := sha256.Sum256(spki.SubjectPublicKey.Bytes)
+		return sum[:20], nil
+	default:
+		return nil, fmt.Errorf("unknown SubjectKeyIdHash %q, want %q or %q", hashName, crypki.SubjectKeyIdHashSHA1, crypki.SubjectKeyIdHashSHA256)
+	}
 }
 
 func newSerial() *big.Int {

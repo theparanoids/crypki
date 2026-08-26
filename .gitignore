@@ -11,5 +11,6 @@ docker-softhsm/tls-crt
 tools_bin/
 crypki-sbom.spdx.json
 results.sarif
+coverage.txt
 
 dist/

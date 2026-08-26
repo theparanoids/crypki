@@ -6,8 +6,10 @@ package x509cert
 import (
 	"crypto"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -52,8 +54,14 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 		Organization:       org,
 		OrganizationalUnit: orgUnit,
 	}
+	skid, err := subjectKeyID(signer.Public())
+	if err != nil {
+		return nil, err
+	}
+
 	template := &x509.Certificate{
 		Subject:               subj,
+		SubjectKeyId:          skid,
 		SerialNumber:          newSerial(),
 		PublicKeyAlgorithm:    pka,
 		PublicKey:             signer.Public(),
@@ -72,6 +80,36 @@ func GenCACert(config *crypki.CAConfig, signer crypto.Signer, hostname string, i
 		return nil, fmt.Errorf("unable to sign x509 cert: %v", err)
 	}
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}), nil
+}
+
+// subjectKeyID derives a key identifier from pub using method 1 of RFC 5280,
+// Section 4.2.1.2: the 160-bit SHA-1 hash of the value of the BIT STRING
+// subjectPublicKey, excluding the tag, length and number of unused bits.
+//
+// x509.CreateCertificate fills in a missing SubjectKeyId on its own, but which
+// algorithm it uses depends on the Go release the binary was built with: Go
+// 1.25 switched from the SHA-1 of RFC 5280 to the truncated SHA-256 of RFC
+// 7093, Section 2. A CA certificate's key identifier is part of the trust
+// anchor's identity -- CreateCertificate copies it into the
+// authorityKeyIdentifier of every certificate the CA goes on to sign, and
+// verifiers match that back to the CA when building a chain -- so letting it
+// change with the toolchain silently invalidates the chains an existing
+// deployment already trusts. Deriving it here keeps it a property of the key
+// rather than of the build.
+func subjectKeyID(pub crypto.PublicKey) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal public key: %v", err)
+	}
+	var spki struct {
+		Algorithm        pkix.AlgorithmIdentifier
+		SubjectPublicKey asn1.BitString
+	}
+	if _, err := asn1.Unmarshal(der, &spki); err != nil {
+		return nil, fmt.Errorf("unable to parse public key: %v", err)
+	}
+	sum := sha1.Sum(spki.SubjectPublicKey.Bytes)
+	return sum[:], nil
 }
 
 func newSerial() *big.Int {

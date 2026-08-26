@@ -19,7 +19,6 @@ import (
 	"net"
 	"net/url"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/theparanoids/crypki"
@@ -198,82 +197,33 @@ func TestGenCACert(t *testing.T) {
 
 }
 
-// TestSubjectKeyIDSpec covers the "scheme:value" grammar of
-// CAConfig.SubjectKeyId: which specs resolve to which identifier, and which are
-// rejected instead of quietly falling back to a default.
-func TestSubjectKeyIDSpec(t *testing.T) {
+// TestSubjectKeyID covers what this package adds on top of
+// crypki.ParseSubjectKeyId, which owns the grammar and is tested there: that a
+// hash spec is derived from the right key with the right digest, that a literal
+// reaches the certificate untouched, and that a parse error is propagated.
+func TestSubjectKeyID(t *testing.T) {
 	t.Parallel()
-
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pub := key.Public()
-	sha1ID := rfc5280KeyID(t, pub)
-	sha256ID := rfc7093KeyID(t, pub)
-	lit := mustHex(t, "6802eca0a62b9c8053b807f3caefe683bc2f136e")
 
 	tests := map[string]struct {
-		spec    string
-		want    []byte
-		wantErr string // substring the error must mention; empty means success
+		spec string
+		want []byte
 	}{
-		// hash: derived from the key.
-		"empty defaults to sha1": {"", sha1ID, ""},
-		"blank defaults to sha1": {"   ", sha1ID, ""},
-		"hash sha1":              {"hash:sha1", sha1ID, ""},
-		"hash sha1 uppercase":    {"HASH:SHA1", sha1ID, ""},
-		"hash sha1 mixed case":   {"Hash:Sha1", sha1ID, ""},
-		"hash sha1 padded":       {"  hash : sha1  ", sha1ID, ""},
-		"hash sha256":            {"hash:sha256", sha256ID, ""},
-		"hash sha256 uppercase":  {"HASH:SHA256", sha256ID, ""},
-		"named constant sha1":    {crypki.SubjectKeyIdSHA1, sha1ID, ""},
-		"named constant sha256":  {crypki.SubjectKeyIdSHA256, sha256ID, ""},
-
-		// hex: literal.
-		"hex plain":                 {"hex:6802eca0a62b9c8053b807f3caefe683bc2f136e", lit, ""},
-		"hex uppercase":             {"hex:6802ECA0A62B9C8053B807F3CAEFE683BC2F136E", lit, ""},
-		"hex with colons":           {"hex:68:02:EC:A0:A6:2B:9C:80:53:B8:07:F3:CA:EF:E6:83:BC:2F:13:6E", lit, ""},
-		"hex with spaces":           {"hex:68 02 ec a0 a6 2b 9c 80 53 b8 07 f3 ca ef e6 83 bc 2f 13 6e", lit, ""},
-		"hex with dashes":           {"hex:6802-eca0-a62b-9c80-53b8-07f3-caef-e683-bc2f-136e", lit, ""},
-		"hex shorter than 20 bytes": {"hex:0a0b0c", []byte{0x0a, 0x0b, 0x0c}, ""},
-		"hex longer than 20 bytes":  {"hex:" + strings.Repeat("ab", 32), bytes.Repeat([]byte{0xab}, 32), ""},
-
-		// text: literal, taken as the raw bytes of the string.
-		"text":                         {"text:athenz-ca-us-west-2-stage", []byte("athenz-ca-us-west-2-stage"), ""},
-		"text keeps inner colons":      {"text:foo:bar:baz", []byte("foo:bar:baz"), ""},
-		"text keeps surrounding space": {"text:  padded  ", []byte("  padded  "), ""},
-		"text keeps case":              {"text:MixedCase", []byte("MixedCase"), ""},
-		"text utf8":                    {"text:测试-ca", []byte("测试-ca"), ""},
-
-		// Rejected.
-		"no scheme":           {"sha1", nil, "missing a scheme"},
-		"no scheme bare hex":  {"6802eca0", nil, "missing a scheme"},
-		"unknown scheme":      {"md5:abcd", nil, "unknown scheme"},
-		"empty scheme":        {":abcd", nil, "unknown scheme"},
-		"unknown hash":        {"hash:md5", nil, "unknown hash"},
-		"empty hash":          {"hash:", nil, "unknown hash"},
-		"hex empty":           {"hex:", nil, "empty literal"},
-		"hex only separators": {"hex: :-: ", nil, "empty literal"},
-		"hex not hex":         {"hex:zzzz", nil, "not valid hex"},
-		"hex odd length":      {"hex:abc", nil, "not valid hex"},
-		"text empty":          {"text:", nil, "empty literal"},
+		"unset derives with sha1":              {"", rfc5280KeyID(t, pub)},
+		"sha1 derives with sha1":               {crypki.SubjectKeyIdSHA1, rfc5280KeyID(t, pub)},
+		"sha256 derives with sha256 truncated": {crypki.SubjectKeyIdSHA256, rfc7093KeyID(t, pub)},
+		"hex literal is untouched":             {"hex:0a0b0c", []byte{0x0a, 0x0b, 0x0c}},
+		"text literal is untouched":            {"text:  Mixed:Case  ", []byte("  Mixed:Case  ")},
 	}
-
 	for name, tt := range tests {
 		name, tt := name, tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			got, err := subjectKeyID(pub, tt.spec)
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Fatalf("subjectKeyID(%q) = %x, want an error mentioning %q", tt.spec, got, tt.wantErr)
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("subjectKeyID(%q) error = %v, want it to mention %q", tt.spec, err, tt.wantErr)
-				}
-				return
-			}
 			if err != nil {
 				t.Fatalf("subjectKeyID(%q) error = %v", tt.spec, err)
 			}
@@ -285,8 +235,15 @@ func TestSubjectKeyIDSpec(t *testing.T) {
 
 	t.Run("the two hashes disagree", func(t *testing.T) {
 		t.Parallel()
-		if bytes.Equal(sha1ID, sha256ID) {
+		if bytes.Equal(rfc5280KeyID(t, pub), rfc7093KeyID(t, pub)) {
 			t.Error("RFC 5280 and RFC 7093 key identifiers should differ for the same key")
+		}
+	})
+
+	t.Run("a parse error is propagated", func(t *testing.T) {
+		t.Parallel()
+		if _, err := subjectKeyID(pub, "hash:md5"); err == nil {
+			t.Error("subjectKeyID() expected an error for an unknown hash")
 		}
 	})
 }

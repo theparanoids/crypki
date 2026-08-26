@@ -34,6 +34,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/theparanoids/crypki"
+	"github.com/theparanoids/crypki/config"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/scheduler"
 )
@@ -721,5 +722,44 @@ func TestIsValidCertRequest(t *testing.T) {
 				t.Fatalf("%s: got %v want %v", name, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestCAConfigFromKeyConfig guards the KeyConfig -> CAConfig copy that feeds
+// GenCACert. A field missed here is not a compile error and not a test failure
+// anywhere else, it just silently produces a CA that does not match the
+// configuration, so assert on every field rather than a chosen few.
+func TestCAConfigFromKeyConfig(t *testing.T) {
+	t.Parallel()
+
+	key := config.KeyConfig{
+		Country:            "US",
+		State:              "CA",
+		Locality:           "Sunnyvale",
+		Organization:       "Foo Org",
+		OrganizationalUnit: "Foo Org Unit",
+		CommonName:         "foo.example.com",
+		ValidityPeriod:     1234,
+		SubjectKeyId:       crypki.SubjectKeyIdSHA256,
+	}
+	want := &crypki.CAConfig{
+		Country:            "US",
+		State:              "CA",
+		Locality:           "Sunnyvale",
+		Organization:       "Foo Org",
+		OrganizationalUnit: "Foo Org Unit",
+		CommonName:         "foo.example.com",
+		ValidityPeriod:     1234,
+		SubjectKeyId:       crypki.SubjectKeyIdSHA256,
+	}
+	if got := caConfigFromKeyConfig(key); !reflect.DeepEqual(got, want) {
+		t.Errorf("caConfigFromKeyConfig() = %+v, want %+v", got, want)
+	}
+
+	// An empty SubjectKeyId has to survive as the documented default rather
+	// than as the empty string, since LoadDefaults runs inside the copy.
+	key.SubjectKeyId = ""
+	if got := caConfigFromKeyConfig(key); got.SubjectKeyId != crypki.SubjectKeyIdSHA1 {
+		t.Errorf("caConfigFromKeyConfig() SubjectKeyId = %q, want %q", got.SubjectKeyId, crypki.SubjectKeyIdSHA1)
 	}
 }

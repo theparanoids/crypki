@@ -261,6 +261,25 @@ func (s *signer) SignBlob(ctx context.Context, reqChan chan scheduler.Request, d
 	return getSignerData(ctx, reqChan, pool, priority, methodName, signRequest)
 }
 
+// caConfigFromKeyConfig copies the fields a CA certificate is built from out of
+// key. Every such field has to be listed here: one left out does not fail, it
+// silently falls back to a default, which for an identifier or a subject means
+// quietly issuing a different CA than the configuration asked for.
+func caConfigFromKeyConfig(key config.KeyConfig) *crypki.CAConfig {
+	caConfig := &crypki.CAConfig{
+		Country:            key.Country,
+		State:              key.State,
+		Locality:           key.Locality,
+		Organization:       key.Organization,
+		OrganizationalUnit: key.OrganizationalUnit,
+		CommonName:         key.CommonName,
+		ValidityPeriod:     key.ValidityPeriod,
+		SubjectKeyId:       key.SubjectKeyId,
+	}
+	caConfig.LoadDefaults()
+	return caConfig
+}
+
 // getX509CACert reads and returns x509 CA certificate from X509CACertLocation.
 // If the certificate is not valid, and CreateCACertIfNotExist is true, a new CA
 // certificate will be generated based on the config, and wrote to X509CACertLocation.
@@ -289,16 +308,7 @@ func getX509CACert(ctx context.Context, key config.KeyConfig, pool sPool, hostna
 	}
 	defer pool.put(signer)
 
-	caConfig := &crypki.CAConfig{
-		Country:            key.Country,
-		State:              key.State,
-		Locality:           key.Locality,
-		Organization:       key.Organization,
-		OrganizationalUnit: key.OrganizationalUnit,
-		CommonName:         key.CommonName,
-		ValidityPeriod:     key.ValidityPeriod,
-	}
-	caConfig.LoadDefaults()
+	caConfig := caConfigFromKeyConfig(key)
 
 	out, err := x509cert.GenCACert(caConfig, signer, hostname, ips, uris, signer.publicKeyAlgorithm(), signer.signAlgorithm())
 	if err != nil {

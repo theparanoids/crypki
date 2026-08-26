@@ -152,6 +152,10 @@ type KeyConfig struct {
 	Country, State, Locality, Organization, OrganizationalUnit, CommonName string
 	// The validity time period of the CA cert, which is specified in seconds.
 	ValidityPeriod uint64
+
+	// SubjectKeyId selects how the SubjectKeyId of a CA certificate created by
+	// CreateCACertIfNotExist is determined. See crypki.CAConfig.SubjectKeyId.
+	SubjectKeyId string
 }
 
 // Config defines struct to store configuration fields for crypki.

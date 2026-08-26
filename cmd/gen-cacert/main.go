@@ -148,6 +148,7 @@ func main() {
 		OrganizationalUnit:     cc.OrganizationalUnit,
 		CommonName:             cc.CommonName,
 		ValidityPeriod:         cc.ValidityPeriod,
+		SubjectKeyId:           cc.SubjectKeyId,
 	}}, requireX509CACert, hostname, ips, uris, config.DefaultPKCS11Timeout, false)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)

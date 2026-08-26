@@ -14,10 +14,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"net"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/theparanoids/crypki"
@@ -196,10 +198,103 @@ func TestGenCACert(t *testing.T) {
 
 }
 
-// TestGenCACertSubjectKeyID checks that the CA certificate's key identifier is
-// derived from the configured hash rather than from whichever algorithm
-// x509.CreateCertificate would have filled in for the Go release the binary
-// happens to be built with. The identifier is copied into the
+// TestSubjectKeyIDSpec covers the "scheme:value" grammar of
+// CAConfig.SubjectKeyId: which specs resolve to which identifier, and which are
+// rejected instead of quietly falling back to a default.
+func TestSubjectKeyIDSpec(t *testing.T) {
+	t.Parallel()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := key.Public()
+	sha1ID := rfc5280KeyID(t, pub)
+	sha256ID := rfc7093KeyID(t, pub)
+	lit := mustHex(t, "6802eca0a62b9c8053b807f3caefe683bc2f136e")
+
+	tests := map[string]struct {
+		spec    string
+		want    []byte
+		wantErr string // substring the error must mention; empty means success
+	}{
+		// hash: derived from the key.
+		"empty defaults to sha1": {"", sha1ID, ""},
+		"blank defaults to sha1": {"   ", sha1ID, ""},
+		"hash sha1":              {"hash:sha1", sha1ID, ""},
+		"hash sha1 uppercase":    {"HASH:SHA1", sha1ID, ""},
+		"hash sha1 mixed case":   {"Hash:Sha1", sha1ID, ""},
+		"hash sha1 padded":       {"  hash : sha1  ", sha1ID, ""},
+		"hash sha256":            {"hash:sha256", sha256ID, ""},
+		"hash sha256 uppercase":  {"HASH:SHA256", sha256ID, ""},
+		"named constant sha1":    {crypki.SubjectKeyIdSHA1, sha1ID, ""},
+		"named constant sha256":  {crypki.SubjectKeyIdSHA256, sha256ID, ""},
+
+		// hex: literal.
+		"hex plain":                 {"hex:6802eca0a62b9c8053b807f3caefe683bc2f136e", lit, ""},
+		"hex uppercase":             {"hex:6802ECA0A62B9C8053B807F3CAEFE683BC2F136E", lit, ""},
+		"hex with colons":           {"hex:68:02:EC:A0:A6:2B:9C:80:53:B8:07:F3:CA:EF:E6:83:BC:2F:13:6E", lit, ""},
+		"hex with spaces":           {"hex:68 02 ec a0 a6 2b 9c 80 53 b8 07 f3 ca ef e6 83 bc 2f 13 6e", lit, ""},
+		"hex with dashes":           {"hex:6802-eca0-a62b-9c80-53b8-07f3-caef-e683-bc2f-136e", lit, ""},
+		"hex shorter than 20 bytes": {"hex:0a0b0c", []byte{0x0a, 0x0b, 0x0c}, ""},
+		"hex longer than 20 bytes":  {"hex:" + strings.Repeat("ab", 32), bytes.Repeat([]byte{0xab}, 32), ""},
+
+		// text: literal, taken as the raw bytes of the string.
+		"text":                         {"text:athenz-ca-us-west-2-stage", []byte("athenz-ca-us-west-2-stage"), ""},
+		"text keeps inner colons":      {"text:foo:bar:baz", []byte("foo:bar:baz"), ""},
+		"text keeps surrounding space": {"text:  padded  ", []byte("  padded  "), ""},
+		"text keeps case":              {"text:MixedCase", []byte("MixedCase"), ""},
+		"text utf8":                    {"text:测试-ca", []byte("测试-ca"), ""},
+
+		// Rejected.
+		"no scheme":           {"sha1", nil, "missing a scheme"},
+		"no scheme bare hex":  {"6802eca0", nil, "missing a scheme"},
+		"unknown scheme":      {"md5:abcd", nil, "unknown scheme"},
+		"empty scheme":        {":abcd", nil, "unknown scheme"},
+		"unknown hash":        {"hash:md5", nil, "unknown hash"},
+		"empty hash":          {"hash:", nil, "unknown hash"},
+		"hex empty":           {"hex:", nil, "empty literal"},
+		"hex only separators": {"hex: :-: ", nil, "empty literal"},
+		"hex not hex":         {"hex:zzzz", nil, "not valid hex"},
+		"hex odd length":      {"hex:abc", nil, "not valid hex"},
+		"text empty":          {"text:", nil, "empty literal"},
+	}
+
+	for name, tt := range tests {
+		name, tt := name, tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got, err := subjectKeyID(pub, tt.spec)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("subjectKeyID(%q) = %x, want an error mentioning %q", tt.spec, got, tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("subjectKeyID(%q) error = %v, want it to mention %q", tt.spec, err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("subjectKeyID(%q) error = %v", tt.spec, err)
+			}
+			if !bytes.Equal(got, tt.want) {
+				t.Errorf("subjectKeyID(%q) = %x, want %x", tt.spec, got, tt.want)
+			}
+		})
+	}
+
+	t.Run("the two hashes disagree", func(t *testing.T) {
+		t.Parallel()
+		if bytes.Equal(sha1ID, sha256ID) {
+			t.Error("RFC 5280 and RFC 7093 key identifiers should differ for the same key")
+		}
+	})
+}
+
+// TestGenCACertSubjectKeyID checks that the identifier resolved from the config
+// actually reaches the certificate, rather than being replaced by whichever
+// algorithm x509.CreateCertificate would have filled in for the Go release the
+// binary happens to be built with. The identifier is copied into the
 // authorityKeyIdentifier of every certificate the CA signs, so it has to stay a
 // property of the key and the configuration alone.
 func TestGenCACertSubjectKeyID(t *testing.T) {
@@ -222,23 +317,27 @@ func TestGenCACertSubjectKeyID(t *testing.T) {
 		"ecdsa": {eckey, x509.ECDSA, x509.ECDSAWithSHA384},
 		"rsa":   {rsakey, x509.RSA, x509.SHA256WithRSA},
 	}
-	hashes := map[string]struct {
-		configured string
-		want       func(*testing.T, crypto.PublicKey) []byte
+	specs := map[string]struct {
+		spec string
+		want func(*testing.T, crypto.PublicKey) []byte
 	}{
-		"unset defaults to sha1":     {"", rfc5280KeyID},
-		"sha1":                       {crypki.SubjectKeyIdHashSHA1, rfc5280KeyID},
-		"sha1 is case-insensitive":   {"sha1", rfc5280KeyID},
-		"sha256":                     {crypki.SubjectKeyIdHashSHA256, rfc7093KeyID},
-		"sha256 is case-insensitive": {"sha256", rfc7093KeyID},
+		"unset":  {"", rfc5280KeyID},
+		"sha1":   {crypki.SubjectKeyIdSHA1, rfc5280KeyID},
+		"sha256": {crypki.SubjectKeyIdSHA256, rfc7093KeyID},
+		"hex literal": {"hex:6802eca0a62b9c8053b807f3caefe683bc2f136e", func(t *testing.T, _ crypto.PublicKey) []byte {
+			return mustHex(t, "6802eca0a62b9c8053b807f3caefe683bc2f136e")
+		}},
+		"text literal": {"text:athenz-ca", func(t *testing.T, _ crypto.PublicKey) []byte {
+			return []byte("athenz-ca")
+		}},
 	}
 
 	for keyName, k := range keys {
-		for hashName, h := range hashes {
-			keyName, k, hashName, h := keyName, k, hashName, h
-			t.Run(keyName+"/"+hashName, func(t *testing.T) {
+		for specName, sp := range specs {
+			keyName, k, specName, sp := keyName, k, specName, sp
+			t.Run(keyName+"/"+specName, func(t *testing.T) {
 				t.Parallel()
-				cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyIdHash: h.configured}
+				cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyId: sp.spec}
 				got, err := GenCACert(cfg, k.signer, "", nil, nil, k.pka, k.sa)
 				if err != nil {
 					t.Fatalf("GenCACert() error = %v", err)
@@ -251,25 +350,18 @@ func TestGenCACertSubjectKeyID(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to parse certificate: %v", err)
 				}
-				if want := h.want(t, k.signer.Public()); !bytes.Equal(cert.SubjectKeyId, want) {
+				if want := sp.want(t, k.signer.Public()); !bytes.Equal(cert.SubjectKeyId, want) {
 					t.Errorf("SubjectKeyId = %x, want %x", cert.SubjectKeyId, want)
 				}
 			})
 		}
 	}
 
-	t.Run("unknown hash is rejected", func(t *testing.T) {
+	t.Run("a rejected spec fails the whole call", func(t *testing.T) {
 		t.Parallel()
-		cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyIdHash: "SHA3-256"}
+		cfg := &crypki.CAConfig{CommonName: "foo.example.com", SubjectKeyId: "hash:md5"}
 		if _, err := GenCACert(cfg, eckey, "", nil, nil, x509.ECDSA, x509.ECDSAWithSHA384); err == nil {
-			t.Error("GenCACert() expected an error for an unknown SubjectKeyIdHash")
-		}
-	})
-
-	t.Run("the two methods disagree", func(t *testing.T) {
-		t.Parallel()
-		if bytes.Equal(rfc5280KeyID(t, eckey.Public()), rfc7093KeyID(t, eckey.Public())) {
-			t.Error("RFC 5280 and RFC 7093 key identifiers should differ for the same key")
+			t.Error("GenCACert() expected an error for an unknown SubjectKeyId hash")
 		}
 	})
 }
@@ -304,5 +396,14 @@ func rfc5280KeyID(t *testing.T, pub crypto.PublicKey) []byte {
 func rfc7093KeyID(t *testing.T, pub crypto.PublicKey) []byte {
 	t.Helper()
 	sum := sha256.Sum256(subjectPublicKeyBytes(t, pub))
-	return sum[:20]
+	return sum[:sha1.Size]
+}
+
+func mustHex(t *testing.T, s string) []byte {
+	t.Helper()
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		t.Fatalf("bad test fixture %q: %v", s, err)
+	}
+	return b
 }

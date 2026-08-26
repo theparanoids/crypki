@@ -168,6 +168,29 @@ EOF
   # You will see a newly signed x509 CA certificate printed and written to the `-out` path.  
   ```
 
+  The PKCS#11 key fields can also be overridden on the command line, so one config
+  file can serve every key in the slot instead of needing a near-duplicate file per
+  key. `-key-type` and `-signature-algo` accept an algorithm name as well as the
+  numeric x509 value used by the config file, so the example above can select the
+  EC key of the same slot without editing any JSON:
+
+  ```sh
+  /usr/bin/gen-cacert -config=/tmp/ca_crt_config.json -out=/tmp/x509-ca-ec.cert \
+    -key-identifier=x509-key-ec -key-label=host_x509_ec \
+    -key-type=ECDSA -signature-algo=ECDSA-SHA384
+  ```
+
+  | Flag | Overrides | Accepted values |
+  | --- | --- | --- |
+  | `-key-identifier` | `Identifier` | any name |
+  | `-key-label` | `KeyLabel` | any label present on the slot |
+  | `-key-type` | `KeyType` | `RSA`, `DSA`, `ECDSA`, `Ed25519`, or the numeric x509 value |
+  | `-signature-algo` | `SignatureAlgo` | `SHA256-RSA`, `ECDSA-SHA384`, `Ed25519`, … (run `gen-cacert -h` for the full list), or the numeric x509 value |
+
+  Names are matched case-insensitively, and the Go constant spellings
+  (`ECDSAWithSHA384`) are accepted alongside the canonical ones (`ECDSA-SHA384`).
+  Omitting a flag leaves the corresponding config file field untouched.
+
 ## Contribute
 
 - Please refer to [Contributing.md](Contributing.md) for information about how to get involved. We welcome issues, questions and pull requests.

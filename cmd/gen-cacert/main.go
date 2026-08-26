@@ -25,6 +25,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/theparanoids/crypki"
@@ -42,6 +43,10 @@ var caOutPath string
 var skipHostname bool
 var skipIPs bool
 var uri string
+var keyIdentifier string
+var keyLabel string
+var keyType string
+var signatureAlgo string
 
 func getIPs() (ips []net.IP, err error) {
 	ifaces, err := net.Interfaces()
@@ -68,12 +73,45 @@ func getIPs() (ips []net.IP, err error) {
 	return ips, nil
 }
 
+// applyKeyOverrides lets the command line take precedence over the PKCS#11 key
+// fields of the CA cert configuration file. Without it every key needs its own
+// config file even when the files differ only in which key of the slot to use,
+// which is how per-algorithm duplicates such as ca-rsa.json and ca-ec.json come
+// about. An empty override value leaves the configured field untouched.
+func applyKeyOverrides(cc *crypki.CAConfig, identifier, label, keyTypeValue, signatureAlgoValue string) error {
+	if identifier != "" {
+		cc.Identifier = identifier
+	}
+	if label != "" {
+		cc.KeyLabel = label
+	}
+	if keyTypeValue != "" {
+		algo, err := parseKeyType(keyTypeValue)
+		if err != nil {
+			return err
+		}
+		cc.KeyType = int(algo)
+	}
+	if signatureAlgoValue != "" {
+		algo, err := parseSignatureAlgo(signatureAlgoValue)
+		if err != nil {
+			return err
+		}
+		cc.SignatureAlgo = int(algo)
+	}
+	return nil
+}
+
 func main() {
 	flag.StringVar(&cfg, "config", "", "CA cert configuration file")
 	flag.StringVar(&caOutPath, "out", defaultCAOutPath, "the output path of the generated CA cert")
 	flag.BoolVar(&skipHostname, "skip-hostname", false, "skip including dnsName attribute in CA cert")
 	flag.BoolVar(&skipIPs, "skip-ips", false, "skip including IP attribute in CA cert")
 	flag.StringVar(&uri, "uri", "", "URI value to include in CA cert SAN")
+	flag.StringVar(&keyIdentifier, "key-identifier", "", "override the Identifier field of the CA cert configuration file")
+	flag.StringVar(&keyLabel, "key-label", "", "override the KeyLabel field of the CA cert configuration file")
+	flag.StringVar(&keyType, "key-type", "", "override the KeyType field of the CA cert configuration file; a numeric x509 value or one of: "+strings.Join(keyTypeNames(), ", "))
+	flag.StringVar(&signatureAlgo, "signature-algo", "", "override the SignatureAlgo field of the CA cert configuration file; a numeric x509 value or one of: "+strings.Join(signatureAlgoNames(), ", "))
 
 	flag.Parse()
 	log.SetFlags(log.LstdFlags | log.LUTC | log.Lmicroseconds | log.Lshortfile)
@@ -91,6 +129,9 @@ func main() {
 	}
 	cc := &crypki.CAConfig{}
 	if err := json.Unmarshal(cfgData, cc); err != nil {
+		log.Fatal(err)
+	}
+	if err := applyKeyOverrides(cc, keyIdentifier, keyLabel, keyType, signatureAlgo); err != nil {
 		log.Fatal(err)
 	}
 

@@ -168,6 +168,14 @@ EOF
   # You will see a newly signed x509 CA certificate printed and written to the `-out` path.  
   ```
 
+  The `SubjectKeyId` of the generated CA certificate is derived from the CA public
+  key with SHA-1, method 1 of [RFC 5280, Section 4.2.1.2](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2).
+  Set `"SubjectKeyIdHash": "SHA256"` in the config file to use method 1 of
+  [RFC 7093, Section 2](https://datatracker.ietf.org/doc/html/rfc7093#section-2)
+  instead. The identifier is copied into the `authorityKeyIdentifier` of every
+  certificate the CA signs, so changing it for a CA that is already in use is a
+  trust anchor rotation rather than a configuration tweak.
+
 ## Contribute
 
 - Please refer to [Contributing.md](Contributing.md) for information about how to get involved. We welcome issues, questions and pull requests.

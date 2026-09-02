@@ -36,6 +36,34 @@ const (
 
 )
 
+const (
+	// SubjectKeyIdSchemeHash derives the CA certificate's SubjectKeyId from the
+	// CA public key. The value after the scheme names the hash.
+	SubjectKeyIdSchemeHash = "hash"
+	// SubjectKeyIdSchemeHex takes the identifier literally from the hex digits
+	// that follow. ':', '-' and whitespace between digits are ignored, so a
+	// value copied out of `openssl x509 -ext subjectKeyIdentifier` can be pasted
+	// in unchanged.
+	SubjectKeyIdSchemeHex = "hex"
+	// SubjectKeyIdSchemeText takes the identifier literally from the raw UTF-8
+	// bytes of the text that follows, which is used exactly as written.
+	SubjectKeyIdSchemeText = "text"
+
+	// SubjectKeyIdHashSHA1 names method 1 of RFC 5280, Section 4.2.1.2: the
+	// 160-bit SHA-1 hash of the value of the BIT STRING subjectPublicKey.
+	SubjectKeyIdHashSHA1 = "sha1"
+	// SubjectKeyIdHashSHA256 names method 1 of RFC 7093, Section 2: the leftmost
+	// 160 bits of the SHA-256 hash of that same value.
+	SubjectKeyIdHashSHA256 = "sha256"
+
+	// SubjectKeyIdSHA1 is the default: it reproduces the identifier that CA
+	// certificates generated before this was configurable already carry, so
+	// upgrading crypki does not alter an existing trust anchor.
+	SubjectKeyIdSHA1 = SubjectKeyIdSchemeHash + ":" + SubjectKeyIdHashSHA1
+	// SubjectKeyIdSHA256 is the RFC 7093 counterpart of SubjectKeyIdSHA1.
+	SubjectKeyIdSHA256 = SubjectKeyIdSchemeHash + ":" + SubjectKeyIdHashSHA256
+)
+
 // CertSign interface contains methods related to signing certificates.
 type CertSign interface {
 	// GetSSHCertSigningKey returns the SSH signing key of the specified key.
@@ -65,6 +93,18 @@ type CAConfig struct {
 	// The validity time period of the CA cert, which is specified in seconds.
 	ValidityPeriod uint64 `json:"ValidityPeriod"`
 
+	// SubjectKeyId selects how the CA certificate's SubjectKeyId is determined,
+	// as a "scheme:value" pair. "hash:sha1" (the default) and "hash:sha256"
+	// derive it from the CA public key; "hex:<digits>" and "text:<string>" take
+	// it literally. An empty value means SubjectKeyIdSHA1; an unrecognised one
+	// is an error rather than a silent fallback.
+	//
+	// Changing this for an existing CA changes that CA's key identifier, and
+	// with it the authorityKeyIdentifier of every certificate the CA
+	// subsequently signs, so treat a change as a trust anchor rotation rather
+	// than a configuration tweak.
+	SubjectKeyId string `json:"SubjectKeyId"`
+
 	// PKCS#11 device fields.
 	Identifier       string `json:"Identifier"`
 	KeyLabel         string `json:"KeyLabel"`
@@ -91,5 +131,8 @@ func (c *CAConfig) LoadDefaults() {
 	}
 	if c.ValidityPeriod <= 0 {
 		c.ValidityPeriod = defaultValidityPeriod
+	}
+	if c.SubjectKeyId == "" {
+		c.SubjectKeyId = SubjectKeyIdSHA1
 	}
 }

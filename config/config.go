@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/theparanoids/crypki"
 )
 
 const (
@@ -152,6 +154,10 @@ type KeyConfig struct {
 	Country, State, Locality, Organization, OrganizationalUnit, CommonName string
 	// The validity time period of the CA cert, which is specified in seconds.
 	ValidityPeriod uint64
+
+	// SubjectKeyId selects how the SubjectKeyId of a CA certificate created by
+	// CreateCACertIfNotExist is determined. See crypki.CAConfig.SubjectKeyId.
+	SubjectKeyId string
 }
 
 // Config defines struct to store configuration fields for crypki.
@@ -257,6 +263,14 @@ func (c *Config) validate() error {
 
 		if key.SignatureAlgo < x509.SHA1WithRSA || key.SignatureAlgo > x509.PureEd25519 {
 			return fmt.Errorf("key %q: invalid signature hash algo specified", key.Identifier)
+		}
+
+		// Checked here rather than left to the moment a CA certificate has to be
+		// issued: that only happens for a CreateCACertIfNotExist key whose cert is
+		// missing or expired, so a typo would otherwise lie dormant and then take
+		// the server down exactly when it needs to re-sign.
+		if _, err := crypki.ParseSubjectKeyId(key.SubjectKeyId); err != nil {
+			return fmt.Errorf("key %q: %v", key.Identifier, err)
 		}
 	}
 

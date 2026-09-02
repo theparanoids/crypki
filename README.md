@@ -168,6 +168,33 @@ EOF
   # You will see a newly signed x509 CA certificate printed and written to the `-out` path.  
   ```
 
+  The `SubjectKeyId` of the generated CA certificate is chosen by the optional
+  `SubjectKeyId` config field, written as `scheme:value`:
+
+  | Value | Identifier |
+  | --- | --- |
+  | *(omitted)* | same as `hash:sha1` |
+  | `hash:sha1` | method 1 of [RFC 5280, Section 4.2.1.2](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2): the 160-bit SHA-1 hash of the CA public key |
+  | `hash:sha256` | method 1 of [RFC 7093, Section 2](https://datatracker.ietf.org/doc/html/rfc7093#section-2): the leftmost 160 bits of its SHA-256 hash |
+  | `hex:<digits>` | the literal bytes written as hex; `:`, `-` and whitespace between digits are ignored |
+  | `text:<string>` | the literal raw bytes of the string, used exactly as written |
+
+  The scheme and the hash name are case-insensitive; a `text:` value is not. An
+  unrecognised value is an error rather than a silent fallback. A `hex:` value
+  can be pasted straight from certificate tooling:
+
+  ```sh
+  openssl x509 -in ca.pem -noout -ext subjectKeyIdentifier
+  # 68:02:EC:A0:A6:2B:9C:80:53:B8:07:F3:CA:EF:E6:83:BC:2F:13:6E
+  #   -> "SubjectKeyId": "hex:68:02:EC:A0:A6:2B:9C:80:53:B8:07:F3:CA:EF:E6:83:BC:2F:13:6E"
+  ```
+
+  The identifier is copied into the `authorityKeyIdentifier` of every certificate
+  the CA signs, so changing it for a CA that is already in use is a trust anchor
+  rotation rather than a configuration tweak. Both RFC methods produce 20 bytes;
+  a literal of another length is accepted but logged, since implementations that
+  read the extension commonly assume that width.
+
 ## Contribute
 
 - Please refer to [Contributing.md](Contributing.md) for information about how to get involved. We welcome issues, questions and pull requests.

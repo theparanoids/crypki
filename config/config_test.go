@@ -3,7 +3,9 @@
 package config
 
 import (
+	"crypto/x509"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -19,9 +21,9 @@ func TestParse(t *testing.T) {
 		TLSPort:           "4443",
 		SignersPerPool:    2,
 		Keys: []KeyConfig{
-			{"key1", 1, "", "/path/1", "foo", 2, 3, 10, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0},
-			{"key2", 2, "", "/path/2", "bar", 2, 1, 4, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0},
-			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 4, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0},
+			{"key1", 1, "", "/path/1", "foo", 2, 3, 10, []string{}, []string{}, true, "/path/foo", "", "", "", "", "", "My CA", 0, ""},
+			{"key2", 2, "", "/path/2", "bar", 2, 1, 4, []string{"http://test.ocsp.com:8888"}, []string{"http://test.crl.com:8889"}, false, "", "", "", "", "", "", "", 0, ""},
+			{"key3", 0, "foo", "/path/3", "baz", 2, 1, 4, []string{"http://test1.ocsp.com:8888", "http://test2.ocsp.com:8888"}, []string{"http://test1.crl.com:8889", "http://test2.crl.com:8889"}, false, "/path/baz", "", "", "", "", "", "", 0, ""},
 		},
 		KeyUsages: []KeyUsage{
 			{"/sig/x509-cert", []string{"key1", "key3"}, 3600, true},
@@ -230,5 +232,37 @@ func TestRateLimitDefaults(t *testing.T) {
 				t.Errorf("RateLimit defaults mismatch, got: %+v, want: %+v", c.RateLimit, tt.want)
 			}
 		})
+	}
+}
+
+// TestValidateSubjectKeyId checks that a malformed spec is caught while the
+// configuration is being read, not later when a CA certificate has to be
+// issued.
+func TestValidateSubjectKeyId(t *testing.T) {
+	t.Parallel()
+	cfg := func(spec string) *Config {
+		return &Config{Keys: []KeyConfig{{
+			Identifier:    "key1",
+			UserPinPath:   "/path/pin",
+			KeyType:       x509.RSA,
+			SignatureAlgo: x509.SHA256WithRSA,
+			SubjectKeyId:  spec,
+		}}}
+	}
+
+	err := cfg("hash:md5").validate()
+	if err == nil {
+		t.Fatal("validate() accepted an unknown SubjectKeyId hash")
+	}
+	if !strings.Contains(err.Error(), "key1") || !strings.Contains(err.Error(), "unknown hash") {
+		t.Errorf("validate() error = %v, want it to name the key and the unknown hash", err)
+	}
+
+	// A well formed spec must not be what stops validation.
+	if err := cfg("hash:sha256").validate(); err != nil && strings.Contains(err.Error(), "SubjectKeyId") {
+		t.Errorf("validate() rejected a valid SubjectKeyId: %v", err)
+	}
+	if err := cfg("").validate(); err != nil && strings.Contains(err.Error(), "SubjectKeyId") {
+		t.Errorf("validate() rejected an unset SubjectKeyId: %v", err)
 	}
 }

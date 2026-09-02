@@ -68,6 +68,33 @@ func getIPs() (ips []net.IP, err error) {
 	return ips, nil
 }
 
+// keyConfigFromCAConfig copies the CA cert configuration file into the shape
+// pkcs11.NewCertSign takes. Every field the generated certificate depends on
+// has to be listed here: one left out is neither a compile error nor a failure
+// anywhere else, it just quietly generates a CA that does not match the file
+// the operator wrote.
+func keyConfigFromCAConfig(cc *crypki.CAConfig, caOutPath string) config.KeyConfig {
+	return config.KeyConfig{
+		Identifier:             cc.Identifier,
+		SlotNumber:             uint(cc.SlotNumber),
+		UserPinPath:            cc.UserPinPath,
+		KeyLabel:               cc.KeyLabel,
+		KeyType:                x509.PublicKeyAlgorithm(cc.KeyType),
+		SignatureAlgo:          x509.SignatureAlgorithm(cc.SignatureAlgo),
+		SessionPoolSize:        2,
+		X509CACertLocation:     caOutPath,
+		CreateCACertIfNotExist: true,
+		Country:                cc.Country,
+		State:                  cc.State,
+		Locality:               cc.Locality,
+		Organization:           cc.Organization,
+		OrganizationalUnit:     cc.OrganizationalUnit,
+		CommonName:             cc.CommonName,
+		ValidityPeriod:         cc.ValidityPeriod,
+		SubjectKeyId:           cc.SubjectKeyId,
+	}
+}
+
 func main() {
 	flag.StringVar(&cfg, "config", "", "CA cert configuration file")
 	flag.StringVar(&caOutPath, "out", defaultCAOutPath, "the output path of the generated CA cert")
@@ -131,24 +158,8 @@ func main() {
 	p := &scheduler.Pool{Name: cc.Identifier, PoolSize: 2, FeatureEnabled: true, PKCS11Timeout: config.DefaultPKCS11Timeout * time.Second}
 	go scheduler.CollectRequest(ctx, requestChan, p)
 
-	signer, err := pkcs11.NewCertSign(ctx, cc.PKCS11ModulePath, []config.KeyConfig{{
-		Identifier:             cc.Identifier,
-		SlotNumber:             uint(cc.SlotNumber),
-		UserPinPath:            cc.UserPinPath,
-		KeyLabel:               cc.KeyLabel,
-		KeyType:                x509.PublicKeyAlgorithm(cc.KeyType),
-		SignatureAlgo:          x509.SignatureAlgorithm(cc.SignatureAlgo),
-		SessionPoolSize:        2,
-		X509CACertLocation:     caOutPath,
-		CreateCACertIfNotExist: true,
-		Country:                cc.Country,
-		State:                  cc.State,
-		Locality:               cc.Locality,
-		Organization:           cc.Organization,
-		OrganizationalUnit:     cc.OrganizationalUnit,
-		CommonName:             cc.CommonName,
-		ValidityPeriod:         cc.ValidityPeriod,
-	}}, requireX509CACert, hostname, ips, uris, config.DefaultPKCS11Timeout, false)
+	signer, err := pkcs11.NewCertSign(ctx, cc.PKCS11ModulePath, []config.KeyConfig{keyConfigFromCAConfig(cc, caOutPath)},
+		requireX509CACert, hostname, ips, uris, config.DefaultPKCS11Timeout, false)
 	if err != nil {
 		log.Fatalf("unable to initialize cert signer: %v", err)
 	}

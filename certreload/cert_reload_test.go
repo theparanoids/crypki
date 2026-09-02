@@ -153,3 +153,77 @@ func TestMemCertReloader_Reload(t *testing.T) {
 		})
 	}
 }
+
+func TestMemCertReloader_Getters(t *testing.T) {
+	t.Parallel()
+
+	certPEM, err := os.ReadFile("testdata/client.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyPEM, err := os.ReadFile("testdata/client.key")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reloader, err := NewCertReloader(CertReloadConfig{
+		CertKeyGetter: func() ([]byte, []byte, error) {
+			return certPEM, keyPEM, nil
+		},
+		Logger: func(string, ...interface{}) {},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		assert.NoError(t, reloader.Close())
+	})
+
+	want, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// All three getters hand back the same cached certificate; the two TLS
+	// callback shapes exist only so they can be assigned to tls.Config.
+	latest, err := reloader.GetLatestCertificate()
+	assert.NoError(t, err)
+	assert.Equal(t, want.Certificate, latest.Certificate)
+
+	server, err := reloader.GetCertificate(&tls.ClientHelloInfo{})
+	assert.NoError(t, err)
+	assert.Same(t, latest, server)
+
+	client, err := reloader.GetClientCertificate(&tls.CertificateRequestInfo{})
+	assert.NoError(t, err)
+	assert.Same(t, latest, client)
+}
+
+func TestMemCertReloader_Close(t *testing.T) {
+	t.Parallel()
+
+	certPEM, err := os.ReadFile("testdata/client.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyPEM, err := os.ReadFile("testdata/client.key")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reloader, err := NewCertReloader(CertReloadConfig{
+		CertKeyGetter: func() ([]byte, []byte, error) {
+			return certPEM, keyPEM, nil
+		},
+		Logger: func(string, ...interface{}) {},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Close stops the background refresh and is safe to call more than once:
+	// the stop channel is closed under a sync.Once, so a second call must not
+	// panic on a double close.
+	assert.NoError(t, reloader.Close())
+	assert.NoError(t, reloader.Close())
+}

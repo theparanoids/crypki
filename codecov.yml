@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ignore: 
-  - "**/*.pb.go"     # ignore generated protos
-  - "**/*.pb.gw.go"  # ignore generated protos
+ignore:
+  - "**/*.pb.go"        # ignore generated protos
+  - "**/*.pb.gw.go"     # ignore generated protos
+  - "**/mock_*.go"      # ignore generated gomock doubles
+  - "**/*_mock.go"      # ignore generated gomock doubles
 
 coverage:
   status:
@@ -24,3 +26,13 @@ coverage:
         # for flaky test coverage calculation
         # https://docs.codecov.com/docs/common-recipe-list#ease-target-coverage
         threshold: 2%
+    patch:
+      default:
+        # The patch status has no target of its own, so it inherits "auto"
+        # and is measured against whatever the project currently sits at.
+        # That makes the bar for a change move for reasons that have nothing
+        # to do with the change. Pin it instead: most of a patch is expected
+        # to be covered, with room left for the error branches that are
+        # awkward to reach from a test.
+        target: 75%
+        threshold: 5%

@@ -58,3 +58,30 @@ func TestKeyConfigFromCAConfig(t *testing.T) {
 		t.Errorf("keyConfigFromCAConfig() = %+v, want %+v", got, want)
 	}
 }
+
+func TestGetIPs(t *testing.T) {
+	t.Parallel()
+
+	// Any host running the tests has at least a loopback interface, so the
+	// list is expected to be non-empty and to contain only usable addresses.
+	ips, err := getIPs()
+	if err != nil {
+		t.Fatalf("getIPs() returned error: %v", err)
+	}
+	if len(ips) == 0 {
+		t.Fatal("getIPs() returned no addresses")
+	}
+	loopback := false
+	for _, ip := range ips {
+		if ip == nil {
+			t.Error("getIPs() returned a nil address")
+			continue
+		}
+		if ip.IsLoopback() {
+			loopback = true
+		}
+	}
+	if !loopback {
+		t.Error("getIPs() returned no loopback address")
+	}
+}

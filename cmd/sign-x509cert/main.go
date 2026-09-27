@@ -34,6 +34,7 @@ import (
 	"github.com/theparanoids/crypki/pkcs11"
 	"github.com/theparanoids/crypki/proto"
 	"github.com/theparanoids/crypki/server/scheduler"
+	"github.com/theparanoids/crypki/x509cert"
 )
 
 var cfg string
@@ -92,7 +93,7 @@ func constructUnsignedX509Cert() *x509.Certificate {
 		IPAddresses:           csr.IPAddresses,
 		EmailAddresses:        csr.EmailAddresses,
 		URIs:                  csr.URIs,
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		KeyUsage:              x509cert.LeafKeyUsage(csr.PublicKeyAlgorithm),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}

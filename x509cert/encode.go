@@ -44,10 +44,20 @@ func DecodeRequest(req *proto.X509CertificateSigningRequest) (*x509.Certificate,
 		IPAddresses:           csr.IPAddresses,
 		EmailAddresses:        csr.EmailAddresses,
 		URIs:                  csr.URIs,
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		KeyUsage:              LeafKeyUsage(csr.PublicKeyAlgorithm),
 		ExtraExtensions:       x509ExtKeyUsage,
 		BasicConstraintsValid: true,
 	}, nil
+}
+
+// LeafKeyUsage returns the KeyUsage for a leaf certificate with the given public key algorithm.
+// KeyEncipherment only applies to RSA key transport; RFC 5480 (ECDSA) and RFC 8410 (Ed25519)
+// forbid it for other key types.
+func LeafKeyUsage(pka x509.PublicKeyAlgorithm) x509.KeyUsage {
+	if pka == x509.RSA {
+		return x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
+	}
+	return x509.KeyUsageDigitalSignature
 }
 
 // extKeyUsageToExtension returns []pkix.Extension from []x509.ExtKeyUsage.

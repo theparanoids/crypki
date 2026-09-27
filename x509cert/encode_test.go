@@ -96,6 +96,7 @@ func TestDecodeRequest(t *testing.T) {
 		expiryTime  uint64
 		eku         []int32
 		ext         []pkix.Extension
+		keyUsage    x509.KeyUsage
 		expectError bool
 	}{
 		"good-req": {
@@ -103,6 +104,7 @@ func TestDecodeRequest(t *testing.T) {
 			expiryTime:  3600,
 			eku:         goodEKU,
 			ext:         defaultEKU,
+			keyUsage:    x509.KeyUsageDigitalSignature,
 			expectError: false,
 		},
 		"good-req-crit": {
@@ -110,6 +112,7 @@ func TestDecodeRequest(t *testing.T) {
 			expiryTime:  3600,
 			eku:         goodEKUCrit,
 			ext:         critEKU,
+			keyUsage:    x509.KeyUsageDigitalSignature,
 			expectError: false,
 		},
 		"good-req-crit-noncrit": {
@@ -117,6 +120,7 @@ func TestDecodeRequest(t *testing.T) {
 			expiryTime:  3600,
 			eku:         goodEKUCritNonCrit,
 			ext:         critNonCritEKU,
+			keyUsage:    x509.KeyUsageDigitalSignature,
 			expectError: false,
 		},
 		"good-req-eku-all": {
@@ -124,12 +128,30 @@ func TestDecodeRequest(t *testing.T) {
 			expiryTime:  3600,
 			eku:         goodEKUAll,
 			ext:         ekuAll,
+			keyUsage:    x509.KeyUsageDigitalSignature,
 			expectError: false,
 		},
 		"good-req-empty-eku": {
 			csrFile:     "testdata/csr.pem",
 			expiryTime:  3600,
 			eku:         nil,
+			keyUsage:    x509.KeyUsageDigitalSignature,
+			expectError: false,
+		},
+		"good-req-rsa": {
+			csrFile:     "testdata/csr-rsa.pem",
+			expiryTime:  3600,
+			eku:         goodEKU,
+			ext:         defaultEKU,
+			keyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+			expectError: false,
+		},
+		"good-req-ed25519": {
+			csrFile:     "testdata/csr-ed25519.pem",
+			expiryTime:  3600,
+			eku:         goodEKU,
+			ext:         defaultEKU,
+			keyUsage:    x509.KeyUsageDigitalSignature,
 			expectError: false,
 		},
 		"bad-req-bad-csr": {
@@ -206,7 +228,7 @@ func TestDecodeRequest(t *testing.T) {
 				IPAddresses:           csr.IPAddresses,
 				EmailAddresses:        csr.EmailAddresses,
 				URIs:                  csr.URIs,
-				KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+				KeyUsage:              tt.keyUsage,
 				ExtraExtensions:       x509ExtKeyUsages,
 				BasicConstraintsValid: true,
 			}

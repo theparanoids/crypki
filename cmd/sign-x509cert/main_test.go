@@ -4,9 +4,12 @@
 package main
 
 import (
+	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -55,6 +58,13 @@ func writeCSR(t *testing.T, template *x509.CertificateRequest) string {
 	if err != nil {
 		t.Fatalf("failed to generate key: %v", err)
 	}
+	return writeCSRWithKey(t, template, key)
+}
+
+// writeCSRWithKey writes a certificate request signed by key and returns its path.
+func writeCSRWithKey(t *testing.T, template *x509.CertificateRequest, key crypto.Signer) string {
+	t.Helper()
+
 	der, err := x509.CreateCertificateRequest(rand.Reader, template, key)
 	if err != nil {
 		t.Fatalf("failed to create CSR: %v", err)
@@ -121,8 +131,8 @@ func TestConstructUnsignedX509Cert(t *testing.T) {
 	if !cert.BasicConstraintsValid {
 		t.Error("BasicConstraintsValid = false, want true")
 	}
-	if cert.KeyUsage != x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature {
-		t.Errorf("KeyUsage = %v, want KeyEncipherment|DigitalSignature", cert.KeyUsage)
+	if cert.KeyUsage != x509.KeyUsageDigitalSignature {
+		t.Errorf("KeyUsage = %v, want DigitalSignature", cert.KeyUsage)
 	}
 	wantExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
 	if !reflect.DeepEqual(cert.ExtKeyUsage, wantExtKeyUsage) {
@@ -138,5 +148,45 @@ func TestConstructUnsignedX509Cert(t *testing.T) {
 	wantValidity := time.Duration(validityDays)*24*time.Hour + time.Hour
 	if gotValidity != wantValidity {
 		t.Errorf("validity window = %v, want %v", gotValidity, wantValidity)
+	}
+}
+
+// TestConstructUnsignedX509CertKeyUsage reads the package level csrPath, so it
+// cannot run in parallel with anything else that touches it.
+func TestConstructUnsignedX509CertKeyUsage(t *testing.T) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ed25519Key, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := map[string]struct {
+		key  crypto.Signer
+		want x509.KeyUsage
+	}{
+		"rsa":     {key: rsaKey, want: x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment},
+		"ecdsa":   {key: ecdsaKey, want: x509.KeyUsageDigitalSignature},
+		"ed25519": {key: ed25519Key, want: x509.KeyUsageDigitalSignature},
+	}
+
+	oldCSRPath := csrPath
+	t.Cleanup(func() { csrPath = oldCSRPath })
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			template := &x509.CertificateRequest{Subject: pkix.Name{CommonName: "foo.example.com"}}
+			csrPath = writeCSRWithKey(t, template, tt.key)
+
+			cert := constructUnsignedX509Cert()
+			if cert.KeyUsage != tt.want {
+				t.Errorf("KeyUsage = %v, want %v", cert.KeyUsage, tt.want)
+			}
+		})
 	}
 }

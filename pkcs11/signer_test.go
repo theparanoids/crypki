@@ -262,7 +262,7 @@ func TestSignSSHCert(t *testing.T) {
 			if err != nil {
 				return
 			}
-			cc := &ssh.CertChecker{SupportedCriticalOptions: []string{"force-command"}}
+			cc := &ssh.CertChecker{SupportedCriticalOptions: []string{"force-command", "source-address"}}
 			pk, _, _, _, err := ssh.ParseAuthorizedKey(data)
 			if err != nil {
 				t.Fatalf("unable to parse key from signed cert: %v", err)

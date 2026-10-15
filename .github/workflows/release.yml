@@ -13,9 +13,11 @@
 # limitations under the License.
 
 name: Create Release and Upload Binaries
-# run only on tags
+# run on merges to main (tags the next patch version) and on manually pushed tags
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
@@ -26,12 +28,44 @@ permissions:
 env:
   GO_VERSION: 1.26.2
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
+  tag:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Push next patch tag
+        id: next
+        run: |
+          if [ -n "$(git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*')" ]; then
+            echo "HEAD is already tagged, skipping"
+            exit 0
+          fi
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          IFS=. read -r major minor patch <<< "${latest#v}"
+          tag="v${major}.${minor}.$((patch + 1))"
+          git tag "$tag"
+          git push origin "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: tag
+    # a tag pushed with GITHUB_TOKEN does not trigger a new run, so release it here
+    if: ${{ !failure() && !cancelled() && (github.ref_type == 'tag' || needs.tag.outputs.tag != '') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ needs.tag.outputs.tag || github.ref }}
           fetch-depth: 0 # this is important, otherwise it won't checkout the full tree (i.e. no previous tags)
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
